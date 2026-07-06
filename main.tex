@@ -1,0 +1,246 @@
+\def\llncs{0}     % 0 = not llncs; 1 = llncs
+\def\showoverflow{0}% 1 = show overflows when llncs=1
+\def\setmargin{0}   % 0 = do not set; 1 = set
+% it sets via latex. Instead set via pdf directly
+\def\papertype{0}   % 0 = letter; 1 = a4;
+\def\myfontsize{1}  % 0 = 10pt; 1 = 11pt; 0 is what llncs uses;
+\def\savespace{0}   % 0L = do not save space; 1 = save space
+% use times font
+
+\def\anonymous{0}   % 0 = non-anonymous; 1 = anonymous
+\def\addtoc{0}      % 0 = exclude TOC; 1 = include TOC
+\def\fullversion{2} % 0 = short version; 1 = full version
+\def\submission{0}  % 0 = normal version; 1 = submission version
+
+
+\def\instplace{0}
+\def\authnotes{1}   % 0 = authnotes off; 1 = authnotes on
+
+
+\ifnum\llncs=1 
+  \ifnum\papertype=0
+    \ifnum\myfontsize=0s
+      \ifnum\showoverflow=1
+        \documentclass[twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \else
+      \ifnum\showoverflow=1
+        \documentclass[11pt,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[11pt,twoside,envcountsame,runningheads]{llncs}
+      \fi
+      \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
+    \fi
+  \else
+    \ifnum\myfontsize=0
+      \ifnum\showoverflow=1
+        \documentclass[a4paper,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[a4paper,twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \else
+      \ifnum\showoverflow=1
+        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \fi
+  \fi
+\else
+  \ifnum\papertype=0
+    \ifnum\myfontsize=0
+      \documentclass[twoside]{article}
+    \else
+      \documentclass[11pt,twoside]{article}
+      %LOOK HERE
+      %\usepackage[letterpaper,hmargin=0.68in,vmargin=0.58in]{geometry}
+      \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
+    \fi
+  \else
+    \ifnum\myfontsize=0
+      \documentclass[a4paper,twoside]{article}
+    \else
+      \documentclass[11pt,a4paper,twoside]{article}
+    \fi
+  \fi
+\fi
+
+\iffalse
+%sarah's hacks; comment out as desired
+\usepackage{titlesec}
+\usepackage{tikz}       % for drawing diagrams (Figures 1 and 2)
+\usetikzlibrary{arrows.meta, positioning} % for arrows and node placement
+
+\usepackage{array}       % for table column formatting
+\usepackage{booktabs}    % nicer table lines (optional, cleaner than \hline)
+\usepackage{graphicx}   
+\floatsep=3pt plus1pt minus2pt
+%\dblfloatsep=\floatsep
+%\textfloatsep=6pt plus5pt minus2pt
+%\dbltextfloatsep=\textfloatsep
+%\abovecaptionskip=3pt
+\beforetitleunit=6pt plus12pt minus2pt
+%\aftertitleunit=3pt plus3pt minus1pt
+\aftertitleunit=\beforetitleunit
+\titlespacing*\section{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\subsection{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\subsubsection{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\paragraph{0pt}{\beforetitleunit}{1em}
+\fi
+
+
+\usepackage{xspace}
+\usepackage{graphicx,rotating}
+%\usepackage{graphicx,pstricks,rotating}
+
+\ifnum\savespace=1
+\usepackage{times}
+\fi
+
+\usepackage[normalem]{ulem}
+\useunder{\uline}{\ul}{}
+
+
+\usepackage{url}
+%\usepackage{latexsym}
+\usepackage{amscd,amsfonts,amsmath,amssymb}
+
+\usepackage{color}
+\usepackage{longtable}
+\usepackage{multirow,setspace}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup[table]{skip=10pt}
+
+\ifnum\llncs=1
+  \usepackage[dvips]{graphics}
+\else
+  \ifnum\anonymous=0
+    \usepackage[%dvips,
+    pdftitle={},
+    pdfauthor={},
+    pdfpagelabels=true, linktocpage=true,
+    pagebackref,% references from biblio to pages where cited
+    pdftex]{hyperref}
+  \else
+    \usepackage[%dvips,
+    pdftex,
+    pdftitle={},    pdfauthor={}, pdfpagelabels=true, linktocpage=true]{hyperref}
+  \fi
+\fi
+
+% --- -----------------------------------------------------------------
+% --- Page styles
+% --- -----------------------------------------------------------------
+
+\ifnum\setmargin=1
+  \ifnum\papertype=1
+    % a4 paper size
+    \setlength{\textwidth}{16.0cm}
+    \setlength{\textheight}{23.0cm}
+    \setlength{\evensidemargin}{-0.04cm}
+    \setlength{\oddsidemargin}{-0.04cm}
+    \setlength{\topmargin}{-0.5cm}
+    \setlength{\headheight}{0.5cm}
+  \else
+    % letter paper size
+       \ifnum\submission=0
+    \setlength{\evensidemargin}{-0.1in}
+    \setlength{\oddsidemargin}{-0.1in}
+    \setlength{\textwidth}{6.8in}
+    \setlength{\textheight}{9.4in}
+    \setlength{\topmargin}{-0.35in}
+    \setlength{\headheight}{0in}
+    \setlength{\headsep}{0in}
+    \setlength{\footskip}{0.5in}
+       \else
+    \setlength{\evensidemargin}{-0.2in}
+    \setlength{\oddsidemargin}{-0.2in}
+    \setlength{\textwidth}{6.8in}
+    \setlength{\textheight}{9.5in}
+    \setlength{\topmargin}{-0.3in}
+    \setlength{\headheight}{0in}
+    \setlength{\headsep}{0in}
+    \setlength{\footskip}{0.4in}
+       \fi
+  \fi
+\fi
+% --------- Add these once in your preamble ----------
+% ---- Add these once in your preamble ----
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+
+\usepackage[most]{tcolorbox}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\tcbset{colback=white,colframe=black,boxrule=0.6pt,left=4pt,right=4pt,top=4pt,bottom=4pt,arc=1pt,outer arc=1pt}
+
+% -----------------------------------------------------
+ 
+% --- -----------------------------------------------------------------
+% --- Document-specific definitions.
+% --- -----------------------------------------------------------------
+
+\input{header}
+% --- -----------------------------------------------------------------
+% --- The document starts here.
+% --- -----------------------------------------------------------------t
+\pagenumbering{gobble}
+\begin{document}
+% --- hard-disable both printing and extra margin from lineno ---
+
+% in your header.tex or at the very end of main.tex, AFTER all packages
+
+
+\input{abstract}
+
+\vspace{-30mm}
+\input{intro}
+\input{cons}
+\input{enc}
+\input{auth}
+\input{accomplishments}
+\input{schd}
+
+% --- -----------------------------------------------------------------
+% --- The Bibliography.
+% --- -----------------------------------------------------------------
+
+
+% For final copy, edit main.bbl by adding the command
+% \setlength{\parskip}{-1pt}
+% right after the \begin{bibliography}{10} command. This will make a more
+% compact and prettier bib.
+\ifnum\savespace=0
+%\begin{small}
+
+\bibliographystyle{alpha}
+\bibliography{abbrev3,crypto,extra,extra2}
+
+\def\shortbib{1}
+% \bibliographystyle{alpha}
+% \bibliography{abbrev,crypto}
+%\end{small}
+\else
+%\begin{small}
+\def\shortbib{1}
+\bibliographystyle{abbrv}
+
+\bibliography{cryptobib/abbrev3,cryptobib/crypto,cryptobib/extra,cryptobib/extra2}
+
+
+%\end{small}
+ \fi
+
+% --- -----------------------------------------------------------------
+% --- The Appendix.
+% --- -----------------------------------------------------------------
+\appendix
+\end{document}

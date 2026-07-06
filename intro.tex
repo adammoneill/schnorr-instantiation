@@ -1,0 +1,430 @@
+% !TEX root = main.tex
+\section{Introduction}
+
+
+%his work seeks to advance the mathematical foundations of  abstract models of computation called``idealized models'' in  the analyses of cryptographic schemes that have eluded such efforts. For example, proofs in idealized models only tenuously correspond to reality, and thus create the possibility that the real scheme is insecure. We will consider  a number of such models, including the random oracle (RO) model~\cite{CCS:BelRog93}, generic group model (GGM)~\cite{EC:Shoup97}, generic group action model~\cite{ITCS:Zhandry24}, ideal authenticated encryption model~\cite{C:BarFar18}, ideal public-key encryption model~\cite{C:ZhaZha20}, and more. 
+
+\subsection{Background and Overview}
+Security proofs in  modern cryptography often rely on \emph{idealized models} like the random oracle model (ROM) ~\cite{CCS:BelRog93},  generic group model (GGM)~\cite{EC:Shoup97}, or algebraic group model (AGM)~\cite{C:FucKilLos18}. Such abstractions have enabled tremendous progress on the analysis of standardized and widely-deployed schemes for which proofs in the standard (idealization-devoid) model remain elusive. However, they are still not well-understood. In particular, they raise a fundamental question:
+\begin{ques}
+How well do the guarantees these  models  provide capture real-world security of the schemes being analyzed?
+\end{ques}
+We will focus on the ROM, a model of computation that models  hash functions as a ``black-boxes'' that can be queried by all parties and implement truly random functions. There are two major issues to deal with here:
+\begin{newenum}
+    \item \textbf{Lack of tightness:} Security proofs can incur a substantial loss in  success probability of the assumed adversary against the scheme,  requiring  inflated parameter choices for the scheme that remain  unjustified from a practical point of view. %In other words, a tight would eliminate any unnecessary slack in a security proof.
+    \item \textbf{Lack of instantiability:} Security may collapse once random oracles  used by a scheme are replaced with actual hash functions like $\mathsf{SHA256}$, as shown by a line of work demonstrating contrived and, recently, alarmingly natural counter-examples~\cite{C:FieLan25,KRS25}.
+\end{newenum}
+We will focus on the core schemes used in practice for which these issues remain problematic, such as Schnorr signatures~\cite{C:Schnorr89}  and the Fujisaki–Okamoto encryption transform~\cite{JC:FujOka13}. These schemes underpin today's cryptographic ecosystem from TLS to  Bitcoin to NIST post-quantum schemes and beyond. Yet their current proof either (a) require inflating  parameters far beyond standard practice, and/or (b) do not justify that replacing the random oracles with real hash functions preserves security. Closing these gaps would strengthen our confidence in these schemes.  %from TLS and Bitcoin to NIST post-quantum cryptography.
+
+By  building on new paradigms introduced in our prior work at CRYPTO 2025 and ASIACRYPT 2022, our project aims to address both issues:
+\begin{newenum}
+\item For tightness, we will introduce new \emph{``circular''  hardness assumptions} (extending   circular discrete-log  from CRYPTO 2025) and show they yield tight ROM proofs for high-profile descendants of Schnorr such as the threshold Schnorr signatures $\mathsf{Sparkle+}$~\cite{C:CriKomMal23}, post-quantum signature scheme $\mathsf{Dilithium}$~\cite{Dilithium}, and succinct argument system $\mathsf{Bulletproofs}$~\cite{Bulletproofs}. We will justify our new assumptions in appropriate idealized models.
+\item	For instantiability, we will develop new techniques for \emph{extremely lossy functions} (ELFs)~\cite{C:Zhandry16}, which  move their relevance from theory-oriented schemes to ones ubiquitous in practice today. We will  use our techniques  to  instantiate Schnorr signatures and the Fujisaki–Okamoto ($\mathsf{FO}$) transform --- the latter underpins NIST PQC and other standards like  HPKE~\cite{rfc9180}. % and higher-level schemes like $\mathsf{X}\mbox{-}\mathsf{Wing}$~\cite{xwing1}.
+\end{newenum}
+In summary, the project aims to address long-standing theory–practice gaps by providing   guarantees that align more closely with real-world usage. Concretely, our results will guide NIST, standards bodies, blockchain consortia, and industry on parameter selection and hash-function design.
+%Moreover, our work can help vet  long-term security of  schemes \emph{before} they are  deployed. 
+
+
+
+ %Tightness of a security proof (whether in an idealized model or not) tell us what key-length a scheme must have for a desired level of security. That is, if the a proof is  ``loose,''  we must compensate by  increasing key-length, often beyond what  cryptanalysis suggests is  needed. Since this would significantly affect performance, practitioners  opt to just ignore the issue. This leaves open the possibility of surprise attacks on the scheme and is particularly relevant in idealized models, which are oriented towards practical use.
+%Instantiability refers to whether the objects being ``idealized'' in these  idealized models, like hash functions (in the case of the ROM) or groups (in the case of the GGM), can be securely replaced using short public code like that of $\mathsf{SHA256}$ or an elliptic-curve group, as is done in practice. Indeed, unless an idealized-model security proof is supplemented with such an instantiability result, we have no real evidence that the proof should hold up in the real world.
+  %A securi proof, which is really a reduction, is called ``tight'' if it  preserves the success probability and running time of the assumed  adversary breaking a scheme. Tightness is critical for setting a cryptographic scheme's concrete parameters --- for instance, key sizes in signature schemes --- without introducing seemingly unnecessary performance overhead. In many security proofs in idealized models, the  reduction is unfortunately  loose, meaning that for the proof to apply they require significantly larger parameters for the scheme than cryptanalysis would suggest. In other words, even if we buy that an idealized model is sound for the analysis of a scheme, the resulting guarantees may be too quantitatively weak to be applicable to the scheme in practice.
+
+\iffalse
+\fi 
+%While practitioners heavily rely on proofs in such models, the models remain poorly understood. First,  for schemes with security proofs in these models, we sometimes do not understand when we may safely use optimal key-length in not. In particular, to support optimal key-length we need to give a  ``tight'' security proof in the relevant idealized model.  Second, we do not understand when proofs in these models  plausibly hold up in practice. In particular, to lend plausibilty here we need to give an ``instantiation'' of the scheme showing that the object under idealization  may be securely replaced by some efficient realization.  Addressing these gaps in our knowledge is crucial from a foundational perspective and to enable sound cryptographic practice. 
+%To make substantial progress, we will focus squarely  on the ROM, the most widely-used idealized model. In particular, we  will pinpoint  two deficiencies of many proofs in the ROM, lack of \emph{tightness} and  \emph{instantiability}, which substantially weaken the guarantees provided by these proofs.
+%In the proposed work, we will systematically address these issues by giving the first tight security proofs, as well as instantiability results, for a handful of widely-used schemes in the ROM. 
+%Notably, some of our results will circumvent  existing negative ones, making them all the more relevant.
+%Corresponding to tightness and instantiability, our proposal has two respective thrusts. As these issues are impossible to resolve in generality, within each thrust we have key  case studies. In the \textbf{first thrust}, we  ask: Do schemes derived via the Fiat-Shamir transform~\cite{},  in particular  Schnorr signatures~\cite{}, have \emph{tight} security proofs in the ROM, and if so   under what assumptions? In the \textbf{second thrust}, we  ask: Can the Schnorr signatures, as well as ROM encryption ``transforms'' such as the Fujisaki-Okamoto  transform~\cite{JC:FujOka13},  be \emph{instantiated} in the standard model, and if so under what assumptions?
+  
+  % From a technical perspective, we ask if \emph{extremely lossy functions}~\cite{C:Zhandry16} are useful in these settings. %Beyond the ROM, we will also study ``cross-cutting'' approaches to instantiability that apply to a broad range of idealized models, including the generic group model~\cite{}, generic group action model~\cite{}, and ideal public-key encryption model~\cite{}.   %(3) In the \textbf{third thrust}, we ask: Can we construct groups and other algebraic objects that satisfy new notions  we need for tightness and instantiability results in princple, under well-studied hardness assumptions?  Indeed, 
+
+%As forthcoming cryptographic standards (\emph{e.g.}, for post-quantum encryption and threshold Schnorr signatures) continue to rely on proofs in the ROM, the gap between theory and practice is  growing. Accordingly, our results will directly inform choices about deployed schemes, reduce risk of subtle security failures, and yield broadly usable frameworks improving results in the ROM. %and suggesting potential modifications that would further improve their security. %This dovetails on our cross-cutting approaches above and is a fundamental question to lend plausibility to the idealized models in general. % More generally, we seek to ``bootstrap'' a group satisfying a weak assumption into one satisfying a strong assumption, \emph{e.g.} by using programa obfuscation.   
+\iffalse 
+
+
+⸻
+
+This thrust explores whether there exist any cross-cutting frameworks that can meaningfully capture what it means for a real-world primitive to behave “like” an idealized object. Specifically, we investigate whether structural properties—such as unpredictability or algebraic constraints—can serve as a basis for generalizing the Universal Computational Extractor (UCE) framework beyond hash functions to algebraic and higher-level cryptographic primitives. The goal is not to explain the security of any particular scheme, but to identify whether coherent abstractions exist that formalize this notion of idealized-model-like behavior. Even partial frameworks of this kind would offer conceptual clarity and, crucially, allow heuristic instantiations—such as elliptic-curve groups in the case of the Generic Group Model—to be rigorously analyzed for whether they exhibit the structural properties idealized models assume. We also suggest initial potential applications to subversion-resistant SNARKs and to the DHIES encryption scheme.
+\fi
+
+
+\subsection{Our Focus: ROM Tightness and Instantiability}  \label{sec-tight-inst}
+
+%For most of its history, cryptography was a cat-and-mouse game in which an ingenious cryptographer designed a scheme that was only to  be broken by another ingenious cryptographer.  Modern cryptography, however, is not a cat-and-mouse game.   
+%In the 1980s, Blum, Goldwasser, Micali, and others~\cite{C:Blum81,GolMic84} had the revolutionary idea that to establish security of a scheme one should devise  a \emph{reduction}, \emph{i.e.}, a mathematical proof that reduces security of the scheme to some computationally-hard problem like factoring.  This means that an attacker against the scheme might as well \emph{only} focus on factoring, which has been open at least since the time of  Gauss.
+
+%Some  plausibly-secure schemes, especially ones designed aggressively to meet practical constraints, have resisted security proofs (which are really reductions to  underlying hardness assumptions like factoring). Prominent examples include  signature schemes obtained via the  
+% Fiat-Shamir transform~\cite{C:FiaSha86},  in particular Schnorr signatures~\cite{C:Schnorr89
+% }.  These are widely-used, usually in the form of EdDSA~\cite{eddsa}, \emph{e.g.}, in TLS, Signal, and in Bitcoin since the Taproot soft-fork upgrade \cite{add:BIP340}. Currently, its security proofs require \emph{idealized models} that  ``abstract''  part of the computation.  The best-known such model is the \emph{random oracle  model} (ROM)~\cite{CCS:BelRog93}, which abstracts a hash function by giving everyone black-box (``oracle'') access to the same \emph{random} function (or  multiple such functions). 
+% Beyond hash functions, idealized models  can abstract out \emph{algebraic} structures, such as in the \emph{generic (bilinear) group model} (GGM)~\cite{Nechaev94,EC:Shoup97,IMA:Maurer05,EC:BonBoyGoh05,C:Zhandry22b} and \emph{algebraic group model} (AGM)~\cite{C:FucKilLos18,C:Zhandry22b,TCC:LipParSii23}.  roughly speaking, in the GGM everyone has access to the same random group. Finally, idealized models can abstract out entire higher-level primitives (which could then be constructed out of lower-level ones) such as \emph{authenticated encryption} (AE)~\cite{C:BarFar18}, \emph{signature schemes}~\cite{EPRINT:ZhaZho21}, and \emph{public-key encryption} (PKE)~\cite{C:ZhaZha20}. For example, in the ideal PKE model, everyone has access to functions $K,E,D$ (key-generation, encryption, and decryption) that are random subject to  the  correctness condition. 
+%In this case, the motivation  is to \emph{construct} schemes mimicking the idealized object using ``weaker'' idealized models like the ROM.
+%Despite widespread success of the ROM in moving the provable security to cryptographic practice, two thorny issues remain: lack of \emph{tightness} and \emph{instantiability}. We explain these in turn. %We certainly do not claim these issues are novel, but they are not paid enough attention and and unresolved in important cases of immense practical interest that we will address.
+
+We explain tightness and instantiability in more detail. In short: \emph{Tightness means proofs justify practical key sizes; instantiability means ROM schemes remain secure with real hash functions.} 
+
+\heading{Tightness.} A security proof is  a reduction from the security of a scheme to hardness of solving an underlying  problem.  In other words, supposing we have an adversary $\advA$ that breaks the scheme, we want to build an adversary $\advB$ that breaks the underlying problem. If the reduction is \emph{loose} --- meaning $\advB$'s success probability is lower, or $\advB$'s running-time is higher, than that of $\advA$ ---  we must make key-size \emph{larger} to compensate. The importance of tightness --- particularly in the ROM --- was  established by Bellare and Rogaway,  \emph{e.g.}~\cite{CCS:BelRog93,EC:BelRog94,EC:BelRog96}, and has been widely studied since.  To further underscore the importance of tightness, Koblitz \emph{et al.}~\cite{SAC:ChaMenSar11} point out natural  schemes with loose ``multi-user'' security that have attacks on them when   parameters are  set according to their ``single-user'' security proofs; contrived examples are given in~\cite{EC:BelBolMic00}.
+
+%A lot ohas been done since then on tightness, both in the ROm and in general.
+
+
+Yet proving tight security is  challenging, even in the ROM. At the same time,  cryptanalysis may indicate   a tight  proof would likely reflect the ground truth. For example, decades of cryptanalysis suggest Schnorr signatures face no better attack than discrete-log (DL).
+But for the  ROM security proof of~\cite{EC:PoiSte96} under DL to guarantee 128-bits of security based on the best attacks \emph{against DL}, the order of the group would  need to be $768$-bits.  Practitioners  heuristically use $256$-bits instead, based on the best attacks against \emph{the scheme}.
+While one can appeal to the algebraic group model (AGM)~\cite{C:FucKilLos18,EC:FucPloSeu20} to justify this, we want to avoid this crutch. 
+
+\heading{Instantiability.} When a scheme in the ROM is implemented, one \emph{instantiates} it by replacing  its random oracles with  cryptographic hash functions like $\mathsf{SHA256}$. The hope is that the resulting scheme is secure in the standard model.  Unfortunately, this hope turns out  naive;
+%Unfortunately, this methodology unsound in that %$ , meaning that one can construct artificial examples of schemes  secure in the RO model for which \emph{any} instantiation is insecure.  F
+ a line of work starting with Canetti \emph{et al.}~\cite{JACM:CanGolHal04} shows it can fail: there are \emph{uninstantiable} (though contrived) schemes secure in the ROM but \emph{insecure} when instantiated with \emph{any} concrete hash function.  %In fact, uninstantiability results are common for all  idealized models, see 
+%\emph{e.g.}~\cite{JACM:CanGolHal04,AC:Dent02,FSE:Black06,SCN:GKMZ16,C:Zhandry22b}. %For specific and prominent or newly proposed schemes, we thus want to show \emph{instantiability}, meaning we can replace the idealized object in the scheme's analysis with some short, public code while retaining a security proof. This demonstrates that when using a heuristic instantiation (such as $\mathsf{SHA256}$  in the case of the RO model) in practice, the goal is at least plausible. This lack of knowledge in this regard \emph{prevents fundamental insights} that proofs in idealized models obscure. Such insights can provide greater  security assurance, a new angle for comparing  schemes, and design modifications that  can improve security without damaging efficiency; \emph{e.g.}, see~\cite{AC:MurONeZah22,EPRINT:BCEKM23} for such modifications to the Fujisaki-Okamoto transformation~\cite{JC:FujOka13}.
+Alarmingly, recent work~\cite{C:FieLan25,KRS25} even shows uninstantiability of  natural schemes.
+
+Thus, there is an urgent need to show that popular ROM schemes are 
+\emph{instantiable}. We ultimately aim for results based on hash function 
+properties that (1) admit realizations in principle from well-studied 
+assumptions (though not intended for use in practice) \emph{and} (2) could be plausibly
+satisfied by cryptographic hashing. Prior work that has taken this approach includes work on correlation intractability~\cite{JACM:CanGolHal04,
+TCC:CanCheRey16,EC:CCRR18,STOC:CCHLRRW19}, extractability~\cite{ICALP:CanDak08,
+TCC:CanDak09,ITCS:BCCT12}, perfect one-wayness~\cite{C:Canetti97,STOC:CanMicRei98,
+EC:Fischlin99}, seed incompressibility~\cite{TCC:HalMyeRac08}, non-malleability~
+\cite{AC:BCFW09,RSA:BaeFisSch11}, and universal computational extractors (UCE)~
+\cite{C:BelHoaKee13,C:BrzFarMit14,C:BelHoaKee14}. An alternative approach we also consider is to 
+\emph{directly} construct a ``structured'' hash function out of various primitives to instantiate a  
+scheme. For example, work on instantiating full-domain hash signatures~\cite{CCS:BelRog93} takes this approach~\cite{EC:HohSahWat14,AC:BoyPas15,C:Zhandry16}.
+
+\heading{Why ROM tightness?}
+We study tightness \emph{in the ROM}. The reader might wonder: \emph{Wouldn’t tight instantiability results be better?} While tight standard-model results are the ultimate goal,  ROM tightness  is the more basic concern. Such results are still missing and would be be quite meaningful: if there is a  tight ROM  proof for a scheme under assumption $\mathsf{X}$ and we find an attack against the instantiated  scheme   that cannot be used to break $\mathsf{X}$, we have found something very surprising about  \emph{e.g.}~$\mathsf{SHA256}$! Moreover, in the case that an instantiability result  relies on a structured hash function built from public-key (\emph{e.g.}~group-theoretic)  assumptions,  the practical significance of tight a reduction  is   unclear. We thus see ROM tightness as \emph{complementary} to  instantiability.
+ 
+ %By contrast, instantiability results using properties of the hash function that could plausibly hold for cryptographic hashing could benefit from a tight ROM analysis if the best attacks on the property for \emph{e.g.}~$\mathsf{SHA256}$ can be studied. To scope the project, we therefore prioritize tight ROM proofs and leave tightness for the instantiability step to future work.
+
+%We will consider both approaches in our work. %The first approach is preferring in that it can give new design criteria for cryptography hashing, but the second approach is also reasonable. % We follow a mix of these approaches in the proposed work, as appropriate. % Rather than directly instantiate specific schemes, another line of work  formulates new higher-level \emph{abstractions} for hash functions and specific realizations thereof, which can instantiate the RO model in broad settings. 
+%The GGM is used  to both analyze  schemes~\cite{} as well as to justify assumptions~\cite{}, while the AGM is often used to analyze  succinct arguments~\cite{} and multisignatures~\cite{}
+%The GGM and AGM offer a complementary view of Schnorr signatures to the RO model, as the scheme uses a group in addition to a hash function. 
+ %he goal is to give constructions neeting ``indifferentiability''~\cite{TCC:MauRenHol04}. 
+%Instantiability of such models has not been explored.  %Such PKE has been  achieved (in the sense of indifferentiabilty~\cite{TCC:MauRenHol04}) in weaker idealized models, but their instantiability has not been explored. 
+%As of now, prominent  protocols proven in idealized models have withstood decades of  cryptanalysis, yet their security proofs  suffer two key drawacks. 
+
+\iffalse
+\heading{Uninstantiability.} Another vexing   issue is that  idealized models are subject to \emph{uninstantiablility}~\cite{JACM:CanGolHal04,AC:Dent02,FSE:Black06,SCN:GKMZ16,C:Zhandry22b}, meaning that one can construct artificial examples of secure schemes in these  models for which \emph{any} instantiation is insecure.  For example,  Canetti \emph{et al.}~\cite{JACM:CanGolHal04} gave encryption and signatures schemes that are secure in the ROM yet  are insecure when the RO is replaced by \emph{any} efficient and public function, let alone $\mathsf{SHA256}$. For specific and prominent or newly proposed schemes, we thus want to show \emph{instantiability}, meaning we can replace the idealized object in the scheme's analysis with some short, public code while retaining a security proof. This demonstrates that when using a heuristic instantiation (such as $\mathsf{SHA256}$  in the case of the ROM) in practice, the goal is at least plausible. This lack of knowledge in this regard \emph{prevents fundamental insights} that proofs in idealized models obscure. Such insights can provide greater  security assurance, a new angle for comparing  schemes, and design modifications that  can improve security without damaging efficiency; \emph{e.g.}, see~\cite{AC:MurONeZah22,EPRINT:BCEKM23} for such modifications to the Fujisaki-Okamoto transformation~\cite{JC:FujOka13}.
+
+Prior work shows instantiability results for a number of schemes or transforms of interest, mostly in the case of the ROM.  For example, the PI's recent work instantiates RSA-OAEP on the Fujisaki-Okamoto transform~\cite{JC:KilONeSmi17,PKC:CaoONeZah20,AC:MurONeZah22}.  Other work~\cite{EC:HohSahWat14,AC:BoyPas15,C:Zhandry16} does the same for RSA-FDH. Rather than directly instantiate specific schemes, another line of work  formulates new higher-level \emph{abstractions} for hash functions and specific realizations thereof, which can instantiate the ROM in broad settings. This includes work on correlation intractability~\cite{JACM:CanGolHal04,TCC:CanCheRey16,EC:CCRR18,STOC:CCHLRRW19}, extractability~\cite{ICALP:CanDak08,TCC:CanDak09,ITCS:BCCT12}, perfect one-wayness~\cite{C:Canetti97,STOC:CanMicRei98,EC:Fischlin99}, seed incompressibility~\cite{TCC:HalMyeRac08}, non-malleability~\cite{AC:BCFW09,RSA:BaeFisSch11}, and universal computational extractors (UCE)~\cite{C:BelHoaKee13,C:BrzFarMit14,C:BelHoaKee14}. %To show the general assumptions are plausible, they show such hash functions exist under suitable assumptions.% As an example, consider the line of work on \emph{correlation-intractability} (CI) for hash functions~\cite{},  a form of which suffices to instantiate non-interactive zero-knowledge proofs (NIZKs) based on the Fiat-Shamir tranform~\cite{C:FiaSha86}. Moreover, this form of CI is plausible for, \emph{e.g.}, $\mathsf{SHA256}$, as it can also be achieved in theory~\cite{}. 
+\fi
+
+ \iffalse
+However this prior work  falls short in several respects, reflecting the complex and multi-faced nature of the above question:
+\begin{enumerate}
+    \item While we have many instantiability results for the ROM, we lack  such results for the GGM, AGM, and more. A related problem is that we have no standard-model (idealized-model-devoid)  framework that  captures assumptions used for  cutting-edge  schemes, such as $\mathsf{KOALA}$~\cite{PKC:BeuWee19,TCC:AgrWicYam20}, meaning such that $\mathsf{KOALA}$ is a special case.  %We also lack any  instantiations for other idealized models such as the ideal AE and ideal PKE models.  
+ \item We  lack instantiability results for the celebrated RO-model Fiat-Shamir transform~\cite{C:FiaSha86} in the case of 
+\emph{signature schemes}, particularly the  Schnorr signature scheme
+ ~\cite{C:Schnorr89}. The same holds for \emph{threshold} versions of the scheme currently  being considered by NIST for standardization~\cite{nistmpc,nist:schnorr}.  Relatedly, we also do not know \emph{tight} security proofs  \emph{in the ROM},  meaning current proofs do not support the size of the underlying group used in  practice.
+\item Prior constructions of  groups~\cite{PKC:AgrHof18,EC:AgrHofKas20}  meant to demonstrate feasibility of advanced group-based assumptions  do not have \emph{unique representation}: an element can be represented by multiple bitstrings. This leaves open the possibility that such constructions having unique representation are impossible.  However, unique representation  is a key property of groups used in practice and is needed to implement Schnorr signatures, for example.   
+\end{enumerate}
+
+\fi
+%We clarify that we do not address the design of \emph{alternative} schemes to ones that rely on idealized models.  Indeed, such schemes rarely get used in practice.
+
+%Note that the grant touches on aspects of idealized models that are of independent interest.  %We also note that a limitation of idealized models is that there is so such model for algebraic lattices.  While this is unfortunate, it  nevertheless remains crucial to study schemes in use \emph{today}. 
+
+ %In the GGM, everyone has access to the same random group, which in  practice is  instantiated with an appropriate elliptic-curve group. In the AGM, algorithms are given genuine (not random-looking) elements from the underlying group, but group elements they outputs need to be ``explained'' in terms of the ones they were given given.   The GGM has become a popular way to justify new assumptions and  directly  prove schemes secure, whereas the AGM is mainly used for the latter. (3) Prior  constructions of groups where advanced assumptions (such as the Uber assumption~\cite{})  hold  suffer from \emph{non-unique element representation}.  This means different bitstrings may encode the ``same'' group element, which prevents implementing even simple schemes like Schnorr signatures.  %A related issue is that even in idealized models, security proofs for Schnorr signatures are not \emph{tight}, meaning they do not support the key-length used in practice. 
+ %Finally, we lack a  paradigm for constructing a general-purpose cryptographic group
+ %O thesis is supported  by the PI's recent work on the  OAEP and Fujisaki-Okamoto encryption schemes~\cite{C:KilONeSmi10,PKC:CaoONeZah20,AC:MurONeZah22}, as well as work on Fiat-Shamir~\cite{} and full-domain hash signatures~\cite{}.  We aim to build broader frameworks and conduct additional case studied to lend much greater support.
+
+
+
+%We note that idealized models also serve the purpose of analyzing natural classes of restricted algorithms.  However, we typically want to make a stronger statement that it's not possible to do \emph{better} than such classes in general. 
+%From this perspective, idealized models still not well-understood.  
+%: (1) improvements to and new applications of classical RO model encryption transforms such as OAEP and Fujisaki-Okamoto in the context of post-quantum cryptography, (2) standard-model foundations for group-theoretic cryptography that justify use of the generic (bilinear) group model  in cutting-edge cryptography and in establishing  tight security reductions for Schnorr signatures and beyond, (3)  %\footnote{It is worth also mentioning the ideal cipher model~\cite{} and random permutation model~\cite{}, which I do not address.} 
+
+\iffalse
+\begin{newitemize}
+\item \textbf{Efficiency Optimizations in Idealized Models:}  We will improve on \emph{positive} results in idealized models. First, we will improve on the efficiency of the classical Fujisaki-Okamoto transform~\cite{} in the context of the recent NIST PQC encryption-scheme submissions~\cite{}.  In particular, we will lift the OAEP transform~\cite{EC:BelRog94} to PQC as well.  
+
+ %From a theoretical p/erspective, closing the gap is also likely to draw on and  connect disparate subareas of cryptography.
+%This  corresponds to the so-called \emph{random oracle (RO) model}~\cite{CCS:BelRog93}.  The idea is that in the design and analysis of a scheme all parties are assumed to have access to one or more oracles that implement independent random functions (called the ROs).  In particular, to learn the hash value of an input, the adversary has to query the oracle.   In practice, one uses  cryptographic hashing in place of the ROs.
+\item \textbf{Instantiating Idealized Models:}  When one uses an idealized-model scheme in practice, one ``instantiates'' the computation abstracted by the idealized model with efficient, public code.  Due to well-known uninstantiability results~\cite{}, one needs to separately analyze  the instantiated constructions in the standard model. We propose to significantly extend an approach of Bellare \emph{et al.}~\cite{C:BelHoaKee13} for hash functions to algebraic groups and beyond. We also plan to use it to instantiate the recent generic model for \emph{group actions}~\cite{}. Our study will lead to new  adaptive, standard-model \emph{knowledge assumptions} that we will use to prove security of Schnorr signatures~\cite{}, bulletproofs~\cite{} and  SNARKs~\cite{}. 
+
+%This corresponds to the so-called \emph{generic group model (GGM)}~\cite{nnn,EC:Shoup97}. In this case, in the design and analysis of a scheme all parties are assumed to have access to a ``group operation oracle'' that performs the group operation on certain random encodings of the elements that the adversary is given. In particular, to multiply two group elements, the adversary must query an oracle.  In practice, one uses, \emph{e.g.}, an appropriate elliptic curve group, whose group operation is of course public and efficient. 
+\item \textbf{Strengthening Idealized Models:} We will consider \emph{augmentations} of idealized models that make them more realistic, as well as limitations of such models.  First, we will extend the notion of augmented ROs considered by Zhandry to other idealized models such as generic groups, with identical motivation. We will also augment the generic ring model~\cite{} to take into account \emph{preprocessing}, giving reductions from a host of problems to factoring in this stronger model. Some such reductions are not yet even known without preprocessing. 
+
+%This corresponds to the \emph{ideal obfuscation model (IOM)}~\cite{}.  The idea is that in the design and analysis of a scheme all parties are assumed to have access to an oracle that returns a random label for an input program, and another oracle that takes a label and input and evaluates the program with that label on the input provided. 	In reality, one would use instead an obfuscator such as~\cite{}.  While not currently practical, we believe obfuscation \emph{will}  be one day, and  it is essential for practice not to get ahead of theory.
+\end{newitemize}
+\fi
+
+%The study of instantiability is more mature in the case of the RO model than in \emph{algebraic} settings like the generic group model (GGM)~\cite{Nechaev94,EC:Shoup97,IMA:Maurer05}.  As such, one of our aims will delicately lift notions developed to instantiate ROs to algebraic settings.  We will use these notions and others to instantiate widely-used schemes, in particular the well-known Schnorr signature scheme~\cite{C:Schnorr89}, which will constitute a main case study for our thesis.  We will also aim for \emph{tight} of security proofs, which is needed to support the scheme's key-length used in practice. In fact, we will see that for Schnorr, tightness and instantiability are intimately related. Finally, to demonstrate plausibility, we will construct algebraic structures where our assumptions hold based on accepted cryptographic objects such as indistinguishability obfuscation~\cite{}. As such, our study of instantiability goes ``full circle'' from new assumptions, to applications, and justification of plausibility.
+
+%On the theoretical side, the proposed work integrates concepts like knowledge assumptions and preprocessing attacks.  On the practical side, instantiability is an overlooked attribute of standardized schemes.  We hope to raise awareness of the issue and help guide better choices in this regard.
+
+
+\subsection{Proposed Work}
+
+%Corresponding to the three drawbacks of prior work above, we have three thrusts for the grant.
+
+%To address the limitations of prior work described above, we will give new frameworks for instantiating algebraic idealized-model schemes, as well as the first positive instantiability resuts for Schnorr signatures.  Our techniques also yield the first \emph{tight} security proof for Schnorr signatures in the RO model. Finally, we will give (inefficient) constructions of groups where our assumptions holds, to support the conjecture that they hold for appropriate elliptic-curve groups in practice. % This represents substantial scientific progress in the study of idealized models, and ought to help ``unbaffle'' the community regarding Schnorr signatures and beyond.
+
+%Corresponding to the three limitations of prior  work  above, the proposed work has three thrusts.
+
+%Our explanation  for why popular idealized-model schemes are secure in practice is not really new, but to our knowledge has not been explicitly delineated.  Our main goal is  to provide substantial new evidence for it. This will involve designing a new framework that serves as a toolkit for  instantiating a range of schemes, specific case studies, and constructs showing the frameworks or assumptions we introduce are achievable in principle. 
+%Moving beyond the RO model, we will  treat \emph{algebraic} idealized models like the  generic-group model (GGM)~\cite{}. In the GGM, everyone has access to the same random group, which in  practice is  instantiated with an appropriate elliptic-curve group. %As Schnorr signatures combine  groups with hash functions, they can be seen through the lens of either the RO model or the GGM. 
+ 
+
+%A goal of the proposed research will be  \emph{show Schnorr signatures are instantiable}.
+%Moreover, we find its instantiability  is closely related  to showing \emph{tight} security in the RO model. 
+%We build up the proposed work around these aims.  
+%Tightness, which refers to minimal overhead in the corresponding reduction, is needed to justify the key-length used in practice. Currently, Schnorr signatures exhibit a signficant gap in tightness relative to the discrete-logarithm assumption~\cite{}. \emph{We aim for a completely tight reduction}, possibly using the new assumptions we introduce.
+%%Particularly, we treat \emph{algebraic} idealized models like the  generic-group model (GGM)~\cite{}. Here everyone has access to the same random group, which in  practice is  instantiated with an appropriate elliptic-curve group. As Schnorr signatures combine  groups with hash functions, they can be seen through the lens of either the RO model or the GGM. 
+To align  security guarantees with real-world usage, we advance a ``litmus test'' for practical viability of a ROM scheme in which one strives to  supplement a ROM proof with: (1) a \emph{tight ROM proof} under a mild strengthening of the base assumption; and (2) an \emph{instantiation result} showing that the random oracles in the scheme can be securely replaced by real hash functions. %In other words,  (1) clarifies to what extent a proof can be strengthened within the model, while (2) identifies when guarantees can be transferred outside of it. %We note that the grant introduces a lot of acronyms; we try to explain things in plain terms when possible. %We stress that while  tightness and instantiability in the ROM are not new, our  work will bring new paradigms to bear on settings where these issues remain 
+%%unresolved.
+%These ways of supplementing  ROM security proofs are not entirely new, but we contend that they have not been paid enough attention to. %We stress that the  concrete realization here need not really be practical, as it will anyway not be used in practice versus a heuristic concrete construct. However, it should be based on  well-studied hardness assumptions.
+%Crucially, by determining for which schemes we can or cannot obtain such supplementary results, we will be able to better inform practitioners  about which idealized-model schemes are a safer bet  than others. 
+%Note that these principles extend to other idealized models but we specifically focus on the ROM.
+%As showing such results is impossible for \emph{all} ROM schemes, the proposed work will focus on case studies on significant practical interest.
+
+\subsubsection{Thrust 1: Tight ROM Security via Circular Discrete-Logarithm}
+%As we mentioned, prior work shows how to instantiate NIZKs obtained from Fiat-Shamir (FS)~\cite{C:FiaSha86,CCS:BelRog93}.  However, an elusive target has been FS-based \emph{signature schemes}. Indeed, FS fails to produce secure signature schemes in general~\cite{FOCS:GolKal03}. 
+%As such, we will mainly focus on the popular case of Schnorr signatures~\cite{C:Schnorr89}. Prior positive results about Schnorr signatures mainly use idealized models~\cite{JC:PoiSte00,EC:AABN02,EC:FusPloSeu20,INDOCRYPT:BelDai20,C:CLMQ21}.% An exception is a proof of security against key-recovery under the  one-more discrete-logarithm assumption (OMDL)~\cite{AC:PaiVer05}; however, it is unclear   how to interpret that result as it holds for \emph{any} hash function. 
+%Another drawback of existing results is that, even in idealized models, the reductions are not ``tight;'' they do not support key-length currently used in practice. An exception is~\cite{INDOCRYPT:BelDai20}, but they reduce to  an interactive assumption. 
+
+ \heading{Main question.}
+Our thrust on tightness centers on the  Fiat-Shamir (FS) transform~\cite{C:FiaSha86}, a celebrated method of turning  ``public coin'' interactive protocols into non-interactive ones using a hash function. FS is particularly useful for building signature schemes from $\Sigma$-protocols (three-move identification protocols). Security holds in the ROM but  proofs are so  loose  they are meaningless in practice.  %(unless one resorts to additional idealized models like the algebraic group model~\cite{C:FucKilLos18,C:BauFucLos20}, which we want to avoid). 
+We start with  Schnorr signatures~\cite{C:Schnorr89} and schemes built upon them and ask:  %A major  problem in getting tight results is that the proofs use ``forking,'' wherein the assumed forger is executed multiple times, thus incurring at least a quadratic loss in success probability. Accordingly, our main question in this thrust is:
+
+
+\begin{ques} 
+Can we show \emph{tight} ROM security proofs for Schnorr signatures and its many  extensions, and if so under what assumptions?
+\end{ques}
+
+\noindent We note that the security proof for Schnorr's    (interactive) $\Sigma$-protocol (which does not use the ROM) is itself loose and applying FS to get a signature scheme only makes things worse.  We address  both aspects  simultaneously by focusing only on the signature scheme. Our guiding insight will be:
+\begin{quote}
+   \emph{We do not know better attacks than   solving discrete-log on such schemes because they \emph{do} have tight proofs under mild  strengthenings of the discrete-log assumption.}
+\end{quote}
+
+
+%\noindent We will aim to bear out this intuition formally in cases of key practical interest.  % for a number of widely-used schemes.
+
+\heading{Approach and preliminary results.}
+At CRYPTO 2025~\cite{C:CFOS25}, we introduced the \emph{circular discrete-logarithm} (CDL) assumption, a novel  strengthening of discrete-log (DL), and gave a tight ROM reduction from unforgeability of Schnorr signatures to CDL. Our reduction avoids rewinding and/or guessing one of the adversary's queries, which caused the lossiness in prior work.
+
+CDL is appealing because it is \emph{non-interactive} and \emph{falsifiable}~\cite{C:Naor03}, 
+so an adversary’s challenge is give in one-shot and any break can be efficiently verified. 
+This makes CDL amenable to cryptanalytic validation and a promising path to vetting Schnorr 
+at practical parameters. CDL is parameterized by a \emph{conversion function} mapping group elements to 
+exponents, making the assumption representation dependent. Since new
+assumptions are commonly analyzed in idealized models, we also showed CDL is as hard as DL 
+in the \emph{elliptic-curve generic group model}~\cite{EC:GroSho22} for the simple ECDSA conversion 
+function,  boosting our confidence in CDL.
+
+\heading{Planned advances.}
+We think Schnorr signatures are  the tip of the iceberg. In particular, a host of advanced schemes based on Schnorr are of growing importance, \emph{e.g.}~NIST has a recent call for threshold  signatures~\cite{nistmpc}. As such,  our planned advances include: 
+	\begin{newitemize}	
+    \item \textbf{Threshold Schnorr:} In our CRYPTO 2025 paper, we already showed tight static security of the  threshold Schnorr signature scheme $\Sparkle$~\cite{C:CriKomMal23} under CDL.  (``Static''  means signers  the adversary controls must be declared in advance.)  We will show  ``circular'' assumptions like CDL are perfectly suited to prove tight \emph{adaptive} security, for example in the case of $\Sparkle$. %We will also leverage CDL to prove tight adaptive security of $\mathsf{Gorgos}$~\cite{}.
+	\item \textbf{Dilithium:} $\mathsf{Dilithium}$~\cite{Dilithium} is a post-quantum analogue of Schnorr signatures selected by NIST. To substantially improve upon the \emph{ad hoc} assumption  needed for its tight ROM security proof~\cite{Dilithium}, we will define a natural \emph{lattice analogue} of CDL and use it for such a proof.
+    
+    	\item \textbf{Bulletproofs:} $\mathsf{Bulletproofs}$~\cite{Bulletproofs}, which can be seen as a generalization of Schnorr, is a succinct non-interactive argument of knowledge (SNARK) used in blockchains and cryptocurrency. Overcoming technical obstacles, we will define variants of CDL under which we will prove \emph{tight ROM soundness} of $\mathsf{Bulletproofs}$-based \emph{range proofs} used in Monero~\cite{monero1,monero2}.
+\end{newitemize}
+
+\noindent These outcomes ensure that recommended parameters  for widely-used protocols such as TLS, Signal, and Bitcoin, as well as PQC standards, remain  safe at standard security levels.
+We note that while CDL might be adaptable to pairing-based schemes schemes, our focus is on 
+schemes over ``plain'' elliptic curves. These are central
+to standards and
+ most relevant for wide-scale adoption. % Pairing-based systems require special-purpose curves, larger parameters, and more complex implementations, which has slowed their adoption despite their powerful features (see Freeman--Scott--Teske~\cite{FST10}, NIST~\cite{NIST15}, Unterluggauer et al.~\cite{Unterluggauer14}).
+
+%\noindent Looking further out, we believe our approach will be applicable to many other protocols that rely on Fiat-Shamir, for example Anonymous Credentials Light~\cite{} Killian's SNARK~\cite{}.
+
+
+\subsubsection{Thrust 2: New ROM Instantiations via  Extremely Lossy Functions}
+
+
+\heading{Main question.} Our thrust on ROM instantiability will center on Schnorr signatures~\cite{C:Schnorr89} and the Fujisaki-Okamoto ($\mathsf{FO}$)  transform~\cite{JC:FujOka13}, which upgrades weak to strong encryption and underpins all NIST PQC schemes. Note the Fiat-Shamir transform Schnorr signatures uses is uninstantiable for general $\Sigma$-protocols~\cite{FOCS:GolKal03}, motivating dedicated analyses. Overall, we ask: % Showing instantiability  of  $\mathsf{FO}$ is also crucial as it underpins post-quantum standards. Therefore, we ask:
+
+
+
+\begin{ques}
+    Can we instantiate Schnorr signatures and the Fujisaki Okamoto ($\mathsf{FO}$) transform?
+\end{ques}
+
+For $\mathsf{FO}$, we  demand instantiations under \emph{post-quantum} assumptions since $\mathsf{FO}$ is pervasive in PQC. The link between instantiability of Schnorr and $\mathsf{FO}$ is that for both  we will develop techniques that build on \emph{extremely lossy functions} (ELFs)~\cite{C:Zhandry16}, a type of  injective function family that looks indistinguishable from one with a tiny image. Our guiding insight  will be:
+\begin{quote}
+    \emph{ELFs facilitate   instantiability results for both Schnorr signatures and the Fujisaki-Okamoto transform by adapting  techniques from their ROM proofs to the \emph{standard model}.}
+\end{quote}
+
+\noindent Zhandry constructs ELFs from the ``exponential'' decisional Diffie–Hellman (DDH) assumption, \emph{i.e.}, DDH against exponential-time adversaries. Although not falsifiable, exponential DDH is a standard hardness assumption for appropriate elliptic curves.
+Compared to prior work, our techniques make ELFs directly relevant to schemes used in \emph{today's} cryptographic ecosystem. 
+
+\heading{Approach and preliminary results.} 
+At ASIACRYPT 2022~\cite{AC:MurONeZah22}, we presented a unified paradigm for instantiating both the $\mathsf{FO}$~\cite{JC:FujOka13} and $\mathsf{OAEP}$~\cite{EC:BelRog94} transforms using the same hash function. The core idea was to use ELFs to emulate ``observability'' in the ROM to enable the reduction to answer the adversary's decryption queries, as is crucial in the classic ROM proofs for these transforms. In the proposed work, we will concentrate on $\mathsf{FO}$, on which our prior results have key limitations: they apply to a variant not used in practice and rely on heavyweight (\emph{e.g.}, program obfuscation), suspect, or quantum-insecure assumptions. As such, they provide little insight into the security of the transform in practice. We seek to overcome these drawbacks. We will also apply related techniques to instantiate Schnorr signatures; this part will be presented first.
+
+\heading{Planned advances.}  To address the above, our planned advances are:
+\begin{itemize}
+    \item 	\textbf{Schnorr signatures:} We will first show an instantiation of Schnorr signatures against \emph{key-recovery} under chosen-message attack. Namely,  we will instantiate the scheme with an ELF, assuming DL in the underlying group. Our core insight is that, in the reduction,  ELFs allow answering the adversary's signing queries  using a technique inspired by the ``programmability'' in the ROM, which is crucially exploited in the classic ROM proof of~\cite{EC:PoiSte96}. Finally, we will  extend our result to \emph{existential  unforgeability} by assuming CDL instead of DL. % As a first cut, we will instantiate the hash function in this case by bundling the CDL  conversion function in an obfuscated program along with an ELF. 
+    \item \textbf{Fujisaki-Okamoto:} 
+We will show \emph{simple, post-quantum} instantiations of $\mathsf{FO}$ based on hash-function properties achievable in the post-quantum setting. To this end, we will introduce and realize a relaxation of ELFs we call \emph{tunable lossy functions} (TLFs), as well as an ``adaptive-leakage'' strengthening of universal computational extractors (UCEs)~\cite{C:BelHoaKee13}, another key notion from the literature for instantiating random oracles. Ultimately, we hope to leverage these notions to provide guidance for the design of cryptographic hashing.
+
+%(It is not unreasonable to use multiple such notions here, since the ROM is impossible to instantiate in general.) % Note that, like our prior work, the bulk of our results will concern a part of  $\mathsf{FO}$ not subject to the uninstantiability result of  Brzuska \emph{et al.}~\cite{}. %The instantiations will  align with the prevailing framework for $\mathsf{FO}$ due to Hofheinz, H\"{o}velmanns, and Kiltz~\cite{TCC:HofHovKil17} and avoid heavy tools where not strictly necessary, while explicitly addressing known obstacles (e.g., Brzuska–Farshim–Mittelbach impossibility for certain subtransforms).
+\end{itemize}    
+
+\noindent Overall, these outcomes  help guarantee that core Internet protocols and emerging  standards can be deployed securely with real-world hash functions.
+We note that while future work might try to  develop ELF-based instantiations of advanced schemes such as SNARKs --- which would be especially relevant in light of recent attacks~\cite{KRS25} --- this lies beyond the present scope. However, our results will lay the necessary groundwork for that.
+
+
+%More broadly, we believe our techniques for instantiating Schnorr signatures will be useful to show instantiability of advanced protocols based around Schnorr like threshold Schnorr signatures. 
+%\noindent The new tools we will introduce for our $\mathsf{FO}$ instantiation should also be of independent interest. 
+
+\iffalse
+For instantiability in the ROM, a major case study will again be Schnorr signatures, for which there are no prior instantiability results as far as we know. Then we will turn to instantiability of influential ROM encryption transforms like the famous Fujisaki-Okamoto transform~\cite{}, which upgrades weak to strong public-key encryption. This is relevant as the submissions to the recent NIST post-quantum competition heavily rely on such  transforms. In particular, we ask:
+
+\begin{ques}
+    Are Schnorr signatures and ROM encryption transforms \emph{instantiable},  and if so under what assumptions?
+\end{ques}
+
+The connection between Schnorr signatures and ROM encryption transforms is they are both underpin forthcoming standards, and we will instantiate both using new techniques involving    \emph{extremely lossy functions} (ELFs), a powerful tool for replacing random oracles introduced by Zhandry~\cite{C:Zhandry16}. An ELF is a keyed function  whose key $K$ can be generated in ``injective mode'' or ``lossy mode.''  In injective mode, the function induced by $K$ is injective whereas in lossy mode its image is \emph{extremely small}, in particular small enough to enumerate efficiently. 
+%In fact,  for any adversary with running-time $t$ and inverse-polynomial $1/p$, we can generate a key $K$ in lossy mode such that: 91)  $|\mathsf{ELF}(K,\cdot)|$ is $\mathsf{poly}(t,p)$ and (2) the adversary can't distinguish the lossy key  from one generated in injective mode with advantage more than $1/p$. 
+Readers familiar with lossy functions~\cite{JACM:PeiWat11} (we don't need a trapdoor here) should note that for ELFs the lossy key generation \emph{depends on the the adversary}, which enables  much more lossiness. Zhandry shows  applications of ELFs to  adaptive security, password hashing, and instantiating full-domain hash  (FDH)~\cite{CCS:BelRog93}, and more. Moreover, Zhandry shows how to build ELFs under the ``exponential'' Decision Diffie-Hellman (DDH) assumption, a standard assumption on elliptic curves. We believe the power of ELFs for instantiability results remains under-developed. In this regard, our main insight is:
+
+
+As initial evidence, the PI's work at ASIACRYPT 2022~\cite{}  used ELFs to provide the first instantiations under chosen-ciphertext security (the gold-standard notion of security, where an adversary can make decryption queries) for the  Fujisaki-Okomoto ($\mathsf{FO}$)~\cite{} and Optimal Asymmetric Encryption Padding ($\mathsf{OAEP}$)~\cite{} encryption transforms. Implicitly, this work introduced the idea that generating the ELF key in lossy mode enables a reduction to handle the adversary's decryption queries by mimicking a property of the ROM called  ``observability.''  Unfortunately, we pinpoint a host of drawbacks that call into question the practical relevance of these results. In the proposed work, will particularly focus on $\mathsf{FO}$ and rectify these issues by (1) treating instantiability of $\mathsf{FO}$ and its variants \emph{actually used in the recent NIST PQC submissions}, (2) eliminating heavyweight or suspect primitives like program obfuscation from the instantiations, and  %A key idea  will be to leverage a new security notion for encryption we call security against  ``functional plaintext-checking attack.'' 
+(3) ensuring \emph{post-quantum} instantiability, which is again vital for  applicability to the recent NIST PQC submission. %Our results will overcome a number of technical challenges. For example, post-quantum instantiability of $\mathsf{FO}$ is challenging because ELFs are not post-quantum. To address this, we will develop  sufficient relaxations that can be built from post-quantum assumptions.
+
+We also aim to use ELFs to provide the first instantiation results for Schnorr signatures. We will first aim to prove  that  Schnorr signatures  can be instantiated using ELFs if the  discrete-log (DL) assumption holds in the underlying group. However, this instantiation  only holds against \emph{key-recovery}; that is, after observing  signatures on messages of its choice, it is hard for the adversary to recover the signing key. This notion was previously shown for Schnorr signatures in the standard model by Paillier and Verngard~\cite{AC:PaiVer05} using an interactive assumption, whereas ours can rely exponential DDH. Tying into our main insight above, we show that ELFs allow handling the adversary's signing queries in the reduction in a way inspired by the classical ROM proof of~\cite{EC:PoiSte96}. Finally, we will  extend our result to  unforgeability assuming our CDL assumption in the underlying group, demonstrating CDL is useful not only for tightness  but  also  instantiability. %Finally, we will generalize our result to advanced primitives based around Schnorr signatures and their analogues in other algebraic settings.
+\fi
+
+
+\iffalse
+
+\heading{Instantiating idealized models the UCE way.}
+To considerably broaden our study we will look at  ``cross-cutting'' frameworks for instantiating \emph{many} idealized models. The main framework we study is based on the notion of  \emph{universal computational extractors} (UCE)~\cite{C:BelHoaKee13} for instantiating the ROM.  UCE tries to capture   what it means for some hash function like $\mathsf{SHA256}$ to ``look like a RO,'' to the extent possible in the standard model. In the definition, the idea is to  divide the adversary  into two  entities: the ``source'' and ``distinguisher.'' The source, who does not know the key, can ask for hashes of inputs of its choice,  answered either using the real hash function or randomly.  The source then passes leakage to the distinguisher, who gets the key but no oracles and must guess which way the source's queries were answered. For UCE to be achievable, the source's queries must be \emph{unpredictable} given the leakage, so UCE instantiates the ROM  in applications where hash inputs of honest parties are unpredictable to the adversary.  While we can assume $\mathsf{SHA256}$ is a UCE in practice, theoretical constructions also exist~\cite{}. %To support the belief that $\mathsf{SHA256}$ is a UCE, there exist theoretical constructions of UCEs under reasonable assumptions in special cases~\cite{h}. 
+We contend that:
+\begin{quote}
+\emph{The UCE approach to instantiating the ROM can be extended to \emph{many}  idealized models.} 
+\end{quote}
+ Indeed, Soni and Tessaro~\cite{} previously proposed an extension of UCE to instantiating the ideal permutation model and  at TCC 2022~\cite{} the PI proposed an extension of UCE for instantiating the generic group model~\cite{}. In the proposed work, we will extend the treatment even further to the generic group action~\cite{}, ideal authenticated encryption~\cite{}, and ideal public-key~\cite{} models. The main challenge  will be  isolating the right restrictions on the source for the resulting notions  to be achievable but   useful in applications.% In particular, while we focus mainly on a definitional study, we will give  applications to \emph{e.g.}~subversion-resistant SNARKs~\cite{} and instantiating  $\mathsf{ECIES}$~\cite{}. %Although our main focus is definitional, we give potential applications to \emph{e.g.}~instantiating the ECIES encryption scheme~\cite{} and more. 
+%There are feasibility results for UCEs as well~\cite{AC:BrzMit14a}. 
+\fi
+
+\iffalse Our first main outcome will be analogues of UCE for \emph{algebraic} idealized models and applications. Prime-order groups were treated  in the PI's recent work~\cite{TCC:BFHO22}, which proposed the notion of \emph{pseudo-generic group} (PGG).  PGG  generalizes  a ``master assumption'' called the Uber assumption~\cite{EC:BonBoyGoh05,PAIRING:Boyen08} yet is  not subject to known impossibilities. Intuitively, PGG  instantiates the GGM when exponents satisfy a notion of  ``algebraic unpredictability.'' 
+We will extend PGG to capture  cutting-edge assumptions and apply to the AGM as well. The AGM has come under additional controversy~\cite{AC:ZhaZhoKat22,C:Zhandry22b}, making such instantiations all the more important. In particular, we will leverage our framework to analyze randomness subversion~\cite{AC:BelFucSca16} and related issues for  \emph{zero-knowledge succinct arguments of knowledge} (zkSNARKs) such as $\mathsf{Groth16}$~\cite{EC:Groth16}, $\mathsf{Plonk}$~\cite{EPRINT:GabWilCio19} and $\mathsf{Marlin}$~\cite{EC:CHMMVW20}.   %x and to instantiate other ones. % like certain two-round multisignatures with key aggregat ion (\emph{e.g.}~\cite{AC:BelDai21,C:NicRufSeu21}), which are popular in blockchain applications.
+ %This addresses a core challenge in  cutting-edge cryptography, for example, when lattices and bilinear maps are combined~\cite{EC:AgrYam20,TCC:AgrWicYam20, C:AgrYadYam22}.  
+Our second main outcomes will be analogues of UCE for \emph{ideal AE} and \emph{ideal PKE}, as well as novel constructions thereof. The motivation here is to achieve  ``multi-stage'' security, whereas existing, ``indifferentiable''~\cite{TCC:MauRenHol04} schemes fall short. %In the PKE case, we will show the widely-used ECIES. %In the PKE case, we will get the first standard-model result for the widely-used ECIES scheme~\cite{dhies}.  %indifferentiable~\cite{TCC:MauRenHol04} constructions of the ideal objects fall short of this. % We want to achieve such schemes secure in the strongest possible sense in the \emph{standard} model. %,  particularly in the case of multi-stage games where indifferentiability~\cite{TCC:MauRenHol04} falls short. 
+% Intuitively, such schemes which are indifferentiable~\cite{TCC:MauRenHol04} from these ideal primitives should be secure in the strongest possible sense, namely  satisfy every  ``game-based'' security notion.  Thus, it is not necessary to replace the scheme every time a new security notion is uncovered. However, this only applies to \emph{single-stage} security notions.  A primary benefit of UCE-style definitions for these primitives is that they imply \emph{multi-stage} security notions, which is crucial in practice.  % Zhandry and Zhang~\cite{C:ZhaZha20} construct such schemes in the RO model.   Here, we will define an analogue of UCE for PKE, construct \emph{standard model} schemes meeting it, and study applications.    % For example, Zhandry and Zhang~\cite{C:ZhaZha20} show how to convert any non-interactive key exchange protocol into an ``indifferentiable''~\cite{TCC:MauRenHol04} ideal PKE scheme in the RO model. %  Here we aim to show the transform is instantiable under context-restricted indifferentiability~\cite{SCN:JosMau18}.  
+%A primary concern about idealized models is when they can be \emph{instantiated}, meaning when we can safely replace the of computation that is abstracted away by the model by public, efficiently-computable code.  The alarming fact is that there are many \emph{un}instantiability results, \emph{e.g.}~\cite{}, showing schemes secure in popular idealized models may have \emph{no such instantiation at all}, let alone a canonical instantiation like $\mathsf{SHA256}$ in the case of a RO. It is thus of great interest for both practice and theory \emph{which} idealized-model schemes are instantiable and \emph{how} to instantiate them.
+ %As mentioned above, this is important for being able to implement Schnorr signatures in these groups. %Such a research agenda has been successful in the case of cryptographic hash functions, yielding constructions  meeting assumptions like perfect one-wayness~\cite{C:Canetti97}, non-malleability~\cite{AC:BCFW09}, UCE~\cite{C:BelHoaKee13}, correlation intractability~\cite{JACM:CanGolHal04}, and many others. 
+
+To replace ROs, a popular approach is to obfuscate a ``puncturable'' pseudorandom function (PRF)~\cite{STOC:SahWat14} via  indistinguishability obfuscation (iO)~\cite{DBLP:journals/jacm/BarakGIRSVY12,FOCs:GGHRSW13,JACM:JaiLinSai24}. We adapt this   approach to work with groups, giving unique element representation,  but we argue the resulting group is unlikely to have even provable discrete-log (DL) hardness. To circumvent this, we will start from a base group satisfying a weak assumption and  ``bootstrap'' it using iO.  Our first main outcome will be such a group that meets ``non-adaptive'' PGG (which we call PGG2).  Our second main outcome will be an augmentation to this group using  ELFs~\cite{C:Zhandry16}, much like in the PI's recent work~\cite{AC:MurONeZah22}, that meets ``adaptive'' PGG (which we call PGG1). We will also prove this group satisfies CDL for a specific conversion function,  implying we can prove tight security of Schnorr signatures in the group. In particular,  we need to ensure the proof of CDL here is tight
+\fi
+
+
+%\paragraph*{Thrust 3: Feasibility of cryptographic groups.} Here we ask whether it is possible to construct groups and other algebraic structures that satisfy CDL, PGG, \emph{etc.}  out of heavyweight but ``standard'' cryptographic primitives such as program obfuscation.  Such constructions will not be practical, but they will  demonstrate feasibility, \emph{i.e.} that such groups are not outright impossible and no better than using idealized models.  Our  goal will be to build groups to  instantiate the GGM or AGM in broad settings. % We stress it will \emph{not} be practical; its existence is supposed to lend plausibility to the security of elliptic-curves as used in practice. 
+ %In addition to satisfying our novel assumptions, our groups will differ from those in prior work~\cite{PKC:AgrHof18,EC:AgrHofKas20} in that  they will have the key property of \emph{unique representation} mentioned above; \emph{i.e.}, equality of elements can be tested by string comparison.
+
+ \iffalse
+\paragraph*{Thrust 1: UCE beyond hash functions.}
+Here we ask for a unified framework for instantiating idealized models, in particular whether the abstraction of \emph{universal computational extractors} (UCE)~\cite{C:BelHoaKee13} for (keyed) hash functions can provide one.  UCE tries to capture what it means for  a hash function to ``look like a RO''  in a broad sense but without falling prey to impossibilities. It divides an adversary into the ``source'' and ``distinguisher.'' The source, who does not know the key, can ask for hashes on inputs of its choice,  answered either using the real hash function or randomly.  The source then passes leakage to the distinguisher, who gets the hash key but no oracles and must guess which way the source's queries were answered. For UCE to be achievable, the source's queries must be \emph{unpredictable} given the leakage. Thus, UCE instantiates the RO model in applications where inputs are unpredictable. There are feasibility results for UCEs as well~\cite{AC:BrzMit14a}. 
+
+ Our first main outcome will be analogues of UCE for \emph{algebraic} idealized models and applications. Prime-order groups were treated  in the PI's recent work~\cite{TCC:BFHO22}, which proposed the notion of \emph{pseudo-generic group} (PGG).  PGG  generalizes  a ``master assumption'' called the Uber assumption~\cite{EC:BonBoyGoh05,PAIRING:Boyen08} yet is  not subject to known impossibilities. Intuitively, PGG  instantiates the GGM when exponents satisfy a notion of  ``algebraic unpredictability.'' 
+We will extend PGG to capture  cutting-edge assumptions and apply to the AGM as well. The AGM has come under additional controversy~\cite{AC:ZhaZhoKat22,C:Zhandry22b}, making such instantiations all the more important. In particular, we will leverage our framework to analyze randomness subversion~\cite{AC:BelFucSca16} and related issues for  \emph{zero-knowledge succinct arguments of knowledge} (zkSNARKs) such as $\mathsf{Groth16}$~\cite{EC:Groth16}, $\mathsf{Plonk}$~\cite{EPRINT:GabWilCio19} and $\mathsf{Marlin}$~\cite{EC:CHMMVW20}.   %x and to instantiate other ones. % like certain two-round multisignatures with key aggregat ion (\emph{e.g.}~\cite{AC:BelDai21,C:NicRufSeu21}), which are popular in blockchain applications.
+ %This addresses a core challenge in  cutting-edge cryptography, for example, when lattices and bilinear maps are combined~\cite{EC:AgrYam20,TCC:AgrWicYam20, C:AgrYadYam22}.  
+Our second main outcomes will be analogues of UCE for \emph{ideal AE} and \emph{ideal PKE}, as well as novel constructions thereof. The motivation here is to achieve  ``multi-stage'' security, whereas existing, ``indifferentiable''~\cite{TCC:MauRenHol04} schemes fall short. %In the PKE case, we will show the widely-used ECIES. %In the PKE case, we will get the first standard-model result for the widely-used ECIES scheme~\cite{dhies}.  %indifferentiable~\cite{TCC:MauRenHol04} constructions of the ideal objects fall short of this. % We want to achieve such schemes secure in the strongest possible sense in the \emph{standard} model. %,  particularly in the case of multi-stage games where indifferentiability~\cite{TCC:MauRenHol04} falls short. 
+% Intuitively, such schemes which are indifferentiable~\cite{TCC:MauRenHol04} from these ideal primitives should be secure in the strongest possible sense, namely  satisfy every  ``game-based'' security notion.  Thus, it is not necessary to replace the scheme every time a new security notion is uncovered. However, this only applies to \emph{single-stage} security notions.  A primary benefit of UCE-style definitions for these primitives is that they imply \emph{multi-stage} security notions, which is crucial in practice.  % Zhandry and Zhang~\cite{C:ZhaZha20} construct such schemes in the RO model.   Here, we will define an analogue of UCE for PKE, construct \emph{standard model} schemes meeting it, and study applications.    % For example, Zhandry and Zhang~\cite{C:ZhaZha20} show how to convert any non-interactive key exchange protocol into an ``indifferentiable''~\cite{TCC:MauRenHol04} ideal PKE scheme in the RO model. %  Here we aim to show the transform is instantiable under context-restricted indifferentiability~\cite{SCN:JosMau18}.  
+%A primary concern about idealized models is when they can be \emph{instantiated}, meaning when we can safely replace the of computation that is abstracted away by the model by public, efficiently-computable code.  The alarming fact is that there are many \emph{un}instantiability results, \emph{e.g.}~\cite{}, showing schemes secure in popular idealized models may have \emph{no such instantiation at all}, let alone a canonical instantiation like $\mathsf{SHA256}$ in the case of a RO. It is thus of great interest for both practice and theory \emph{which} idealized-model schemes are instantiable and \emph{how} to instantiate them.
+ %As mentioned above, this is important for being able to implement Schnorr signatures in these groups. %Such a research agenda has been successful in the case of cryptographic hash functions, yielding constructions  meeting assumptions like perfect one-wayness~\cite{C:Canetti97}, non-malleability~\cite{AC:BCFW09}, UCE~\cite{C:BelHoaKee13}, correlation intractability~\cite{JACM:CanGolHal04}, and many others. 
+
+To replace ROs, a popular approach is to obfuscate a ``puncturable'' pseudorandom function (PRF)~\cite{STOC:SahWat14} via  indistinguishability obfuscation (iO)~\cite{DBLP:journals/jacm/BarakGIRSVY12,FOCs:GGHRSW13,JACM:JaiLinSai24}. We adapt this   approach to work with groups, giving unique element representation,  but we argue the resulting group is unlikely to have even provable discrete-log (DL) hardness. To circumvent this, we will start from a base group satisfying a weak assumption and  ``bootstrap'' it using iO.  Our first main outcome will be such a group that meets ``non-adaptive'' PGG (which we call PGG2).  Our second main outcome will be an augmentation to this group using  ELFs~\cite{C:Zhandry16}, much like in the PI's recent work~\cite{AC:MurONeZah22}, that meets ``adaptive'' PGG (which we call PGG1). We will also prove this group satisfies CDL for a specific conversion function,  implying we can prove tight security of Schnorr signatures in the group. In particular,  we need to ensure the proof of CDL here is tight.  %as well as the \emph{one-more discrete logarithm} (OMDL) assumption~\cite{JC:BNPS03}. OMDL has been influential in many areas of cryptography~\cite{}, including Schnorr signatures. %  Finally, we will investigate a general framework for asking and answering questions like ones considered here. % Finally, we will devise a  general framework for  questions like the ones in this thrust.  
+ %We will also consider knowledge assumptions in the underlying group in an effort to achieve knowledge-based versions of PGG.  %We conclude with a more general question: Fix group-based assumptions $\mathsf{A}, \mathsf{B}$  (\emph{e.g.}, DDH and CDH). For what assumption/primitive $\mathsf{X}$ (\emph{e.g.}, obfuscation) can we construct an $\mathsf{A}$-hard group out of a  $\mathsf{B}$-hard group and  $\mathsf{X}$?   We propose a  general framework for answering such questions.
+\fi
+
+
+\iffalse
+\paragraph*{Discussion.}
+Our thesis is subtle in the following sense. It is possible to give, say, a RO-model encryption scheme that can be instantiated with \emph{some} hash function but \emph{not} $\mathsf{SHA256}$.  So instantiability by itself is not sufficient. Additionally, not all instantiations are ``strong'' in our sense.  For example, Zhandry proposed extremely lossy functions (ELFs)~\cite{C:Zhandry16} to instantiate ROs,  but it was recently shown~\cite{TCC:FisRoh23} that not only is a  RO not an ELF --- so presumably neither is $\mathsf{SHA256}$ --- but a RO does not even suffice to construct an ELF. This is not to say ELFs are not useful, but we view them differently than properties used to instantiate ROs that are plausible for $\mathsf{SHA256}$. 
+\fi
+
+%Furthermore, we differentiate between two types of instantiability results. One shows a specific construction of an object (\emph{e.g.}, a hash function) that instantiates a specific scheme, such as in~\cite{}.  Another, such as in~\cite{}, defines a general assumption or framework, applies it to various applications of interest, then shows that the assumptions or framework can be satisfied in principle.  The latter is preferable because it can lead to new design goals for heursitic constructions. The proposed work follows the latter and also takes on Schnorr signatures as a case study. Finally, there are ``impossibility'' results for instantiating some popular schemes, but they can (and some have been) be circumvented by non-blackbox techniques or others.
+
+\iffalse
+To summarize, our main contributions center on:
+\begin{enumerate}
+    \item Tight ROM security proofs for Schnorr signatures, threshold Schnorr signatures, $\mathsf{Dilithium}$, and $\mathsf{Bulletproofs}$ under the  circular-discrete log assumption and  extensions. This has tangible implications for \emph{e.g.}~NIST’s threshold-signature effort and blockchain deployments.
+	\item	The first standard-model instantiation results for Schnorr signatures using novel proof techniques revolving around extremely lossy functions (ELFs).
+	\item Fujisaki-Okamoto instantiations, based on novel techniques for ELFs and other novel cryptographic notions we will introduce for hash functions and encryption. In particular, they will apply to  NIST-selected post-quantum encryption.
+\end{enumerate}
+\fi
+
+
+\subsection{Contributions At-a-Glance}
+
+We summarize our planned contributions as follows: 
+\begin{center}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{|p{0.27\linewidth}|p{0.66\linewidth}|}
+\hline
+\textbf{Contribution} & \textbf{Impact} \\
+\hline
+\textbf{Tight ROM proofs for Fiat--Shamir} & 
+First tight ROM proofs for \textbf{threshold Schnorr}, \textbf{Dilithium}, and \textbf{Bulletproofs} under circular DL and variants.  \\
+\hline
+\textbf{Schnorr instantiation} & 
+First standard-model instantiation of \textbf{Schnorr signatures} via Extremely Lossy Functions (ELFs). \\
+\hline
+\textbf{Fujisaki--Okamoto (FO) instantiation} & 
+Post-quantum instantiation of \textbf{FO} using (relaxations of) ELFs, public-key encryption secure wrt.~functional-plaintext-checking attacks, and adaptive-leakage universal computational extractors. \\
+\hline
+\end{tabular}
+\end{center}
+
+By closing long-standing theory–practice gaps in tightness and instantiability of standardized and widely deployed schemes, this project will help ensure confidence in the cryptographic standards underpinning the Internet, finance, and national defense.
+
+%In a nutshell, we will study in what cases  ROM proofs accurately capture real-world security. To this end, we will introduce new but approachable assumptions that allow us to make  progress on long-standing questions and obtain fundamental insights into the boundaries of provable security.
+
+%Our methods for we resolving ROM tightness and instantiability for the most widely deployed schemes help establish a litmus test that future schemes can be measured against, giving practitioners a concrete standard for when a ROM proof best reflects real-world security.
+%Futhermore, our planned contributions directly target issues identified in NIST’s calls for threshold signatures and post-quantum encryption, providing the tightness and instantiability guarantees that current standards efforts still lack.
+
+%Our results give NIST exactly what its second call for threshold signatures wants:  tight proofs of adaptive security. In parallel, our ELF-based instantiability work ensures that the transforms selected for NIST PQC are backed by solid standard-model guarantees.
+
+\subsection{Additional Information}
+
+ \heading{PI qualifications.} The PI is well-suited for the work, having  published extensively on idealized models~\emph{e.g.}~\cite{C:KilONeSmi10,JC:FulOneRey15,JC:KilONeSmi17,PKC:CaoONeZah20,PKC:OneZah21,TCC:BFHO22,AC:MurONeZah22,EPRINT:DLOS22,C:CFOS25}. 
+
+\heading{Success metrics.}
+Overall success will be defined as closing a theory–practice gap in  
+cryptography. Concretely, the PI will: publish at least three papers at premier venues 
+(CRYPTO, EUROCRYPT, ASIACRYPT); mentor one postdoc, one PhD student, two 
+Masters students, and four undergraduates (including two REU participants); and 
+arrange at least three NIST or industry engagements.
+
+\heading{Risk management.}
+We  decompose goals into modular  conjectures so that partial progress yields publishable results. Moreover, each thrust treats multiple schemes, and to diversify we do not treat the same schemes in both except basic Schnorr. If specific conjectures fail, we can pivot to closely related ones. Here are  specifics for the two highest-priority conjectures:
+\begin{newitemize}\setlength\itemsep{0.25em}
+  \item \textbf{If Conjecture~\ref{conj-spar} fails or VCDL is false:} We will modify the assumption or pivot to other Schnorr-based functionalities (blind signatures, multisignatures, adaptor signatures). Of  particular interest is \emph{Anonymous Credentials Light}~\cite{CCS:BalLys13} --- blind Schnorr with attributes. Kastner \emph{et al.}~\cite{CCS:KasLosRen23} prove concurrent security in AGM+ROM under DL; we aim for a ROM proof under CDL, which would be valuable even without tightness.
+  \item \textbf{If Conjecture~\ref{conj-fo} fails:} We will adapt our techniques to analyze  post-quantum instantiability of $\mathsf{OAEP}$~\cite{EC:BelRog94}, used classically with RSA and now with $\mathsf{NTRU}$~\cite{ntru2}. We   conjecture that  replacing $\mathsf{FO}$ with $\mathsf{OAEP}$ would even able more compact ciphertexts for Classic McEliece~\cite{mceliece}, a win for PQC. Another pivot is to apply ELF-based techniques to instantiate $\mathsf{Bulletproofs}$.
+\end{newitemize}
+ %While future work could develop ELF-based instantiations of advanced schemes such as SNARKs --- especially relevant in light of recent attacks~\cite{KRS25} --- this lies beyond the present scope. However, our results lay the necessary groundwork for it.
+
+%Moreover,  even if some of our conjectures fail, we should get interesting results nonetheless.
+%\begin{ques}
+%    Do Schnorr signatures and its extensions like threshold Schnorr signatures, Dilithium, and Bulletproofs have tight ROM security proofs, and if so under what assumptions? 
+%\end{ques}
+
+
+%As intitial evidence, at CRYPTO 2025~\cite{} the PI introduced a  novel strengthening  of DL called ``circular'' DL (CDL) and showed a tight reduction from security of Schnorr signatures in the ROM to CDL that avoids rewinding or guessing one of the adversary's queries as in prior proofs. 
+
+%We believe Schnorr signatures are the tip of the iceberg. In the proposed work, we will build on CDL to  understand tight security  of a host of  advanced functionalities based around Schnorr signatures. A particular case of interest will be  \emph{threshold Schnorr signatures}~\cite{}, which are currently seeing standardization efforts~\cite{}. %We will also consider other primitives like multisignatures, adaptor signatures, and blind signatures. 
+%An emphasis of the preliminary work has been threshold Schnorr signatures, which are now seeing adoption and standardization efforts~\cite{nistmpc,nist:schnorr}.
+%In the  CRYPTO 2025 work, the PI  took a first step by  showing  tight security under static corruptions  for the $\mathsf{Sparkle+}$ threshold Schnorr signature scheme~\cite{} assuming CDL. (``Static corruptions'' means that parties the adversary controls must be declared up front.) In the proposed work, we will consider more threshold Schnorr signatures beyond $\Sparkle$, as well as the more-desirable \emph{adaptive} security model. In particular, we aim to show that $\mathsf{Sparkle+}$ is  tightly  and adaptively secure in the ROM under a suitable extension of CDL, combined with an assumption on the underlying field, which is necessary following~\cite{}. %This is relevant as threshold Schnorr signature schemes are recently seeing standardization efforts~\cite{}.
+
+
+%We will then broaden our study to  other signature schemes, in particular $\mathsf{Dilithium}$~\cite{}, a post-quantum analogue of Schnorr being standardized by NIST.  We will aim to show tight security of $\mathsf{Dilithium}$ using a lattice-based analogue of CDL, which wil.l significantly improve upon existing  work~\cite{}.  Beyond signatures, we will treat tightness for \emph{succinct non-interactive arguments of knowledge}  (SNARKs), particularly  $\mathsf{Bulletproofs}$~\cite{}, which can be seen as generalizing Schnorr. 
+
+   % We hope that showing such results in addition to loose reductions to DL becomes standard practice for future schemes.
+%Additionally, as there are important analogues of Schnorr signatures in lattice-based cryptography~\cite{}, we will investigate lattice-based analogues of CDL and applications.  
+% and the verifiable random function from~\cite{cryptoeprint:2017/099} based on the Chaum-Pedersen identification scheme~\cite{C:ChaPed92}. 
+% This verifiable random function is standardized by the IETF and used in iMessage, WhatsApp, and Privacy Pass~\cite{DBLP:journals/popets/DavidsonGSTV18}. %However, tightness of its security proofs does not seem to have been considered. 
+
+%First, we recall the scheme. Fix a cyclic group $\GG$  of prime order $p$ with generator $g \in \GG$, and let $\Hash \colon \GG \times \bits^* \to \ZZ_p$ be hash function. Define scheme $\mathsf{Sch}[\GG,\Hash] = (\calK,\calS,\calV)$ as follows.  The key-generation $\calK$ algorithm   chooses random $x\in \Z_p$ and returns $g^x$ as the verification key and $x$ as the signing key.  Given $x$ and a message $m\in\bits^*$, the signing algorithm $\calS$ returns $(g^r,(r+\Hash(g^r \| m) \cdot x) \bmod p)$ for random $r\in Z_p$.  Given $X = g^x$,  message $m\in\bits^*$, and  signature $(R,z)$, the verification algorithm $\calV$ returns 1 iff  $g^z = R \cdot X^{\Hash(R \| m)}$.We ask two questions about it: (1) can it be shown \emph{tightly}  secure  (\emph{i.e}, supporting optimal key-length) in the RO-model? And (2)  can it be instantiated? In fact, we will see that these questions are related.   
+
+%A peculiar feature of the scheme is that $R$ occurs in both the base and exponent.
+%Our first main outcome will be a new assumption to capture this called the \emph{circular discrete-logarithm} (CDL) problem. Namely, for $\GG,g$ as above fix a ``conversion function'' $f \colon \GG \to \Z_p$ and consider: Given  $g,h \in \GG$, find $z\in \Z_p$, $R \in \GG$ such that \smash{$g^z = R \cdot  h^{f(R)}$} and $f(R)\neq 0$. We say that CDL holds in $\GG$ if there exists an $f$ for which this problem is hard.  We will show strong evidence that in elliptic-curve groups, the ECDSA conversion function~\cite{ecdsa} mapping an element to its $x$-coordinate modulo $p$ is suitable. Our main second main outcome will be proofs that  Schnorr is (1) tightly secure in the RO model under CDL, and (2)  secure in the \emph{standard model} using a hash function that combines such $f$ with extremely lossy functions (ELFs)~\cite{C:Zhandry16}. In particular, this will put the belief that breaking Schnorr has the same complexity as DL on more rigorous grounds and could provide a path to a tight proof under (plain) DL. % To gather evidence for CDL in practice, we will analyze what conditions on $f$ are required for CDL to be hard in elliptic curves. 
+%Finally, we will study the threshold  setting  , as well as more FS-based signature schemes. % Our results allow us to relate the security of Schnorr signatures to that of ECDSA for the first time. Finally, we will extend our results to the threshold setting as well.  % We will extend these results to  Schnorr-based threshold signatures as well. %as well as revisit the instantiability of Fischlin's  
+%Collectively, these results will close important gaps between theory and practice on both tightness and instantiability for ROM-based schemes  that are central to today's cryptographic ecosystem.
+
+%Modern cryptography relies on provable security, yet many widely used proofs occur in the Random Oracle Model (ROM)—an abstraction of hash functions that leaves two persistent gaps. First, many reductions are loose, meaning real-world systems such as Schnorr signatures or Bulletproofs either run with unnecessarily large parameters or face hidden vulnerabilities. Second, the ROM is hard to instantiate concretely: existing methods depend on heavy machinery like indistinguishability obfuscation or complexity leveraging, or they fail to extend to post-quantum settings. This project tackles both problems by asking: (Q1) can we achieve tight ROM proofs for digital signatures and proof systems, and (Q2) can we instantiate ROM transforms such as Fujisaki–Okamoto under falsifiable, post-quantum assumptions? The work is timely, as NIST’s post-quantum standardization effort, the deployment of threshold Schnorr signatures, and the widespread use of range proofs in blockchain systems all hinge on ROM-based guarantees whose soundness is not yet fully understood.
+%The proposed work centers on case studies  having direct impact on standards and practice. For Schnorr signatures and  extensions like threshold Schnorr signatures,  we will develop tight proofs in the ROM under ``circular'' assumptions like the \emph{circular discrete-log} (CDL) assumption introduced in the PI's prior work. In tandem, we will show the first instantiability results for Schnorr signatures, making novel use of  \emph{extremely lossy functions} (ELFs) introduced by Zhandry. We will also leverage ELFs to show instantiability of the popular Fujisaki-Okamoto encryption transform; in particular, unlike in the PI's prior, work our instantiations will apply to practical and soon-to-be-deployed schemes, particularly those submitted to the recent NIST competition. Together, these contributions will deliver not only theoretical progress on tightness and instantiability but also  direct input to NIST, blockchain consortia, and other standardization bodies.
+%This is critical as advanced and post-quantum cryptographic schemes are transitioned to practice.

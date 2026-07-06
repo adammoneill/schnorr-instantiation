@@ -1,0 +1,178 @@
+% !TEX root = main.tex
+
+\section{Thread 3: Compressing  or Eliminating Public Parameters} \label{sec-elim}
+
+In this thread, I propose to instantiate \emph{optimizations} in certain contexts that work in the RO model, by using win-win results and   ``computational'' Kolmogorov complexity.
+
+\subsection{Background and Goal}
+
+\paragraph*{The Uniform Random String (URS) Model.}
+A common paradigm in cryptography is that parties engaging in a protocol share a \emph{common input} that is assumed to be honestly generated.  This is often called the \emph{common reference string} (CRS) model.   Such a setup is actually provably necessary for some goals. Here I consider the  case that the CRS is  \emph{uniformly distributed}, which is called the \emph{uniform random string} (URS) model.  
+%Particularly, In this model, I consider specialized protocols such as in~\cite{}, as well as general primitives like SNARKs. As detailed in Thaler's survey~\cite{}, there are several popular and even quantum-secure approaches to building SNARKs in the URS model. 
+
+
+%The URS model is used for XXX, specific protocols we consider eand is common for non-pairing-based SNARKs.basically you have my shit, which is actually practical (but not quantum secure), and shit based on PCPs and their interactive generalization IOPs, which is not really practical (despite lies in many papers) but is plausibly quantum secure \url{http://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf}.
+
+
+\paragraph*{Main Tasks.}
+In preliminary, ongoing work with Yuval Ishai and my PhD student Mohammad Zaheri, we set ourselves two broad tasks:
+\begin{task} 
+Find when we can \emph{compress} the URS by using a pseudorandom generator (PRG), such that a PRG seed becomes the new URS and is locally expanded by all parties.\footnote{For example, this is already suggested by several finalists in the NIST PQC competition; see below.}  \label{ques-comp}
+\end{task}
+
+%I particularly propose to consider this question for the Woodruff-Indyk protocol for private nearest neighbor~\cite{}.
+
+%\paragraph*{Discussion.} Clearly this paradigm cannot work in general.  Consider a protocol for zero-knowledge that proves either the statement is in the language \emph{or} the CRS is in the image of the PRG.  Then, clearly this paradigm fails because anyone can prove any statement using the PRG seed%.  However, in this case the protocol \emph{depends on the PRG}, and in the specific case of zero-knowledge, the statement depends on the PRG. 
+ %But it may work when the protocol has ``independence'' from the PRG.
+
+\begin{task} \label{ques-elim}
+Find when  we can  \emph{replace} the URS with a fixed string, \emph{e.g.}, some digits of $\pi$.
+\end{task}
+
+These optimizations are indeed possible in the RO model --- for Task~\ref{ques-comp}, model the PRG as a RO, and, for Task~\ref{ques-elim}, evaluate the RO on a fixed point, c.f.~\cite{CCS:CanJaiSca14}.  We want to know when we can eliminate reliance on ROs here. %  However, using the RO model \emph{requires trust in the hash function designer}.   
+   Motivating practical applications are given below.  For example, a number of NIST PQC competition finalists propose to compress their public keys the first way.
+
+%I particularly propose to consider Question~\ref{ques-elim} for: (1) Hash functions --- given a keyed hash function where the key is a uniform string, how can we get a keyless one?   (2) SNARKs --- given a SNARK in the URS model\footnote{Also called  \emph{transparent} or a STARK.}, how can we get one in the plain model?  Soundness here would  be against so-called \emph{uniform} adversaries (without preprocessing) and such SNARKs in the plain model would have weaker  than full-fledged zero knowledge~\cite{JC:GolOre94}, such as ``weak'' zero-knowledge~\cite{TCC:BarPas04}.
+
+
+ %My idea  
+%In particular, there are compelling applications for non-zero-knowledge SNARKs such as` `rollups'' in blockchains~\cite{}, delegating computation to the cloud, \emph{etc.}
+%\paragraph*{Discussion.}
+%Formally, this approach can give security against \emph{uniform} adversaries; \emph{i.e}, that cannot take advantage of preprocessing. %  It can also give ``constructive reductions'' following~\cite{}, saying that if an adversary breaks the protocol then some assumption is broken. Particularly, we consider assumptions in Kolmogorov  complexity and endeavor to replace the URS with a \emph{fixed string of high Kolmogorov complexity}, inspired by~\cite{}. I particularly consider SNARKs in this regard.
+
+
+
+%In the terminology of the SNARK world~\cite{}, a URS is often contrasted with a structured random string (SRS), which serves the same purpose but need not be uniform.  Nevertheless, the URS model is very popular.  For Question~\ref{ques-comp}, I propose to  consider the general case but also the practical private nearest neighbor protocol of Woodruff and Indyk~\cite{}, in which the long URS is parsed as $d$ ciphertexts (where $d$ is the dimension of the data points) of a dense, additively homomorphic and small-message-space public-key encryption (PKE) scheme.  For Question~\ref{ques-comp}, I intend to look at SNARKs.  
+%Suppose we only need one URS ``for all time,'' meaning across all invocations of the protocol.
+%imagine we replace the URS with the digits of Pi. More abstractly, we would like to replace the URS with a string with high Kolmogorov complexity.  What can we say about security?  
+
+
+%The first step is to justify this heuristic in the RO model.  That is, suppose the PRG is modeled as a RO, and show the heuristic ``works.''  But we need a definition of the latter.
+
+\subsection{Prior Work}
+
+\subsubsection{Prior Work for Task~\ref{ques-comp}}
+
+
+\paragraph*{Shrinking the Seed of a Randomness Extractor.}  
+Our work is inspired by that of Dodis \emph{et al.}~\cite{C:BDKPPS11}, which considers whether one can compress the seed of a  strong extractor using a PRG.  They in particular show that the only way it can fail is if the PRG implies public-key cryptography, which is unlikely for practical PRGs built from merely SHA256 or AES. This is sometimes called a \emph{``win-win'' result} (see also~\cite{EC:Pietrzak06,C:Dziembowski06}) because it means either any practical PRG will do or we get a welcomed breakthrough.   We use this same template but in the context of \emph{computational} security.
+
+
+%\paragraph*{Publishing the Key of a PRF.}
+%A related problem is, what security guarantees can be achieved if one publishes the key of a pseudorandom function?  The work~\cite{} shows the GGM PRF~\cite{} is weakly one-way.  The work of~\cite{} shows how to generate a sequence of primes for a new RSA-based signature scheme.  These works lend plausibility to the paradigm we are considering for the related primitive of PRGs.
+
+
+
+\subsubsection{Prior Work for Task~\ref{ques-elim}}
+
+
+\paragraph*{Derandomizing Using Hitting Sets.}
+Our work is inspired by that of Barak \emph{et al.}~\cite{C:BarOngVad03},  which  shows that pseudorandom generators used for derandomizing non-cryptographic algorithms are in fact useful for derandomizing zaps and bit commitments; \emph{i.e.}, the public parameters can be replaced by a fixed string.  The key insight is that the property they need to derandomize only depends on the running-time of the verifier, which is a fixed polynomial, unlike the running-time of the adversary.  Note that we consider \emph{computational} rather than statistical soundness.
+
+
+%\paragraph*{Keyless Cryptographic Hashing.} Practical cryptographic hash functions such as SHA256 do not have a key, whereas collision-resistance against non-uniform adversaries requires a key.  Rogaway~\cite{} resolved this dilemma by observing keyless cryptographic hashing still works in security reductions to ``human  knowledge.''  %s, they can work perfectly well in reductions regardless, \emph{i.e.}, an attack on a protocol gives a tangible algorithm for finding a collision. 
+% This was exploited by~\cite{} to give a 3-round zero-knowledge protocol assuming a collision-resistant keyless cryptographic hashing in the above sense. % As a warm-up for SNARKs, we consider the problem of \emph{constructing} a keyless collision-resistant hash given a keyed one.
+
+%\paragraph*{Alternative Trust Models.} Reducing trust in the CRS for SNARKs is an active area of research, see \emph{e.g.}~\cite{}.  In particular, there is the bare public key model~\cite{} and updatable CRS model~\cite{}.  Still, it would be preferable to eliminate the CRS/URS completely as I propose.  
+
+\subsection{Preliminary Results}
+
+\subsubsection{Preliminary Results for Task~\ref{ques-comp}}
+
+%\paragraph*{Feasibility Results in the RO Model.} We first want to establish whether the paradigm works in general, even in the RO model, which to our knowledge has not been studied before.   We differentiate here between the so-called \emph{programmable} and \emph{non-programmable}~\cite{} RO models, where the latter intuitively means that the simulator is bound to the same RO as the adversary, \emph{i.e.} the reduction cannot ``choose'' RO outputs to provide to the adversary, which in our eyes is much more realistic.  Indeed, it seems to us that it is not hard to get a feasibility result in the programmable RO model, although it is a question how to model ``in general'' rather than specific types of protocols (see below).  
+
+%\begin{idea}
+%Look at specific case studies and later try to generalize the results.  
+%\end{idea}
+
+\paragraph*{Considering the Indyk-Woodruff Protocol.}  
+As a promising starting point, we consider the Indyk-Woodruff (IW) protocol for private nearest neighbors~\cite{TCC:IndWoo06}.  In this protocol, a URS is parsed as $d$ ciphertexts of a dense PKE scheme, where $d$ is the dimension of the points.  The PKE scheme should have at most about $d$ messages in the message-space for optimal communication complexity, as well as be additively homomorphic.  The authors suggest using the Benaloh encryption scheme~\cite{SAC:Benaloh94} in this regard.  The key properties they need for the security proof of the protocol are that (1) the ciphertexts decrypt to \emph{random} messages under a random secret key, and  (2) the ciphertexts are semantically secure given the corresponding public key (but not the secret key).  
+
+
+\paragraph*{Toward Counter-Examples.} So far, we have tried to show that there is a contrived  PRG and a contrived PKE for which compressing the URS in the IW protocol fails. Currently, we have a solution with some drawbacks.  The PRG and the PKE scheme work over $\Z_p$ for a large prime $p$.  The PRG maps $(a,b) \in \Z_p ^2$  to $(g^a,g^b,g^{ab})$.  This is a PRG under the DDH assumption.  The PKE scheme works like ElGamal with  extra padding: A public key is $g^x$ and the corresponding secret key is $x \in \Z_p$; encryption of $m \in G$ under $g^x$ is $(g^{rx + m}, g^r, g^{r'})$ where $r,r' \in \Z_p$ are randomly chosen.  One can check that this works but the problem is that a random ciphertext does not encrypt a small message and cannot be efficiently decrypted. (One needs to compute a random discrete log to decrypt it.)  On the other hand, we can give specific PRG and PKE schemes for which compression \emph{works} based on the Sahai-Waters PKE~\cite{STOC:SahWat14}. The modified  PKE scheme has small messages, but it is not additively homomorphic.
+ %$(g^{rx} \cdot m, g^r, g^{r'})$ where $r,r' \in \Z_p$ are randomly chosen
+  
+  %We give a PRG and a PKE scheme for which applying our paradigm to the Woodruff-Indyk protocol yields an insecure protocol, however our encryption scheme has drawbacks discussed below.  The PRG and the PKE scheme work over $\Z_p$ for a large prime $p$.  The PRG maps $(a,b) \in \Z_p ^2$  to $(g^a,g^b,g^{ab})$.  This is a PRG under the DDH assumption.  The PKE scheme works like ElGamal with a little extra padding: A public key is $g^x$ and the corresponding secret key is $x \in \Z_p$; encryption of $m \in G$ under $g^x$ is
+ %$(g^{rx} \cdot m, g^r, g^{r'})$ where $r,r' \in \Z_p$ are randomly chosen.  Now suppose we are given a PRG output, the corresponding seed, and a public key. If we interpret the PRG output   $(c_0 = g^a, c_1 = g^b, c_2 = g^{ab})$ ciphertext under public key $g^x$ we can trivially recover the message given the randomness $(a,b) = (r,r')$ via $m \gets c_0 / (g^x)^r$.  So property (2) is clearly violated.   
+ 
+\subsubsection{Preliminary Results for Task~\ref{ques-elim}}
+ 
+ 
+% \paragraph*{Again, Feasibility in the RO Model.}
+% An interesting question in the RO model is what if you replace the URS with the hash of the all-zeros string.  This is not unlike the ``global RO'' paradigm of~\cite{}.  
+ 
+ %\paragraph*{Toward Eliminating the URS.}
+ 
+ 
+ % In preliminary work, my main idea is:
+ In on-going work, we propose a new approach to eliminating the URS in some applications:
+ 
+ \begin{idea} \label{idea-kol}
+Replace the URS with a fixed string of high ``computational'' Kolmolgorov complexity.  
+ \end{idea} 
+ 
+ In other words, the protocol will be hardcoded with this string.
+ To do this, we will investigate the very recent result of~\cite{FOCS:LiuPas20} that average-case $t$-bounded Kolmolgorov complexity implies one-way functions.   The aim is to give  security against \emph{uniform} (no-preprocessing) adversaries. The intuition is that such an adversary cannot  find secrets buried in something longer than its code.  It can also lead to a reduction to ``human knowledge''~\cite{VIETCRYPT:Rogaway06,TCC:BBKPV16}.
+
+%As for the specific primitives to focus on, my idea is:
+
+% \begin{idea}
+%Warm-up with collision-resistant hashing and progress to SNARGs.
+ %\end{idea} 
+ 
+% That is, I first consider, given a keyed hash function where the key is a uniform string, how we cab get a keyless one.
+%Indeed, in some SNARhe URS model the URS consists of many keys for a collision-resistant hash~\cite{},  so developing a technique to   
+
+\subsection*{Proposed Work}
+
+\subsubsection{Proposed Work for Task~\ref{ques-comp}}
+
+
+
+\paragraph*{A Template and  ``Win-Win'' Results.}
+We devise the following template for studying the Woodruff-Indyk Protocol, which can later be generalized to other cases.  Roughly, (1) Construct a contrived PRG and contrived (dense, small-message, additively homomorphic) PKE such that compression fails (meaning, the corresponding IW protocol is insecure); (2) Construct a contrived PRG such that compression fails with the PKE as Goldwasser-Micali~\cite{GolMic84} or Benaloh~\cite{SAC:Benaloh94}; (3) Give a PRG for which compression works for Goldwasser-Micali or Benaloh; (4) Give a PRG for which compression works for an arbitrary dense PKE scheme.  But the PRG  may not be practical, thus:
+\begin{ques}
+Show a ``win-win'' result above,  where if the PRG fails we get  PKE out of the PRG.
+\end{ques}
+Essentially, this will show practical PRGs  (built from symmetric-key primitives)  work.
+A  challenge here will be to show that the PKE scheme really comes from the PRG and not from, say, Goldwasser-Micali or Benaloh.   One possibility is that key-generation makes black-box use of the PRG.
+
+\paragraph*{NIST PQC Competition.}
+Using the above template, we will closely study soundness of compressing the LWE matrix in the public key for a number  of the NIST PQC Round 3 submissions.  Specifically, of the subset that are  finalists, this optimization is used by CRYSTALS-Kyber, SABER, and CRYSTALS-Dilithium.    In particular:
+\begin{ques}
+Prove ``win-win'' results for NIST PQC finalists that propose to compress the public key.
+\end{ques}
+%If successful, we will give the first rigorous justification of it.
+
+\subsubsection{Proposed Work for Task~\ref{ques-elim}}
+
+We will start with hash functions and then move to SNARKs.
+
+%\paragraph*{Hash Functions.}
+%As an initial case study, we ask:
+\begin{ques} \label{ques-hash}
+Eliminate the key of a public-coin collision-resistant hash function, getting security against uniform collision-finders, using Idea~\ref{idea-kol}.
+\end{ques}
+%If this works for collision resistance, it will be interesting to see what other security properties of hash functions it works for, too.
+
+%\paragraph*{SNARKs.}
+%As our main direction, we ask:
+
+\begin{ques}
+Eliminate the URS from a SNARK in the URS model\footnote{Also called transparent or a STARK. Note that as compared to RO-based STARKs, we in particular  \emph{eliminate trust in the hash function designer}.}, getting soundness against uniform provers, using Idea~\ref{idea-kol},
+\end{ques}  
+
+%In particular, I stress that SNARKs in the URS model can be mo
+
+
+%I stress that the above SNARKs are the ones that can be moved to the plain model using  ROs. %n particular, our approach typically does not apply to pairing-based SNARKs  such as the three-group-element scheme of Groth~\cite{EC:Groth16}.  (However, we do address another aspect of security of the latter in Section~\ref{sec-enc}.)
+Our initial approach will be to look at SNARKs using a polynomial commitment scheme derived from an interactive oracle proof for Reed-Solomon testing called FRI.  FRI-based polynomial commitments can be combined with various generalizations of interactive proofs to obtain SNARKs; I refer to the excellent survey of Thaler~\cite{thaler}.
+ Such SNARKs are  plausibly \emph{post-quantum secure} and have a short URS consisting of a small number of hash keys.  As the URS consists of hash keys, achieving  Task~\ref{ques-hash} first should help considerably here.  
+ Note that it is not possible to achieve full-fledged zero-knowledge in the plain model~\cite{JC:GolOre94}.  Still, we aim to achieve a suitable relaxation~\cite{TCC:BarPas04}. %such as weak zero-knowledge with quasipolynomial simulation. 
+
+     %I also plan to explore applications that do not require zero-knowledge, like blockchain ``rollups'' where users perform off-chain computation~\cite{rollup}.  I
+   If the above is not successful, we will  use discrete-log-based polynomial commitments instead (cf.~\cite{C:Setty20}).  
+  If either approach is successful, an important question will be to what extent such relaxations (uniform soundness, weak zero-knowledge) are suitable for blockchains.
+   Failing both approaches, we will develop different approaches to eliminating a URS than Kolmogorov complexity. 
+ %I then plan to investigate such applications that do not need zero-knowledge at all, such as ``rollups'' where users prove they did some computation off-chain. As mentioned in Section~\ref{sec-outreach}, I plan to work intensively with George Bissias and Bitcoin Unlimited on this topic.  Ultimately, I aim for practical, implemented SNARKs in the new model.
+ % For 

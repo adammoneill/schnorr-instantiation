@@ -1,0 +1,270 @@
+\def\llncs{0}       % 1 = using llncs
+\def\showoverflow{0}% 1 = show overflows when llncs=1
+\def\setmargin{0}   % 0 = do not set; 1 = set
+% it sets via latex. Instead set via pdf directly
+\def\papertype{0}   % 0 = letter; 1 = a4;
+\def\myfontsize{1}  % 0 = 10pt; 1 = 11pt; 0 is what llncs uses;
+\def\savespace{0}   % 0L = do not save space; 1 = save space
+% use times font
+
+\def\anonymous{0}   % 0 = non-anonymous; 1 = anonymous
+\def\addtoc{0}      % 0 = exclude TOC; 1 = include TOC
+\def\fullversion{2} % 0 = short version; 1 = full version
+\def\submission{0}  % 0 = normal version; 1 = submission version
+
+
+\def\instplace{0}
+\def\authnotes{1}   % 0 = authnotes off; 1 = authnotes on
+
+
+\ifnum\llncs=1
+  \ifnum\papertype=0
+    \ifnum\myfontsize=0
+      \ifnum\showoverflow=1
+        \documentclass[twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \else
+      \ifnum\showoverflow=1
+        \documentclass[11pt,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[11pt,twoside,envcountsame,runningheads]{llncs}
+      \fi
+      \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
+    \fi
+  \else
+    \ifnum\myfontsize=0
+      \ifnum\showoverflow=1
+        \documentclass[a4paper,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[a4paper,twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \else
+      \ifnum\showoverflow=1
+        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads,draft]{llncs}
+      \else
+        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads]{llncs}
+      \fi
+    \fi
+  \fi
+\else
+  \ifnum\papertype=0
+    \ifnum\myfontsize=0
+      \documentclass[twoside]{article}
+    \else
+      \documentclass[11pt,twoside]{article}
+      %\usepackage[letterpaper,hmargin=0.68in,vmargin=0.58in]{geometry}
+      \usepackage[letterpaper,hmargin=0.95in,vmargin=0.9in]{geometry}
+    \fi
+  \else
+    \ifnum\myfontsize=0
+      \documentclass[a4paper,twoside]{article}
+    \else
+      \documentclass[11pt,a4paper,twoside]{article}
+    \fi
+  \fi
+\fi
+
+\iffalse
+%sarah's hacks; comment out as desired
+\usepackage{titlesec}
+\floatsep=3pt plus1pt minus2pt
+%\dblfloatsep=\floatsep
+%\textfloatsep=6pt plus5pt minus2pt
+%\dbltextfloatsep=\textfloatsep
+%\abovecaptionskip=3pt
+\beforetitleunit=6pt plus12pt minus2pt
+%\aftertitleunit=3pt plus3pt minus1pt
+\aftertitleunit=\beforetitleunit
+\titlespacing*\section{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\subsection{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\subsubsection{0pt}{\beforetitleunit}{\aftertitleunit}
+\titlespacing*\paragraph{0pt}{\beforetitleunit}{1em}
+\fi
+
+\pagestyle{empty}
+\usepackage{xspace}
+\usepackage{graphicx,rotating}
+%\usepackage{graphicx,pstricks,rotating}
+
+\ifnum\savespace=1
+\usepackage{times}
+\fi
+
+\usepackage{url}
+%\usepackage{latexsym}
+\usepackage{amscd,amsfonts,amsmath,amssymb}
+
+\usepackage{color}
+\usepackage{longtable}
+\usepackage{multirow,setspace}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.1}
+
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup[table]{skip=10pt}
+
+\ifnum\llncs=1
+  \usepackage[dvips]{graphics}
+\else
+  \ifnum\anonymous=0
+    \usepackage[%dvips,
+    pdftitle={},
+    pdfauthor={},
+    pdfpagelabels=true, linktocpage=true,
+    pagebackref,% references from biblio to pages where cited
+    pdftex]{hyperref}
+  \else
+    \usepackage[%dvips,
+    pdftex,
+    pdftitle={},    pdfauthor={}, pdfpagelabels=true, linktocpage=true]{hyperref}
+  \fi
+\fi
+
+% --- -----------------------------------------------------------------
+% --- Page styles
+% --- -----------------------------------------------------------------
+
+\ifnum\setmargin=1
+  \ifnum\papertype=1
+    % a4 paper size
+    \setlength{\textwidth}{16.0cm}
+    \setlength{\textheight}{23.0cm}
+    \setlength{\evensidemargin}{-0.04cm}
+    \setlength{\oddsidemargin}{-0.04cm}
+    \setlength{\topmargin}{-0.5cm}
+    \setlength{\headheight}{0.5cm}
+  \else
+    % letter paper size
+       \ifnum\submission=0
+    \setlength{\evensidemargin}{-0.1in}
+    \setlength{\oddsidemargin}{-0.1in}
+    \setlength{\textwidth}{6.8in}
+    \setlength{\textheight}{9.4in}
+    \setlength{\topmargin}{-0.35in}
+    \setlength{\headheight}{0in}
+    \setlength{\headsep}{0in}
+    \setlength{\footskip}{0.5in}
+       \else
+    \setlength{\evensidemargin}{-0.2in}
+    \setlength{\oddsidemargin}{-0.2in}
+    \setlength{\textwidth}{6.8in}
+    \setlength{\textheight}{9.5in}
+    \setlength{\topmargin}{-0.3in}
+    \setlength{\headheight}{0in}
+    \setlength{\headsep}{0in}
+    \setlength{\footskip}{0.4in}
+       \fi
+  \fi
+\fi
+
+% --- -----------------------------------------------------------------
+% --- Document-specific definitions.
+% --- -----------------------------------------------------------------
+
+\input{header}
+% --- -----------------------------------------------------------------
+% --- The document starts here.
+% --- -----------------------------------------------------------------t
+\pagenumbering{gobble}
+\begin{document}
+ \input{abstract-2}
+\vspace{-25mm}
+\section{Overview}
+Proofs in the \emph{random oracle model} (ROM) underpin many deployed cryptographic
+schemes---from TLS and Bitcoin to NIST post-quantum candidates---yet their practical
+security guarantees remain unclear. This project develops a principled framework to
+increase confidence in ROM proofs, comprising two complementary thrusts:
+\begin{newenum}
+\item \emph{ROM tightness}, ensuring 
+proof-based parameter choices at standard security levels remain meaningful in practice; and
+\item \emph{Instantiability}, ensuring random oracles can be safely replaced with
+real hash functions.
+\end{newenum}
+Building on our circular-discrete-logarithm (CDL) assumption introduced at
+CRYPTO~2025, we propose and analyze the \emph{Vandermonde-CDL} and \emph{Circular Module
+Short-Integer-Solution} assumptions. These yield the \textbf{first tight ROM proofs} not
+only for Schnorr signatures (as in CRYPTO 2025) but also for emerging extensions such as
+threshold Schnorr signatures ($\mathsf{Sparkle+}$), $\mathsf{Dilithium}$, and range proofs
+based on $\mathsf{Bulletproofs}$, all of which are seeing standardization and deployment.
+All new assumptions remain amenable to cryptanalytic validation. In parallel, new
+cryptographic tools based on extremely lossy functions (ELFs) and related notions will
+provide the \textbf{first standard-model instantiations} of Schnorr signatures and the
+Fujisaki--Okamoto ($\mathsf{FO}$) transform.
+
+\noindent\textbf{Keywords}: Cryptography; random oracle model; digital signatures;
+public-key encryption.
+
+\section{Intellectual Merit}
+The project addresses fundamental open problems in provable security with direct
+implications for practice. Planned contributions include:
+\begin{newitemize}
+  \item  \textbf{Tight ROM reductions} for  threshold Schnorr under an assumption we call Vandermonde-CDL.
+  \item The first \textbf{standard-model instantiations} of Schnorr signatures and the Fujisaki-Okamoto transform 
+        using new ELF relaxations that capture plausible properties of cryptographic hash functions.
+  \item \textbf{New tools} --- \emph{tunable} lossy functions, \emph{adaptive-leakage} universal computational extractors,
+        and public-key encryption secure against \emph{functional-plaintext-checking attack} --- that
+        expand our toolbox for bridging ROM analyses with real-world security.
+\end{newitemize}
+In summary, in advancing approachable assumptions to address long-standing questions, the project
+will push the boundaries of provable security for standardized and widely-deployed
+schemes.
+
+\section{Broader Impacts}The project is uniquely positioned to shape   standards: 
+as a former NIST visiting faculty member, the PI has established connections, 
+and the project’s questions align directly with NIST’s post-quantum and threshold 
+priorities. Outcomes will deliver timely, research-driven input to NIST workshops. 
+At UMass, the PI will promote early research exposure through (i) a new 
+cryptography subgroup in the 250+ member \emph{Cybersecurity Club}, 
+(ii) engagement of first- and second-year undergraduates in the 
+\emph{Early Research Scholars Program}, and 
+(iii) community discussions on privacy through the 
+\emph{Office of Community, Outreach, and Organizational Learning}. 
+Planned outcomes include mentoring one postdoc, one PhD, two MS, and four 
+undergraduates, sustained outreach across educational levels, 
+and tangible contributions to NIST and industry standards.
+%This proposal comprises a cohesive plan of research, teaching, and outreach centered on the concept of \emph{relaxed cryptography}, by which we mean cryptography that achieves weaker-than-standard security guarantees in the name of functionality or efficiency needed for emerging applications.  
+
+
+ % I am committed to incorporating results from the proposed work as appropriate. 
+%Professor Fountain and I are also currently advising an undergrad, with whom we are writing a whitepaper on ``cryptography for policymakers.''  % Collaboration with Professor Fountain will also serve as inspiration for new applications of cryptographic primitives studied in this proposal. \\ 
+  
+
+
+
+%\noindent  In conclusion, if successful this proposal will create a new toolkit of cryptographic objects that have ``tunable'' security with functional ity/efficiency tradeoffs, as well as a guideline for how to use them responsibly in higher-level applications. 
+
+% --- -----------------------------------------------------------------
+% --- The Bibliography.
+% --- -----------------------------------------------------------------
+
+\iffalse
+% For final copy, edit main.bbl by adding the command
+% \setlength{\parskip}{-1pt}
+% right after the \begin{bibliography}{10} command. This will make a more
+% compact and prettier bib.
+\ifnum\savespace=0
+\begin{small}
+\def\shortbib{1}
+\bibliographystyle{abbrv}
+\bibliography{cryptobib/abbrev3,cryptobib/crypto,cryptobib/extra,cryptobib/extra2}
+% \bibliographystyle{alpha}
+% \bibliography{abbrev,crypto}
+\end{small}
+\else
+\begin{small}
+\def\shortbib{1}
+\bibliographystyle{abbrv}
+\bibliography{cryptobib/abbrev3,cryptobib/crypto,cryptobib/extra,cryptobib/extra2}
+\end{small}\fi
+
+% --- -----------------------------------------------------------------
+% --- The Appendix.
+% --- -----------------------------------------------------------------
+
+\appendix
+\fi
+\end{document}
