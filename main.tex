@@ -10,7 +10,7 @@
 \def\savespace{0}   % 0 = do not save space; 1 = save space
 % use times font
 
-\def\anonymous{0}   % 0 = non-anonymous; 1 = anonymous
+\def\anonymous{1}   % 0 = non-anonymous; 1 = anonymous
 \def\addtoc{0}      % 0 = exclude TOC; 1 = include TOC
 \def\fullversion{1} % 0 = short version; 1 = full version
 \def\submission{0}  % 0 = normal version; 1 = submission version
@@ -103,16 +103,22 @@
 \setlength{\belowdisplayshortskip}{5pt}
 
 
-\title{Instantiating Schnorr Signatures}
-% \authnote{Adam}{Title decision pending the Dilithium merge: candidates are "Instantiating Schnorr and Dilithium Signatures" or "Instantiating Fiat--Shamir Signatures". Also the author list grows: Ojaswi, Carter, Xinyu, Alex Hoover.}
-\titlerunning{Instantiating Schnorr Signatures}
-\author{Adam O'Neill\inst{1}\orcidlink{0009-0006-0233-6466}
-% \and Coauthor Name\inst{2}
-}
-\authorrunning{Adam O'Neill}
-\institute{Manning CICS, UMass Amherst, Amherst, USA \\ \email{adamoneill@umass.edu}
-% \and Institution \\ \email{email}
-}
+\title{Instantiating Schnorr and Dilithium Signatures}
+% \authnote{Adam}{Title updated to cover Part~II; the alternative is "Instantiating Fiat--Shamir Signatures". Set \anonymous to 0 in the preamble to restore the author block. Author list to grow: Ojaswi, Carter, Xinyu, Alex Hoover.}
+\titlerunning{Instantiating Schnorr and Dilithium Signatures}
+\ifnum\anonymous=1
+  \author{Anonymous Submission}
+  \authorrunning{Anonymous Submission}
+  \institute{}
+\else
+  \author{Adam O'Neill\inst{1}\orcidlink{0009-0006-0233-6466}
+  % \and Coauthor Name\inst{2}
+  }
+  \authorrunning{Adam O'Neill}
+  \institute{Manning CICS, UMass Amherst, Amherst, USA \\ \email{adamoneill@umass.edu}
+  % \and Institution \\ \email{email}
+  }
+\fi
 
 \maketitle
 
@@ -123,9 +129,11 @@
 
     For key recovery, we define tunable lossy functions. Their lossy image bound is a parameter, and our reduction gives an explicit tradeoff among mode indistinguishability, image-enumeration time, and DL security. The proof replaces random-oracle programming by rejection sampling over the enumerated image. Instantiating the construction with Zhandry's strongly efficiently enumerable ELFs gives key-recovery security from ordinary DL in the Schnorr group, exponential DDH in auxiliary groups, and collision-resistant hashing.
 
-    For unforgeability, we instantiate the hash function with an obfuscated circuit built from puncturable PRFs and a conversion function for the circular discrete-logarithm problem. Polynomially secure CDL, iO, and puncturable PRFs give static-message unforgeability, where the forger declares its signing and forgery messages before seeing the verification key. For a salted variant of Schnorr in which the message enters the hash through a tunable lossy function in injective mode, we prove adaptive EUF-CMA security for messages of any polynomial length. Finally, we extend the program to lattice-based Fiat--Shamir. For an uncompressed Dilithium-shaped scheme over a power-of-two modulus with gadget challenges, we prove key-recovery security from search LWE and the lossy pre-hash, with no obfuscation and every ingredient lattice-based, and static-message unforgeability from SIS, LWE, iO, and puncturable PRFs, all polynomially secure at a quasi-polynomial modulus, via a circular-SIS problem that reduces tightly to SIS. The reduction switches the pre-hash to lossy mode and guesses hash digests from its enumerable image, so the guessing losses are bounded by the image size rather than by the message space. With a quasi-polynomial image bound, quasi-polynomially secure CDL, iO, and puncturable PRFs suffice. The signer samples both its nonce and its salt uniformly and independently.
+    For unforgeability, we instantiate the hash function with an obfuscated circuit built from puncturable PRFs and a conversion function for the circular discrete-logarithm problem. Polynomially secure CDL, iO, and puncturable PRFs give static-message unforgeability, where the forger declares its signing and forgery messages before seeing the verification key. For a salted variant of Schnorr in which the message enters the hash through a tunable lossy function in injective mode, we prove adaptive EUF-CMA security for messages of any polynomial length. The reduction switches the pre-hash to lossy mode and guesses hash digests from its enumerable image, so the guessing losses are bounded by the image size rather than by the message space. With a quasi-polynomial image bound, quasi-polynomially secure CDL, iO, and puncturable PRFs suffice. The signer samples both its nonce and its salt uniformly and independently.
 
-    \keywords{Schnorr signatures \and random-oracle instantiation \and lossy functions \and obfuscation}
+    Finally, we extend the program to lattice-based Fiat--Shamir with aborts. For an uncompressed Dilithium-shaped scheme over a power-of-two modulus with gadget challenges, we prove key-recovery security from search LWE and the same lossy hash family, with no obfuscation and every ingredient lattice-based. We then prove static-message unforgeability from SIS, LWE, iO, and puncturable PRFs, all polynomially secure at a quasi-polynomial modulus. The circular problem here is a SIS analogue of CDL, and for the gadget conversion function it reduces tightly to plain SIS.
+
+    \keywords{Schnorr signatures \and Dilithium \and random-oracle instantiation \and lossy functions \and obfuscation}
 \end{abstract}
 
 \input{01-intro}
@@ -144,10 +152,12 @@
 \input{06-conclusion}
 
 \clearpage
+\ifnum\anonymous=0
 \begin{credits}
 \subsubsection{\ackname}
 Acknowledgments to be added.
 \end{credits}
+\fi
 
 
 \bibliographystyle{alphaurl}

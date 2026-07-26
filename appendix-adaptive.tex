@@ -177,7 +177,7 @@ Before comparing $\mathsf{H}_7$ and $\mathsf{H}_8$, discard the full PRF keys, $
 
 The remaining state does not identify either entry of $L$ as the honest or trigger entry, and it contains no separate copy of $s_0$ or $s_1$. The view before query $j$ and the event $d_j=\widehat d$ are unchanged when the two triples are exchanged. Consequently, replacing the response $(R,s_0,\salt_j)$ by $(W,s_1,\salt_j)$ leaves the continuation and the adversary's view unchanged. This step is exact.
 
-We now reverse the preceding changes while returning $(W,s_1,\salt_j)$. Restore the outputs of $\PRF_4$ and $\PRF_3$; reverse the change of variables for the first triple; restore the main-branch value $v$; restore the outputs of $\PRF_2$ and $\PRF_1$; and finally replace $C_j$ by $\CircS$ using iO. Each reverse game samples the hidden values with the same distribution as in the corresponding forward game, and its puncturable-PRF experiment supplies the true values. At the endpoint the original circuit is published and query $j$ is answered by the trigger procedure, giving $\Gm_j$.
+We now reverse the preceding changes while returning $(W,s_1,\salt_j)$. Restore the outputs of $\PRF_4$ and $\PRF_3$; reverse the change of variables for the first triple; restore the main-branch value $v$; restore the outputs of $\PRF_2$ and $\PRF_1$; and finally replace $C_j$ by $\CircS$ using iO. Each reverse game samples the hidden values with the same distribution as in the corresponding forward game, and its puncturable-PRF experiment provides the true values. At the endpoint the original circuit is published and query $j$ is answered by the trigger procedure, giving $\Gm_j$.
 
 For each $j$, there are PPT distinguishers $\advD^{\mathsf{io}}_{j,\beta}$ and $\advD^{\mathsf{prf}}_{j,\beta,\ell}$, for $\beta\in\{0,1\}$ and $\ell\in[4]$, such that, on writing
 $$
@@ -252,7 +252,7 @@ Set $\widehat t=\enczero{\widehat u}$. For this reduction, puncture $k_4$ at $\w
 \vspace{-1ex}
 \end{figure}
 
-If $\widehat s=\PRFEv_4(k_4,\widehat t)$ and $Z=g^{\widehat s}$, then $C_{\mathsf{forg}}$ and $\CircS$ compute the same function, so iO permits the switch. Puncturable-PRF security then replaces $\widehat s$ by a uniform value, and the circuit uses $Z=g^{\widehat s}$.
+If $\widehat s=\PRFEv_4(k_4,\widehat t)$ and $Z=g^{\widehat s}$, then $C_{\mathsf{forg}}$ and $\CircS$ compute the same function, so iO permits the switch. Puncturable-PRF security then replaces $\widehat s$ by a uniform value, so $Z=g^{\widehat s}$ is uniform in $\GG$.
 
 Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$. It samples $x\getsr\Zp$, sets $X=g^x$, writes $\widehat c:=\PRFEv_3(k_3,\widehat t)$, and builds $C_{\mathsf{forg}}$ with $Z=Y$. This has exactly the distribution of the uniform hybrid because $Y$ is uniform in $\GG$. The reduction answers signing queries with the trigger procedure using the punctured key. It aborts if a signing query has encoding $\widehat t$; when the guess is correct, this requires a signing query whose slot equals $(\dig(m^*),\salt^*)$, and hence a distinct queried message with digest $\dig(m^*)$, which the $\mathsf{Bad}_{\mathsf{col}}$ abort excludes, or the pair $(m^*,\salt^*)$ itself among the queries, which freshness of $m^*$ excludes. If the valid forgery takes the trigger branch at the guessed pair, then
 $$

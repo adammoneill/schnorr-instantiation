@@ -91,8 +91,6 @@ Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function
 \end{oracle}
 }
 {
-\ExperimentHeader{$\SignOracle(m)$}
-
 \begin{oracle}{$\SignOracle(m)$}
 \item If $b=0$:
 \item \quad $r'\getsr\Zp\;;\;R\gets g^{r'}$
@@ -169,19 +167,21 @@ $$
 The image is enumerated once. Constructing $C$ takes $r\poly(\secp)$ time, and each signing query uses at most $\secp r$ trials. This gives the claimed running times and completes the proof.
 \end{proof}
 
+For a strongly efficiently enumerable ELF, in the sense stated after Definition~\ref{def-lf}, the injective mode does not depend on the image parameter, so the distribution of $\HF^{\mathsf{tlf}}_r$ is the same for every $r$. We write $\HF^{\mathsf{tlf}}$ for it.
+
 \begin{corollary} \label{cor-bk}
-Suppose $\TLF$ is a strongly efficiently enumerable ELF in the sense stated after Definition~\ref{def-lf}. In this case the distribution of $\HF^{\mathsf{tlf}}_r$ is independent of $r$; denote it by $\HF^{\mathsf{tlf}}$. If DL is hard against PPT algorithms in $\GG$, then $\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure.
+Suppose $\TLF$ is a strongly efficiently enumerable ELF and DL is hard against PPT algorithms in $\GG$. Then $\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure.
 \end{corollary}
 
 \begin{proof}
-Suppose a PPT adversary $\advA$ has nonnegligible BK-CMA advantage. Fix an inverse polynomial $\epsilon$ such that this advantage is at least $4\epsilon$ for infinitely many security parameters. The distinguisher $\advD$ of Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives $K$ and never uses the image bound. Let $q$ be the polynomial supplied by the ELF guarantee for $\advD$ and $\epsilon$, and set $r(\secp)=\lceil q(\secp)\rceil$. Then $\AdvTLF{\TLF,r}{\advD}\le\epsilon$. The injective-mode distribution does not depend on this choice of $r$, so the left side of the theorem is still the advantage against the honest scheme.
+Suppose a PPT adversary $\advA$ has nonnegligible BK-CMA advantage. Fix an inverse polynomial $\epsilon$ such that this advantage is at least $4\epsilon$ for infinitely many security parameters. The distinguisher $\advD$ of Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives $K$ and never uses the image bound. Let $q$ be the polynomial given by the ELF guarantee for $\advD$ and $\epsilon$, and set $r(\secp)=\lceil q(\secp)\rceil$. Then $\AdvTLF{\TLF,r}{\advD}\le\epsilon$. The injective-mode distribution does not depend on this choice of $r$, so the left side of the theorem is still the advantage against the honest scheme.
 
 For this fixed polynomial $r$, algorithm $\advB$ is PPT. Its DL advantage is negligible. The enumeration-failure and truncation terms are also negligible. For all sufficiently large parameters the right side is less than $4\epsilon$, a contradiction.
 \end{proof}
 
 \paragraph*{Instantiation and comparison.} Zhandry constructs a strongly efficiently enumerable ELF from exponential DDH, or constant-$k$ exponential $k$-linear~\cite{C:Zhandry16}. Its honest key contains auxiliary components at several security levels. The honest distribution is fixed. For a given attack, the lossy hybrid selects a component whose security level is large enough. Corollary~\ref{cor-bk} therefore uses ordinary DL in the Schnorr group; neither the DL reduction nor the Schnorr group must have subexponential security. The auxiliary ELF construction assumes exponential DDH, and the proof chooses $r$ as a function of the attack.
 
-The proof of Theorem~\ref{thm-bk} is pointwise in $r$, so it also applies to injective and lossy distributions defined at one fixed value of $r$. The one-level DDH construction of Peikert and Waters~\cite[Sections~5.2--5.3]{STOC:PeiWat08} gives an illustrative example. Let its auxiliary group have order $q'\le M$, set $r=q'$, and retain the lossy concealer vector $s$ as the enumeration trapdoor. The lossy image is then enumerable in time $q'\poly(\secp)$. Ignoring constants and lower-order terms, the generic-group estimates have the form
+The proof of Theorem~\ref{thm-bk} is pointwise in $r$, so it also applies to injective and lossy distributions defined at one fixed value of $r$. The one-level DDH construction of Peikert and Waters~\cite[Sections~5.2--5.3]{STOC:PeiWat08} gives an illustrative example. Let its auxiliary group have order $q'\le M$, set $r=q'$, and retain the vector that defines the lossy mode as the enumeration trapdoor. The lossy image is then enumerable in time $q'\poly(\secp)$. Ignoring constants and lower-order terms, the generic-group estimates have the form
 $$
 \poly(\ellin)\frac{t_{\advD}^2}{q'}
 +

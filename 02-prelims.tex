@@ -109,7 +109,7 @@ $$
 $$
 \end{samepage}
 
-\paragraph*{Discussion.} In EUF-static, the adversary declares its signing messages $m_1,\ldots,m_q$ and its forgery message $m^*$ before seeing the verification key, and then receives all requested signatures at once. This is weaker than the selective-target notion of Hohenberger, Sahai, and Waters~\cite{EC:HohSahWat14}, where only the forgery message is declared before key generation and signing queries remain adaptive. In the key-recovery game BK-CMA, the adversary has an unrestricted, adaptive signing oracle but must output the signing key to win. The name BK-CMA (``breaking the key'') follows Paillier and Vergnaud~\cite{AC:PaiVer05}. Note that BK-CMA and EUF-static are incomparable. The first has a stronger oracle but a harder winning condition.
+\paragraph*{Discussion.} In EUF-static, the adversary declares its signing messages $m_1,\ldots,m_q$ and its forgery message $m^*$ before seeing the verification key, and then receives all requested signatures at once. This is weaker than the selective-target notion of Hohenberger, Sahai, and Waters~\cite{EC:HohSahWat14}, where only the forgery message is declared before key generation and signing queries remain adaptive. In the key-recovery game BK-CMA, the adversary has an unrestricted, adaptive signing oracle but must output the signing key to win. The name BK-CMA (``breaking the key'') follows Paillier and Vergnaud~\cite{AC:PaiVer05}. Note that BK-CMA and EUF-static are incomparable. BK-CMA gives the adversary a stronger oracle but a harder winning condition; EUF-static gives a weaker oracle but an easier winning condition.
 
 \subsection{Discrete-Logarithm and Circular Discrete-Logarithm Problems} \label{sec-dl-cdl}
 
