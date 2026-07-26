@@ -167,6 +167,22 @@ $$
 The image is enumerated once. Constructing $C$ takes $r\poly(\secp)$ time, and each signing query uses at most $\secp r$ trials. This gives the claimed running times and completes the proof.
 \end{proof}
 
+\paragraph*{Why the construction uses two modes.} The scheme deploys the injective mode, and the lossy mode occurs only in the proof. One might ask whether the second mode is needed at all, since the rejection-sampling oracle of $\Gm_2$ works for any hash function with a small enumerable image. If the deployed hash were itself lossy, the simulation would apply directly to the real game, and key-recovery security would follow from hardness of DL against time $r\cdot\poly(\secp)$ with no assumption about modes.
+
+The reason is that the simulator is also an attack. Lemma~\ref{lem-sim} says each trial of the rejection-sampling oracle produces a valid signature with probability exactly $1/|C|$, and the trial uses only the verification key. An adversary that runs the same loop on a message of its choice therefore obtains a signature on it. This gives the following bound, which holds for every hash function and uses nothing about how it is built.
+
+\begin{proposition} \label{prop-lossy-forge}
+Let $H \colon \GG \times \bits^{\msglen} \to \Zp$ be efficient with $|\Image(H)| \le r$, and suppose a set $C \supseteq \Image(H)$ of size at most $r$ can be computed in time $\tau$. Then there is an adversary that runs in time $\tau + \secp r \poly(\secp)$, makes no signing queries, and wins the EUF-CMA game against $\SchScheme[\GG,H]$ with probability at least $1 - e^{-\secp}$.
+\end{proposition}
+
+\begin{proof}
+The adversary fixes any message $m^*$ and repeats the loop of the $\SignOracle$ of Figure~\ref{fig-bk-games} on $m^*$, which uses only $X$ and $H$. By Lemma~\ref{lem-sim} each trial succeeds with probability $1/|C|$, and by the argument preceding the proof of Theorem~\ref{thm-bk} the probability that all $\secp|C|$ trials fail is at most $e^{-\secp}$. Any output of the loop is a valid signature on $m^*$, and no signing query was made.
+\end{proof}
+
+Two consequences. First, deploying a lossy hash would give a scheme that is universally forgeable in time about $r$. Taking the quasi-polynomial $r = 2^{(\log \secp)^2}$ at $\secp = 128$ gives $r = 2^{49}$, so the scheme would offer about $49$ bits of unforgeability security in a group chosen for $128$. The injective mode has no such attack, and this is what the second mode buys: the conclusion is about a scheme that is not already broken, and mode indistinguishability is what carries it there from the lossy game.
+
+Second, and independently of our construction, Proposition~\ref{prop-lossy-forge} shows that lossiness alone cannot give unforgeability. Any image small enough to rejection-sample against is small enough to forge against, in the same time. So the technique of this section is confined to key recovery for a structural reason, and unforgeability needs a different tool. That is the subject of Section~\ref{sec-io-uf}, where the conversion function of the CDL assumption has small preimages and hence a large image, which is exactly the regime in which the loop above is too slow to be either a simulation or an attack.
+
 For a strongly efficiently enumerable ELF, in the sense stated after Definition~\ref{def-lf}, the injective mode does not depend on the image parameter, so the distribution of $\HF^{\mathsf{tlf}}_r$ is the same for every $r$. We write $\HF^{\mathsf{tlf}}$ for it.
 
 \begin{corollary} \label{cor-bk}
