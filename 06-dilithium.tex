@@ -1,0 +1,262 @@
+\section{A Dilithium-Shaped Scheme and Key Recovery from LWE} \label{sec-dilithium}
+
+\authnote{Ojaswi, Carter, Xinyu, Alex}{This section merges the instantiability program with the circular-SIS working draft. The scheme below is the uncompressed warmup scheme of that draft with rejection sampling added, over $q=2^k$ with the gadget challenge set. Open items for the group are flagged inline.}
+
+This part of the paper instantiates the hash function in a lattice-based Fiat--Shamir signature scheme of the shape of Dilithium~\cite{Dilithium}, in the sense of Lyubashevsky~\cite{AC:Lyubashevsky09,EC:Lyubashevsky12}, and proves the first two rungs of the ladder of Part~I: key recovery from lossiness (this section), and static-message unforgeability from a circular assumption with obfuscation (Section~\ref{sec-dil-static}). The key-recovery result (Theorem~\ref{thm-dil-bk}) mirrors Section~\ref{sec-lf-kr}: the hash is a tunable lossy function composed with an outer hash, the proof switches to lossy mode and simulates signing by rejection sampling over the enumerated image, and the simulation is exact. It uses no obfuscation, and all of its ingredients are lattice-based, so it is our fully post-quantum result. The static result (Theorem~\ref{thm-dil}) mirrors Section~\ref{sec-io-uf}. The hash function is an obfuscated circuit computing a masked conversion function, a forgery becomes a solution to the circular problem, and signing queries are handled by hardwiring. Two things change. First, the circular problem is $\CSIS$ with bit decomposition as the conversion function, and by Lemma~\ref{lem-csis-sis} this is not a new assumption; the reduction lands on plain SIS. Second, lattice verification and simulation carry low-norm slack, which changes the exact steps of the Schnorr proof into steps with LWE and rejection-sampling accounting.
+
+A standard-model proof also removes the QROM question. Dilithium is a post-quantum scheme, so its idealized-model analyses must treat quantum access to the oracle~\cite{EC:KilLyuSch18}; an instantiated hash function is a concrete circuit, and no oracle model of any kind remains. The static construction uses iO, whose current instantiations are not post-quantum, so that result is a feasibility statement about the shape of the scheme; the key-recovery result has no such caveat. The salted adaptive port is deferred to future work (see the discussion at the end of the section).
+
+Throughout, $q = 2^k$, the challenge space is $\chal = \bits^{\ell}$ with $\ell = nk$, and $f = \GDec$ is bit decomposition, so that $\mat{G}\cdot\GDec(\mat{w}) = \mat{w}$ and $\GDec$ is a bijection of $\Zq^n$ with $\bits^\ell$ (Section~\ref{sec-lattice}). Fix dimensions $n, \colsA$ and a mask bound $B$, and set the response bound $\Bclip := B - \ell$. We require $B \ge 4\ell(\colsA+n)$, which makes the rejection rate below constant, and $q \ge B^2$, which keeps the modulus comfortably above every norm in the proofs. The key-recovery result works at any such $B$, including polynomial. The static result additionally requires the flooding condition of Section~\ref{sec-dil-static}, which makes $B$, and hence $q$, quasi-polynomial. \authnote{Carter}{Parameter sanity for your pass: for key recovery, $k = \Theta(\log\secp)$ closes the loop $\ell = nk$, $B \ge 4\ell(\colsA+n)$, $q = 2^k \ge B^2$; for the static result, $k = \Theta((\log\secp)^2)$ does. The final SIS norm is $B+\Bclip < 2B \le 2\sqrt{q}$. Concrete sizes need a real parameter table.}
+
+\subsection{Lattice Problems} \label{sec-lattice}
+
+This part works over $\Zq$ for a modulus $q = 2^k$. Norms are the infinity norm, and $[\pm B]$ denotes the integer interval $\{-B,\ldots,B\}$. The following two problems are standard.
+
+\begin{definition} \label{def-sis}
+Let $q, n, m', \beta \in \N$. The advantage of an algorithm $\advA$ against $\SIS_{q,n,m',\beta}$ is
+$$
+\AdvSIS{q,n,m',\beta}{\advA}
+:=
+\Pr\big[\mat{A}\mat{x} = \mat{0} \,\land\, 0 < \|\mat{x}\|_\infty \le \beta
+\;\big|\;
+\mat{A} \getsr \Zq^{n \times m'},\ \mat{x} \getsr \advA(\mat{A})
+\big] \;.
+$$
+\end{definition}
+
+\begin{definition} \label{def-lwe}
+Let $q, n, m', t, B \in \N$. The advantage of an algorithm $\advD$ against the decision problem $\LWE_{q,n,m',t,B}$ is
+$$
+\AdvLWE{q,n,m',t,B}{\advD}
+:=
+\big|
+\Pr[\advD(\mat{A}, \mat{A}\mat{V}_1 + \mat{V}_2) \Rightarrow 1]
+-
+\Pr[\advD(\mat{A}, \mat{U}) \Rightarrow 1]
+\big| \;,
+$$
+where $\mat{A} \getsr \Zq^{n \times m'}$, $\mat{V}_1 \getsr [\pm B]^{m' \times t}$, $\mat{V}_2 \getsr [\pm B]^{n \times t}$, and $\mat{U} \getsr \Zq^{n \times t}$.
+\end{definition}
+
+We also use the search version at the same parameters. The advantage of $\advA$ against search $\LWE_{q,n,m',t,B}$ is
+$$
+\AdvSLWE{q,n,m',t,B}{\advA}
+:=
+\Pr\big[\mat{A}\mat{V}_1' + \mat{V}_2' = \mat{T} \,\land\, \mat{V}_1' \in [\pm B]^{m'\times t} \,\land\, \mat{V}_2' \in [\pm B]^{n\times t}\big] \;,
+$$
+where $\mat{A} \getsr \Zq^{n\times m'}$, $\mat{V}_1 \getsr [\pm B]^{m'\times t}$, $\mat{V}_2 \getsr [\pm B]^{n\times t}$, $\mat{T} \gets \mat{A}\mat{V}_1+\mat{V}_2$, and $(\mat{V}_1',\mat{V}_2') \getsr \advA(\mat{A},\mat{T})$. The winner returns any consistent short pair, not necessarily the planted one.
+
+\paragraph*{Discussion.} Definition~\ref{def-lwe} is decision LWE in normal form with $t$ independent secret--noise column pairs and noise uniform on a box. A hybrid over the columns reduces it to the single-column case with a factor $t$. SIS goes back to Ajtai~\cite{STOC:Ajtai96} and LWE to Regev~\cite{STOC:Regev05}. \authnote{Ojaswi/Carter}{Pin down the citation for LWE with uniform box noise and normal form at our parameter regimes; the working draft's Definition def:lwe is the same shape.}
+
+The following is the circular problem from our companion working draft, the SIS analogue of CDL. The conversion function output occurs both inside the equation and as the value the function takes on the solution point.
+
+\begin{definition} \label{def-csis}
+Let $q, n, m', \ell, \gamma, \nu \in \N$, let $\chal \subseteq \Z^{\ell}$, and let $f \colon \Zq^n \to \chal$ be efficient. The advantage of an algorithm $\advA$ against $\CSIS_{f,\chal,q,n,m',\ell,\gamma,\nu}$ is the probability that
+$$
+\mat{A}\hat{\mat{z}} - \mat{T}f(\hat{\mat{w}}) + \hat{\mat{u}} = \hat{\mat{w}},
+\qquad
+\|\hat{\mat{z}}\|_\infty \le \gamma,
+\qquad
+\|\hat{\mat{u}}\|_\infty \le \nu,
+\qquad
+(\hat{\mat{z}}, f(\hat{\mat{w}})) \ne \mat{0},
+$$
+where $\mat{A} \getsr \Zq^{n \times m'}$, $\mat{T} \getsr \Zq^{n \times \ell}$, and $(\hat{\mat{z}}, \hat{\mat{u}}, \hat{\mat{w}}) \getsr \advA(\mat{A}, \mat{T})$.
+\end{definition}
+
+\paragraph*{Discussion.} CSIS is a problem template. A choice of challenge space $\chal$ and conversion function $f$ makes it concrete, exactly as a choice of $f$ makes CDL concrete. The slot $\hat{\mat{u}}$ holds the low-norm slack of lattice verification. Schnorr verification is an exact group equation, so CDL has no such slot; lattice verification carries a short error term, and $\hat{\mat{u}}$ receives it. For the instantiation in this paper we use bit decomposition, and then CSIS is not a new assumption. It is SIS, by the following reduction.
+
+Let $q = 2^k$, let $\ell = nk$, let $\mat{G} = \mat{I}_n \otimes (1, 2, \ldots, 2^{k-1}) \in \Zq^{n \times \ell}$ be the gadget matrix, and let $\GDec \colon \Zq^n \to \bits^{\ell}$ be coordinatewise binary decomposition, so that $\mat{G} \cdot \GDec(\mat{w}) = \mat{w}$ for every $\mat{w}$. Since $q = 2^k$, the map $\GDec$ is a bijection from $\Zq^n$ to $\bits^{\ell}$; in particular it maps the uniform distribution to the uniform distribution.
+
+\begin{lemma} \label{lem-csis-sis}
+Let $q = 2^k$ and $f = \GDec$ with $\chal = \bits^{\ell}$, $\ell = nk$. For every algorithm $\advA$ there is an algorithm $\advB$ with the same running time up to an additive polynomial such that
+$$
+\AdvCSIS{\GDec,\chal,q,n,m',\ell,\gamma,\nu}{\advA}
+\le
+4 \cdot \AdvSIS{q,n,m'+\ell+n,\max(\gamma,1,\nu)}{\advB} \;.
+$$
+\end{lemma}
+
+\begin{proof}
+Algorithm $\advB$ receives $\mat{A}' = [\mat{A} \mid \mat{B} \mid \mat{C}] \getsr \Zq^{n \times (m'+\ell+n)}$. If $\mat{C}$ is not invertible modulo $q$, it outputs $\bot$. A uniform matrix over $\Zq$ with $q=2^k$ is invertible exactly when it is invertible modulo $2$, which has probability $\prod_{i=1}^{n}(1-2^{-i}) > 1/4$; this is where the factor $4$ comes from. It sets $\mat{T} \gets -\mat{C}^{-1}\mat{B} - \mat{G}$ and $\mat{A}_0 \gets \mat{C}^{-1}\mat{A}$; conditioned on any invertible $\mat{C}$, the pair $(\mat{A}_0, \mat{T})$ is uniform. It runs $\advA(\mat{A}_0, \mat{T})$ and receives $(\hat{\mat{z}}, \hat{\mat{u}}, \hat{\mat{w}})$. Write $\mat{c} = \GDec(\hat{\mat{w}})$, so $\mat{G}\mat{c} = \hat{\mat{w}}$. The CSIS equation gives $\mat{A}_0\hat{\mat{z}} - \mat{T}\mat{c} + \hat{\mat{u}} = \mat{G}\mat{c}$, hence $\mat{A}_0\hat{\mat{z}} - (\mat{T} + \mat{G})\mat{c} + \hat{\mat{u}} = \mat{0}$. Multiplying by $\mat{C}$ gives
+$$
+\mat{A}\hat{\mat{z}} + \mat{B}\mat{c} + \mat{C}\hat{\mat{u}} = \mat{0} \;,
+$$
+so $\advB$ returns $(\hat{\mat{z}}, \mat{c}, \hat{\mat{u}})$. Its entries are bounded by $\max(\gamma, 1, \nu)$, and it is nonzero because $(\hat{\mat{z}}, \mat{c}) \ne \mat{0}$.
+\end{proof}
+
+\authnote{Xinyu/Alex}{Two cleanups for your pass. (1) The invertible-$\mat{C}$ conditioning: either state the standard self-reducibility argument or restate the lemma for the structured matrix $[\mat{A} \mid -(\mat{T}+\mat{G}) \mid \mat{I}_n]$, which is the working draft's form and avoids $\mat{C}$ entirely at the cost of a non-uniform last block. (2) Record the density of invertible matrices at $q=2^k$ (odd determinant), which is $\prod_{i\ge1}(1-2^{-i}) \approx 0.29$.}
+
+\subsection{The Scheme} \label{sec-dil-scheme}
+
+A \emph{keyed hash family for $\Zq^n$} and message space $\bits^{\msglen}$ is a pair $\HF = (\HFKg, \HFEv)$ where $\HFKg$ on input a public key $(\mat{A}, \mat{T})$ outputs a key $\hk$, and the deterministic $\HFEv$ on inputs $\hk$ and $(\mat{w}, m) \in \Zq^n \times \bits^{\msglen}$ outputs an element of $\chal$. As in Section~\ref{sec-schnorr}, the hash key is generated honestly at key-generation time, may depend on the public key, and is placed in the verification key.
+
+\begin{construction} \label{constr-dil}
+Let $\HF$ be a keyed hash family for $\Zq^n$. The scheme $\DSScheme[\HF] = (\SchKeys, \SchSign, \SchVf)$ with message space $\bits^{\msglen}$ works as follows.
+
+Algorithm $\SchKeys$ samples $\mat{A} \getsr \Zq^{n\times\colsA}$, $\mat{S}_1 \getsr [\pm1]^{\colsA\times\ell}$, $\mat{S}_2 \getsr [\pm1]^{n\times\ell}$, sets $\mat{T} \gets \mat{A}\mat{S}_1 + \mat{S}_2$, samples $\hk \getsr \HFKg((\mat{A},\mat{T}))$, and returns $\vkey = (\mat{A}, \mat{T}, \hk)$ and $\skey = (\mat{S}_1, \mat{S}_2, \vkey)$.
+
+Algorithm $\SchSign$ on input $\skey, m$ repeats the following, at most $\secp$ times. Sample $\mat{y}_1 \getsr [\pm B]^{\colsA}$ and $\mat{y}_2 \getsr [\pm B]^{n}$, set
+$$
+\mat{w} \gets \mat{A}\mat{y}_1 + \mat{y}_2,
+\qquad
+c \gets \HFEv(\hk, (\mat{w}, m)),
+\qquad
+\mat{z}_i \gets \mat{y}_i + \mat{S}_i c \quad (i = 1,2) \;,
+$$
+and if $\|\mat{z}_1\|_\infty \le \Bclip$ and $\|\mat{z}_2\|_\infty \le \Bclip$, return $(c, \mat{z}_1, \mat{z}_2)$. If all $\secp$ attempts reject, return $\bot$.
+
+Algorithm $\SchVf$ on inputs $\vkey, m, (c, \mat{z}_1, \mat{z}_2)$ computes $\mat{w} \gets \mat{A}\mat{z}_1 + \mat{z}_2 - \mat{T}c$ and returns 1 iff
+$$
+c = \HFEv(\hk, (\mat{w}, m)),
+\qquad
+\|\mat{z}_1\|_\infty \le \Bclip,
+\qquad
+\|\mat{z}_2\|_\infty \le \Bclip,
+\qquad
+c \ne 0^{\ell} \;.
+$$
+\end{construction}
+
+\paragraph*{Discussion.} This is the Fiat--Shamir transform of the Lyubashevsky-style identification protocol with an LWE-format key, uncompressed, with uniform-box masks and rejection sampling. The check $c \ne 0^\ell$ plays the role of the zero-free condition of Section~\ref{sec-io-uf}. There the conversion function is modified to have no zeros; here the challenge space is fixed to $\bits^\ell$, so the scheme instead rejects the zero challenge, which an honest signer produces with probability $2^{-\ell}$. Rejection sampling with uniform boxes has an exactness property the proofs use. For any fixed value of $\mat{S}_ic$, the sum $\mat{y}_i + \mat{S}_ic$ with $\mat{y}_i$ uniform on $[\pm B]$, conditioned on landing in $[\pm\Bclip]$, is uniform on $[\pm\Bclip]$ and independent of $\mat{S}_ic$, because $\|\mat{S}_ic\|_\infty \le \ell$ shifts the box by at most $B - \Bclip$. For a fixed challenge, each attempt accepts with probability exactly $\rho := \left(\frac{2\Bclip+1}{2B+1}\right)^{\colsA+n}$, independent of the secret and the challenge. In honest signing the challenge depends on the attempt through the hash, and only the weaker bound of Lemma~\ref{lem-dil-sim}'s discussion applies: every $\mat{y}$ with $\|\mat{y}_i\|_\infty \le \Bclip-\ell$ is accepted whatever the challenge, so each attempt accepts with probability at least $1/2$ under $B \ge 4\ell(\colsA+n)$, and signing returns $\bot$ with probability at most $2^{-\secp}$. Correctness is therefore relaxed. Signing outputs $\bot$ or a zero-challenge signature with probability at most $2^{-\secp} + \Pr[c = 0^\ell]$, and we use the correctness requirement of Section~\ref{sec-prelims} up to this negligible slack. Compared to Dilithium as standardized, three simplifications are in force: no compression of $\mat{w}$ and no hint vector, the challenge space is $\bits^\ell$ rather than the sparse set $B_\tau$, and signing is randomized. The last matches Dilithium's hedged variant; the first two are real differences, and the end of the section discusses them.
+
+\subsection{Key Recovery from LWE and Tunable Lossy Functions} \label{sec-dil-bk}
+
+The hash family composes the tunable lossy function with an outer hash into the challenge space. Let $\TLF$ be a tunable lossy function with domain $\bits^{\ellin}$, where $\ellin \ge nk + \msglen$ so that pairs $(\mat{w},m)$ embed by an injective encoding $\enc{\cdot}''' \colon \Zq^n \times \bits^{\msglen} \to \bits^{\ellin}$, and let $(\CRHFKg,\CRHFEv)$ be a collision-resistant keyed family from $\Ygrave$ to $\bits^{\ell}$, as in Section~\ref{sec-lf-constr} but with range $\bits^{\ell}$.
+
+\begin{construction} \label{constr-dil-tlf}
+Fix an image parameter $r\in[M]$. The keyed hash family $\HF^{\mathsf{ltlf}}_r=(\HFKg,\HFEv)$ for $\Zq^n$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $(\mat{A},\mat{T})$ computes $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$ and $k\getsr\CRHFKg(\usecp)$ and returns $\hk=(K,k)$. Algorithm $\HFEv$ on inputs $\hk$ and $(\mat{w},m)$ returns $\CRHFEv\bigl(k,\TLFEv(K,\enc{\mat{w},m}''')\bigr)$.
+\end{construction}
+
+Key generation ignores $(\mat{A},\mat{T})$, and lossy keys occur only in the proof, exactly as in Section~\ref{sec-lf-kr}. The following lemma is the lattice analogue of Lemma~\ref{lem-sim}, and it is exact. It contains the reason rejection sampling and lossy simulation compose: the secret is recoverable from an accepted response, so accepted attempts correspond one-to-one with the pairs the simulator samples. We write $\mat{y} = (\mat{y}_1, \mat{y}_2)$, $\mat{z} = (\mat{z}_1, \mat{z}_2)$, and $\mat{S}c := (\mat{S}_1c, \mat{S}_2c)$, so that $\mat{z} = \mat{y} + \mat{S}c$ componentwise.
+
+\begin{lemma} \label{lem-dil-sim}
+Fix $\mat{A}$, short $\mat{S}_1,\mat{S}_2$ with entries in $[\pm1]$, $\mat{T}=\mat{A}\mat{S}_1+\mat{S}_2$, a function $H \colon \Zq^n \times \bits^{\msglen} \to \bits^{\ell}$, a message $m$, and a finite set $C \subseteq \bits^{\ell}$ with $\Image(H) \subseteq C$. Call a pair $(c,\mat{z})$ with $\mat{z}=(\mat{z}_1,\mat{z}_2)$ \emph{good} if
+$$
+\|\mat{z}_1\|_\infty \le \Bclip,
+\qquad
+\|\mat{z}_2\|_\infty \le \Bclip,
+\qquad
+H\big(\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c,\ m\big)=c \;.
+$$
+Consider the honest attempt: $\mat{y} \getsr [\pm B]^{\colsA+n}$, $c \gets H(\mat{A}\mat{y}_1+\mat{y}_2, m)$, $\mat{z}_i \gets \mat{y}_i+\mat{S}_ic$, accepted if both norms are at most $\Bclip$. Consider the simulated attempt: $c \getsr C$, $\mat{z}$ uniform on the clipped boxes, accepted if $(c,\mat{z})$ is good. Then the map $\mat{y} \mapsto (c,\mat{z})$ is a bijection from accepted honest attempts to good pairs, and both attempts, conditioned on acceptance, output a uniformly distributed good pair.
+\end{lemma}
+
+\begin{proof}
+The honest attempt lands in the good set: acceptance bounds the norms, and $\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c = \mat{A}\mat{y}_1+\mat{y}_2 + (\mat{A}\mat{S}_1+\mat{S}_2)c - \mat{T}c = \mat{A}\mat{y}_1+\mat{y}_2$, so the good-pair condition is the definition of $c$. The map is injective because $\mat{y} = \mat{z}-\mat{S}c$ recovers the attempt. It is surjective: given a good pair, set $\mat{y} \gets \mat{z}-\mat{S}c$; then $\|\mat{y}_i\|_\infty \le \Bclip + \ell \le B$, so $\mat{y}$ is in the attempt space, the commitment $\mat{A}\mat{y}_1+\mat{y}_2$ equals $\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c$ by the same computation, the good-pair condition makes the attempt's challenge equal $c$, and the attempt is accepted with response $\mat{z}$. Each accepted attempt arises from exactly one uniformly chosen $\mat{y}$, so the honest conditional distribution is uniform on good pairs. The simulated attempt is uniform on $C \times$ the clipped boxes, and its acceptance event is exactly the good set, because every good pair has $c \in \Image(H) \subseteq C$; conditioning gives the uniform distribution on the same set.
+\end{proof}
+
+\paragraph*{Discussion.} Two counting facts make the simulation efficient, and both are independent of $H$. First, every $\mat{y}$ with $\|\mat{y}_i\|_\infty \le \Bclip-\ell$ is accepted regardless of the challenge, since the shift $\mat{S}_ic$ moves it by at most $\ell$; hence the honest attempt accepts with probability at least $\big(\tfrac{2(\Bclip-\ell)+1}{2B+1}\big)^{\colsA+n} \ge 1/2$ under $B \ge 4\ell(\colsA+n)$, and the number of good pairs is at least half the number of clipped responses. Second, therefore, the simulated attempt accepts with probability at least $1/(2|C|)$, so $2\secp|C|$ trials fail with probability at most $e^{-\secp}$.
+
+\begin{theorem} \label{thm-dil-bk}
+Let $\advA$ be an adversary against BK-CMA of $\DSScheme[\HF^{\mathsf{ltlf}}_r]$ that runs in time $t_{\advA}$ and makes at most $q_s$ signing queries. For every $r\in[M]$, there are a distinguisher $\advD$ and an algorithm $\advB$ such that
+$$
+\AdvBKCMA{\DSScheme[\HF^{\mathsf{ltlf}}_r]}{\advA}
+\le
+\AdvTLF{\TLF,r}{\advD}
++\AdvSLWE{q,n,\colsA,\ell,1}{\advB}
++\nu_{\mathsf{enum}}(\secp,r)
++q_s\big(e^{-\secp}+2^{-\secp}\big) \;.
+$$
+Adversary $\advD$ runs in time $t_{\advA}+q_s\poly(\secp)$, and $\advB$ runs in time $t_{\advA}+\tau(\secp,r)+q_s\secp\, r\poly(\secp)$.
+\end{theorem}
+
+\begin{proof}
+The games mirror Theorem~\ref{thm-bk}. Game $\Gm_0$ is BK-CMA. Game $\Gm_1$ generates the TLF key in lossy mode at the same $r$; the distinguisher $\advD$ samples $\mat{A},\mat{S}_1,\mat{S}_2$ and the outer-hash key itself, signs honestly, and outputs 1 iff $\advA$ returns the signing key, so the switch costs $\AdvTLF{\TLF,r}{\advD}$. Game $\Gm_2$ computes $S\getsr\TLFEnum(\mathsl{td})$ and $C\gets\{\CRHFEv(k,y):y\in S\}$ once, and answers each signing query by up to $2\secp|C|$ simulated attempts of Lemma~\ref{lem-dil-sim}, returning $\bot$ if all fail. In lossy mode every hash value lies in $C$, except with probability $\nu_{\mathsf{enum}}(\secp,r)$, so the lemma applies: conditioned on producing an output, each query is answered with exactly the distribution of $\Gm_1$. The output distributions differ only through the two failure events, honest signing exhausting $\secp$ attempts and simulation exhausting $2\secp|C|$ trials, which the counting facts above bound by $2^{-\secp}$ and $e^{-\secp}$ per query. Finally, algorithm $\advB$ receives a search-LWE challenge $(\mat{A},\mat{T})$ with $\ell$ columns at box $1$, which has exactly the distribution of the public key, samples the lossy hash key itself, answers signing queries as in $\Gm_2$ without any secret, and forwards $\advA$'s output. If $\advA$ wins BK-CMA, the returned key is the planted $(\mat{S}_1,\mat{S}_2)$, which is a valid search-LWE solution. Hence $\Pr[\Gm_2\Rightarrow1]\le\AdvSLWE{q,n,\colsA,\ell,1}{\advB}$, and the running-time claims follow by inspection.
+\end{proof}
+
+\paragraph*{Discussion.} The interpretation matches Section~\ref{sec-lf-kr}: with this hash family, the signing oracle gives no help toward key recovery beyond the public key itself, at the price of assuming search LWE hard for time $r \cdot \mathrm{poly}$. Instantiating the TLF from LWE with quasi-polynomial $r$ keeps every ingredient lattice-based, and then the assumption is search LWE against quasi-polynomial time. This is the result of this section with no obfuscation and full post-quantum standing. \authnote{Ojaswi/Carter}{Two items: (i) verify the counting-fact constants and the $2\secp|C|$ trial bound against the write-up of Theorem~\ref{thm-bk}; (ii) the BK-CMA win condition of Figure~\ref{fig-eufcma} is exact key equality, which is a special case of the search-LWE solution condition, so the last reduction step is sound as stated, but consider whether to strengthen the theorem to the relaxed win condition (any consistent short key), which the same proof gives.}
+
+\section{Static-Message Unforgeability for the Lattice Scheme} \label{sec-dil-static}
+
+We now instantiate the hash function of the scheme of Construction~\ref{constr-dil} with an obfuscated circuit and prove static-message unforgeability, mirroring Section~\ref{sec-io-uf}. Throughout this section we additionally impose the \emph{flooding condition}: $\ell(\colsA+n)/B$ is negligible, for example $B = \ell(\colsA+n)\cdot 2^{(\log\secp)^2}$. Under it, a signing attempt rejects with negligible probability, so each query is answered by its first attempt except with negligible probability, and the point the proof hardwires is fixed by the presampled nonce alone, before any hash value exists. The discussion after the theorem explains why the proof needs this.
+
+\subsection{The Obfuscated Hash Construction} \label{sec-dil-constr}
+
+Let $\PRF_1$ be a puncturable PRF with domain $\bits^{\ell_2}$ and range $[\pm B]^{\colsA}$, and let $\PRF_2$ be a puncturable PRF with domain $\bits^{\ell_2}$ and range $[\pm B]^{n}$, where $\enc{\cdot}'' \colon \Zq^n \times \bits^{\msglen} \to \bits^{\ell_2}$ is an injective encoding. Let $\iO$ be an indistinguishability obfuscator.
+
+\begin{figure}[t]
+\begin{center}
+\fbox{
+\begin{minipage}{4.6in}
+\begin{tabbing}
+123\=123\=123\=\kill
+\textbf{Circuit} $\CircD[\mat{A}, \mat{T}, k_1, k_2](\mat{w}, m)$: \\
+\> $\mat{v}_1 \gets \PRFEv_1(k_1, \enc{\mat{w},m}'') \;;\; \mat{v}_2 \gets \PRFEv_2(k_2, \enc{\mat{w},m}'')$ \\
+\> Return $\GDec\big(\mat{w} + \mat{A}\mat{v}_1 + \mat{v}_2\big)$
+\end{tabbing}
+\end{minipage}
+}
+\end{center}
+\vspace{-6pt}
+\caption{The lattice hash circuit underlying $\HF^{\mathsf{lio}}$. It is padded to the size bound $s_{\mathrm{D}}(\secp, Q)$ before obfuscation.}\label{fig-circuit-dil}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
+\begin{construction} \label{constr-dil-hash}
+The keyed hash family $\HF^{\mathsf{lio}} = (\HFKg, \HFEv)$ for $\Zq^n$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $(\mat{A}, \mat{T})$ computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [2]$ and $\widetilde{\CircD} \getsr \iO(\usecp, \CircD[\mat{A}, \mat{T}, k_1, k_2])$ for the circuit $\CircD$ in Figure~\ref{fig-circuit-dil}, padded to size $s_{\mathrm{D}}(\secp, Q)$, and returns $\hk \gets \widetilde{\CircD}$. Algorithm $\HFEv$ evaluates the obfuscated circuit. Here $s_{\mathrm{D}}(\secp, Q)$ is the fixed polynomial bounding the size of the circuits in the proof of Theorem~\ref{thm-dil}.
+\end{construction}
+
+\paragraph*{Discussion.} The circuit is the masked-conversion simulator of the ROM proof made concrete, exactly as the circuit of Figure~\ref{fig-circuit} is for Schnorr, with one structural difference in where uniformity of hash values comes from. The Schnorr circuit outputs $f(R X^a g^b) + a$, and the added mask $a$ makes the output exactly uniform for any $f$. Here the challenge space consists of short vectors, and adding a uniform challenge-space element would destroy shortness, so no output mask is available. Uniformity comes instead from the conversion function itself. The masked point $\mat{w} + \mat{A}\mat{v}_1 + \mat{v}_2$ is pseudorandom under LWE, and $\GDec$ maps the uniform distribution on $\Zq^n$ to the uniform distribution on $\bits^\ell$, because $q = 2^k$ makes it a bijection. At a prime modulus, bit decomposition is not balanced, and its bias at Dilithium's modulus is about $2^{-10}$ per coordinate, which is not negligible; constructing balanced short decompositions for NTT-friendly prime moduli is an open item. \authnote{Xinyu}{This balance question at prime $q$ looks like a clean self-contained problem; signed digits do not fix the top digit's bias.}
+
+The extraction identity is the analogue of the CDL conversion. If $(c, \mat{z}_1, \mat{z}_2)$ verifies for $m$, then $\mat{A}\mat{z}_1 + \mat{z}_2 - \mat{T}c = \mat{w}$ and $c = \GDec(\mat{w}')$ with $\mat{w}' = \mat{w} + \mat{A}\mat{v}_1 + \mat{v}_2$. Adding $\mat{A}\mat{v}_1 + \mat{v}_2$ to the verification equation gives
+$$
+\mat{A}(\mat{z}_1 + \mat{v}_1) - \mat{T}\,\GDec(\mat{w}') + (\mat{z}_2 + \mat{v}_2) = \mat{w}' \;,
+$$
+which is a $\CSIS$ solution $(\mat{z}_1{+}\mat{v}_1,\ \mat{z}_2{+}\mat{v}_2,\ \mat{w}')$ with norms at most $\Bclip + B$, nontrivial because $c \ne 0^\ell$. The verifier's slack $\mat{z}_2$ and the mask $\mat{v}_2$ end up in the error slot of the solution; this is the reason $\CSIS$ has that slot. The reduction generates the PRF keys itself, so it can recompute $(\mat{v}_1, \mat{v}_2)$ from the forgery.
+
+\subsection{Main Result} \label{sec-dil-thm}
+
+\begin{theorem} \label{thm-dil}
+Let $q = 2^k$, $\chal = \bits^{\ell}$, and $f = \GDec$ as above, and suppose the flooding condition holds: $\ell(\colsA+n)/B$ is negligible. Suppose $\CSIS_{\GDec,\chal,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}$ holds, decision LWE holds at the parameters below, $\PRF_1, \PRF_2$ are puncturable PRFs as above, and $\iO$ is an indistinguishability obfuscator. Then for every PPT adversary $\advA = (\advA_0, \advA_1)$ that declares at most $Q$ signing messages, the advantage $\AdvEUFSTATIC{\DSScheme[\HF^{\mathsf{lio}}]}{\advA}$ is negligible.
+\end{theorem}
+
+\begin{corollary} \label{cor-dil-sis}
+Under $\SIS_{q,n,\colsA+\ell+n,\Bclip+B}$, decision LWE, iO, and puncturable PRFs, all polynomially secure, the scheme $\DSScheme[\HF^{\mathsf{lio}}]$ is EUF-static secure.
+\end{corollary}
+
+The corollary follows from Theorem~\ref{thm-dil} and Lemma~\ref{lem-csis-sis}; the factor $4$ of the lemma is absorbed asymptotically. The assumption profile is SIS, LWE, and the assumptions underlying iO, all polynomially secure, at a quasi-polynomial modulus, since the flooding condition makes $B$ and hence $q \ge B^2$ quasi-polynomial. To our knowledge this is the first standard-model unforgeability result for a Dilithium-shaped scheme.
+
+\begin{proof}[of Theorem~\ref{thm-dil}]
+The proof follows the game chain of Theorem~\ref{thm-uf}, and we describe each game by its difference from that proof, writing $m_1, \ldots, m_{q_s}$ for the declared messages with $q_s \le Q$ and $m^*$ for the declared forgery message.
+
+\heading{$\Gm_0$, the static game.} The game presamples the $q_s$ signatures before building the circuit, running the signing algorithm with direct PRF evaluation in place of the obfuscated circuit; this is the same computation, so nothing changes.
+
+\heading{$\Gm_1$, rejection abort.} Abort, with output 0, if any signing attempt rejects. A coordinate of $\mat{z}_i = \mat{y}_i + \mat{S}_ic$ can exceed $\Bclip$ only if the corresponding coordinate of $\mat{y}_i$ exceeds $B - 2\ell$ in absolute value, whatever the challenge is, so one attempt rejects with probability at most $4\ell(\colsA+n)/(2B+1)$, and the abort costs at most $q_s \cdot 4\ell(\colsA+n)/(2B+1)$, which the flooding condition makes negligible. On non-aborting executions every query is answered by its first attempt. Write $(\mat{w}_i, c_i, \mat{z}_i)$ for that attempt; its point $(\mat{w}_i, m_i)$ is a function of the presampled $\mat{y}_i$ alone, and in particular is independent of every hash value. This independence is what the flooding condition provides, and the hops below rely on it.
+
+\heading{$\Gm_2$, collision abort.} Abort, with output 0, if two of the $q_s$ points $(\mat{w}_i, m_i)$ collide. Each $\mat{w}_i = \mat{A}\mat{y}_{i,1} + \mat{y}_{i,2}$ has, conditioned on everything else, min-entropy at least that of $\mat{y}_{i,2}$, so any fixed value is hit with probability at most $(2B+1)^{-n}$. A union over at most $q_s^2$ pairs bounds the abort by $q_s^2 (2B+1)^{-n}$.
+
+\heading{$\Gm_3$, hardwiring.} Replace the obfuscated circuit by an obfuscation of the circuit $\CircD'$ that contains the table $\{(\mat{w}_i, m_i) \mapsto c_i\}_{i \in [q_s]}$, punctured keys $k_1\{T\}, k_2\{T\}$ for $T = \{\enc{\mat{w}_i, m_i}''\}$, and the main branch of $\CircD$ otherwise, padded to $s_{\mathrm{D}}(\secp, Q)$. With the true values hardwired the two circuits compute the same function, exactly as in Game~$\Gm_2$ of Theorem~\ref{thm-uf}, so iO bounds the change.
+
+\heading{$\Gm_4$, uniform masks.} Replace the outputs of $\PRF_1$ and then $\PRF_2$ at the $q_s$ points of $T$ by independent uniform values on their boxes. Two puncturable-PRF hops, as in Game~$\Gm_3$ of Theorem~\ref{thm-uf}. The puncture set is fixed by the presampled nonces, before any challenged value is placed, so the selective puncturing requirement of Definition~\ref{def-pprf} is met.
+
+\heading{$\Gm_5$, uniform hash values.} For each $i$, the hardwired value is $c_i = \GDec(\mat{w}_i + \mat{A}\mat{v}_{1,i} + \mat{v}_{2,i})$ with $(\mat{v}_{1,i}, \mat{v}_{2,i})$ uniform on boxes and used nowhere else. First replace the $q_s$ masked points $\mat{w}_i + \mat{A}\mat{v}_{1,i} + \mat{v}_{2,i}$ by independent uniform elements of $\Zq^n$; this is decision LWE with matrix $\mat{A}$, $q_s$ secret--noise pairs, and box $B$, at a cost of $\AdvLWE{q,n,\colsA,q_s,B}{\advD_1}$. Then $c_i = \GDec(\text{uniform})$ is uniform on $\bits^\ell$, exactly, because $\GDec$ is a bijection; discard the masks. This is the analogue of the exact step of Game~$\Gm_4$ of Theorem~\ref{thm-uf}, with the exactness split into one LWE hop and one exact bijection step. The masked points are shifted by the $\mat{w}_i$, which are independent of the masks, so the shift preserves the LWE reduction.
+
+\heading{$\Gm_6$, signing without the secret.} For each $i$, the record is now produced as follows. With probability $1-\rho$, where $\rho = \big(\tfrac{2\Bclip+1}{2B+1}\big)^{\colsA+n}$ is the fixed-challenge acceptance probability of Section~\ref{sec-dil-scheme}, trigger the rejection abort of $\Gm_1$. Otherwise sample $c_i \getsr \bits^\ell$ and $\mat{z}_i$ uniform on $[\pm\Bclip]^{\colsA} \times [\pm\Bclip]^{n}$, set $\mat{w}_i \gets \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$, hardwire $(\mat{w}_i, m_i) \mapsto c_i$, and return $(c_i, \mat{z}_i)$. This has the same distribution as $\Gm_5$, exactly. In $\Gm_5$ the value $c_i$ is uniform and independent of $\mat{y}_i$, so the first attempt rejects with probability exactly $1-\rho$, independent of the secret and the challenge, and, conditioned on acceptance, $\mat{z}_i = \mat{y}_i + \mat{S}_ic_i$ is uniform on the clipped box and independent of $\mat{S}_ic_i$, by the rejection-sampling exactness of Section~\ref{sec-dil-scheme}; the point $\mat{w}_i$ is then determined by the identity $\mat{w}_i = \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$. This is the analogue of the change of variables of Game~$\Gm_5$ of Theorem~\ref{thm-uf}; there the identity is $R_i = g^{s_i}X^{-v_i}$, here it is the verification equation. The secrets $\mat{S}_1, \mat{S}_2$ are no longer used in signing.
+
+\heading{$\Gm_7$, uniform public key.} Replace $\mat{T} = \mat{A}\mat{S}_1 + \mat{S}_2$ by uniform $\mat{T} \getsr \Zq^{n\times\ell}$. Signing no longer uses the secrets, so this is decision LWE with $\ell$ secret--noise columns at box $1$, at a cost of $\AdvLWE{q,n,\colsA,\ell,1}{\advD_2}$.
+
+\heading{Forgery extraction.} In $\Gm_7$ the pair $(\mat{A}, \mat{T})$ is uniform, which is exactly a $\CSIS$ instance. The reduction embeds it, simulates $\Gm_7$, and receives a valid forgery $(c^*, \mat{z}^*)$ on $m^*$ with probability $\Pr[\Gm_7 \Rightarrow 1]$. The point $(\mat{w}^*, m^*)$ with $\mat{w}^* = \mat{A}\mat{z}^*_1 + \mat{z}^*_2 - \mat{T}c^*$ is not in the hardwired table: the message $m^*$ is fresh, and the table is indexed by pairs. So the circuit computes $c^*$ through the main branch, and the extraction identity of Section~\ref{sec-dil-constr} gives the $\CSIS$ solution $(\mat{z}^*_1{+}\mat{v}^*_1,\ \mat{z}^*_2{+}\mat{v}^*_2,\ \mat{w}'^*)$ with norms at most $\Bclip + B$, nontrivial since verification rejects $c^* = 0^\ell$. Hence $\Pr[\Gm_7 \Rightarrow 1] \le \AdvCSIS{\GDec,\chal,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB}$.
+
+\heading{Conclusion.} Collecting,
+$$
+\begin{aligned}
+\AdvEUFSTATIC{\DSScheme[\HF^{\mathsf{lio}}]}{\advA}
+\le\ &\AdvCSIS{\GDec,\chal,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB}
++ 2\,\AdvIO{}{\advD_{\mathsf{io}}} \\
+&+ \sum_{i=1}^{2}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_i}
++ \AdvLWE{q,n,\colsA,q_s,B}{\advD_1}
++ \AdvLWE{q,n,\colsA,\ell,1}{\advD_2} \\
+&+ q_s \cdot \frac{4\ell(\colsA+n)}{2B+1}
++ q_s^2(2B+1)^{-n} \;,
+\end{aligned}
+$$
+where the iO term counts the hardwiring switch and its counterpart inside the LWE reductions' circuit rebuilds. Every term is negligible under the hypotheses. \authnote{Carter}{The iO accounting deserves one careful pass: in $\Gm_4$ the hardwired values change, so the circuit changes, and the LWE reduction must rebuild and re-obfuscate; check whether this needs its own iO invocation on functionally distinct circuits (it does not; the circuits differ only in hardwired constants, which the game, not iO, supplies) and adjust the constant $2$ if needed.}
+\end{proof}
+
+\paragraph*{Discussion.} The flooding condition is what fixes the hardwired points before any hash value is computed. With rejection at polynomial $B$, the identity of the accepted attempt depends on the hash values themselves, the very values the hybrids replace, so the puncture set is not fixed in advance and the selective puncturing argument does not apply; moreover the rejected attempts' pairs are correlated with the secret, which blocks the key switch. We do not know a proof in that regime, and we record it as an open problem in Section~\ref{sec-conclusion}. The key-recovery result has no such condition, because its simulation never punctures. \authnote{All}{Internal review note: the polynomial-$B$ static claim was withdrawn after we found the acceptance/puncturing circularity and the secret-correlation of rejected attempts; do not re-attempt it casually. The flooding regime keeps all primitives polynomially secure; the cost is a quasi-polynomial modulus.}
+
+Three further remarks, mirroring Section~\ref{sec-io-uf}. The parameter $Q$ enters only through the padding bound $s_{\mathrm{D}}(\secp, Q)$, and signing is stateless and unrestricted. The reduction is non-black-box in the hash function, using the PRF keys to recompute the masks of the forgery, which is how the result relates to the impossibility landscape for Fiat--Shamir in the standard model. And the construction is a feasibility result; evaluating an obfuscated circuit per hash call is not a practical proposal.
+
+\paragraph*{Outlook: the third rung.} The remaining Schnorr result ports along the same lines, and we record the plan. For adaptive security, salt the scheme, add the trigger branch on slots $(d, \salt)$, and pre-hash the message with the tunable lossy function exactly as in Section~\ref{sec-adaptive} and Appendix~\ref{app-adaptive}; the digest-guessing argument never touches the group or lattice algebra, so it applies verbatim, and the expected result is adaptive EUF-CMA under quasi-polynomially secure iO and PRFs. The trigger comparison $R = g^{s_t}X^{-c_t}$ becomes $\mat{w} = \mat{A}\mat{z}_t{,}_1 + \mat{z}_{t,2} - \mat{T}c_t$ with the PRF-derived response sampled in the clipped box. \authnote{All}{Beyond the ports: compression and hints, the sparse challenge set $B_\tau$ (the working draft's open problem), balanced decompositions at prime $q$, the module lift, and derandomized signing. Suggested split: Ojaswi+Carter on the key-recovery port and parameters, Xinyu on prime-$q$ balance, Alex+Adam on the salted adaptive port and the module lift.}

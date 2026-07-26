@@ -1,0 +1,101 @@
+\section{Adaptive Security for Salted Schnorr from CDL and Obfuscation} \label{sec-adaptive}
+
+The proof of Theorem~\ref{thm-uf} hardwires values at points chosen before the circuit is published. An adaptive adversary chooses its messages after seeing the verification key, so that proof does not apply. We instead add a uniformly random salt to each signature. The salt gives the proof a fresh input coordinate that does not occur in the Schnorr verification equation. A trigger branch in the hash circuit recomputes the programmed point from the message and salt. The message enters the hash through a \emph{pre-hash}, a tunable lossy function in injective mode whose key is part of the verification key. The pre-hash controls the cost of the guessing in the proof. The reduction switches the pre-hash key to lossy mode and guesses digests from the enumerated lossy image, of size at most $r$, instead of guessing messages. This gives adaptive EUF-CMA security for every polynomial number of signing queries, without placing a query bound in the scheme. With a quasi-polynomial image bound $r$, quasi-polynomially secure CDL, iO, and puncturable PRFs suffice; subexponentially secure primitives suffice for any super-polynomial $r$.
+
+\subsection{Salted Schnorr Signatures} \label{sec-salted}
+
+Fix a salt length $\saltlen = \saltlen(\secp)$. A \emph{salted keyed hash family} for $\GG$ and message space $\bits^{\msglen}$ is a keyed hash family as in Section~\ref{sec-schnorr} whose evaluation algorithm takes inputs $\hk$ and $(R, m, \salt) \in \GG \times \bits^{\msglen} \times \bits^{\saltlen}$.
+
+\begin{construction} \label{constr-salted-sch}
+Let $\HF$ be a salted keyed hash family. The \emph{salted Schnorr signature scheme} $\SchSScheme[\GG,\HF]=(\SchKeys,\SchSign,\SchVf)$ has message space $\bits^{\msglen}$.
+
+Algorithm $\SchKeys$ samples $x\getsr\Zp$, sets $X=g^x$, samples $\hk\getsr\HFKg(X)$, and returns
+$$
+\vkey=(X,\hk)
+\qquad\text{and}\qquad
+\skey=(x,\hk).
+$$
+Algorithm $\SchSign$ on input $\skey,m$ samples $r\getsr\Zp$ and $\salt\getsr\bits^{\saltlen}$, sets
+$$
+R=g^r,
+\qquad
+c=\HFEv(\hk,(R,m,\salt)),
+\qquad
+s=(r+cx)\bmod p,
+$$
+and returns $(R,s,\salt)$. Algorithm $\SchVf$ on inputs $(X,\hk),m,(R,s,\salt)$ computes $c=\HFEv(\hk,(R,m,\salt))$ and returns $(g^s=RX^c)$.
+\end{construction}
+
+\paragraph*{Discussion.} The salted scheme makes one change to Schnorr. In addition to the nonce $r$, the signer samples $\salt$ uniformly, computes $c=H(R,m,\salt)$, and returns $(R,s,\salt)$. Verification still checks the usual Schnorr equation. Thus the salt adds one public string to the signature but does not change its algebraic structure. Its role in the proof is that, unlike $R$, the salt remains free after the simulated challenge and response are fixed. The reduction uses this value to determine the points at which the PRFs are punctured. The nonce remains truly random: $r\getsr\Zp$ and $R=g^r$. We do not use deterministic or stateful signing. Salted hashing also appears in RSA-PSS~\cite{EC:BelRog96} and in randomized hashing~\cite{C:HalKra06}, for different security goals.
+
+\subsection{The Construction} \label{sec-salted-constr}
+
+Let $\TLF$ be a tunable lossy function with domain $\bits^{\ellin}$ and range $\Ygrave$, and fix an image parameter $r\in[M]$. We require $\msglen\le\ellin$, so that messages embed into the domain; the message length $\msglen$ may be any polynomial. Fix an injective encoding of $\Ygrave$ into $\bits^{\ell_d}$, where $\ell_d$ bounds the description length of range elements. For a key $K$ and a message $m$, the \emph{digest} of $m$ is
+$$
+\dig(K,m) := \enc{\TLFEv(K,m)}_d \in \bits^{\ell_d} \;,
+$$
+and we write $\dig(m)$ when $K$ is clear. Let $\PRF_1,\PRF_2$ be puncturable PRFs with domain $\bits^{\ell_1}$ and range $\Zp$, and let $\PRF_3,\PRF_4$ be puncturable PRFs with domain $\bits^{\ell_0}$ and range $\Zp$. Fix injective encodings
+$$
+\begin{aligned}
+\encone{\cdot}&\colon\GG\times\bits^{\ell_d}\times\bits^{\saltlen}\to\bits^{\ell_1},\\
+\enczero{\cdot}&\colon\bits^{\ell_d}\times\bits^{\saltlen}\to\bits^{\ell_0}.
+\end{aligned}
+$$
+For $u=(d,\salt)$, we write $\enczero{u}=\enczero{d,\salt}$ and $\encone{R,u}=\encone{R,d,\salt}$. Let $\iO$ be an indistinguishability obfuscator. The PRFs $\PRF_3,\PRF_4$ determine one trigger point for each $u$ as follows.
+
+\begin{figure}[t]
+\begin{center}
+\fbox{
+\begin{minipage}{4.6in}
+\begin{tabbing}
+123\=123\=123\=\kill
+\textbf{Circuit} $\CircS[X, k_1, k_2, k_3, k_4](R, d, \salt)$: \\
+\> $c_t \gets \PRFEv_3(k_3, \enczero{d,\salt}) \;;\; s_t \gets \PRFEv_4(k_4, \enczero{d,\salt})$ \\
+\> If $R = g^{s_t} \cdot X^{-c_t}$: Return $c_t$ \comment{trigger branch} \\
+\> $a \gets \PRFEv_1(k_1, \encone{R,d,\salt}) \;;\; b \gets \PRFEv_2(k_2, \encone{R,d,\salt})$ \\
+\> Return $\big(f(R \cdot X^{a} \cdot g^{b}) + a\big) \bmod p$ \comment{main branch}
+\end{tabbing}
+\end{minipage}
+}
+\end{center}
+\vspace{-6pt}
+\caption{The salted hash circuit underlying $\HF^{\mathsf{sio}}$. Its middle input is the digest $d=\dig(m)$, computed by $\HFEv$ outside the obfuscation. It is padded to a fixed polynomial size bound $s'(\secp)$ before obfuscation; the bound does not depend on any query count.}\label{fig-circuit-salted}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
+\begin{construction} \label{constr-sio}
+The salted keyed hash family $\HF^{\mathsf{sio}} = (\HFKg, \HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X \in \GG$ computes $(K,\mathsl{td}) \getsr \TLFKg(\usecp,r,\mathsf{inj})$, discards $\mathsl{td}$, computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [4]$ and $\widetilde{\CircS} \getsr \iO(\usecp, \CircS[X, k_1, k_2, k_3, k_4])$ for the circuit $\CircS$ in Figure~\ref{fig-circuit-salted}, padded to size $s'(\secp)$, and returns $\hk \gets (K,\widetilde{\CircS})$. Algorithm $\HFEv$ on inputs $\hk = (K,\widetilde{\CircS})$ and $(R,m,\salt)$ computes $d \gets \dig(K,m)$ and returns $\widetilde{\CircS}(R, d, \salt)$. Here $s'(\secp)$ is the fixed polynomial bounding the size of the circuits in the proof of Theorem~\ref{thm-adaptive}.
+\end{construction}
+
+\paragraph*{Discussion.} The main branch is Construction~\ref{constr-io} with the digest and salt in place of the message in its PRF inputs. For $u=(d,\salt)$, define
+$$
+c_u=\PRFEv_3(k_3,\enczero{u}),
+\qquad
+s_u=\PRFEv_4(k_4,\enczero{u}),
+\qquad
+W_u=g^{s_u}X^{-c_u}.
+$$
+The trigger branch returns $c_u$ on input $(W_u,d,\salt)$. To sign an adaptive message, the reduction computes $d=\dig(m)$, samples $\salt$, computes $(c_u,s_u)$ at $u=(d,\salt)$, and returns $(W_u,s_u,\salt)$. No secret exponent is needed. An honest signer reaches this trigger point with probability $1/p$ per signature. The circuit has fixed size, independent of the number of signing queries.
+
+The reason for the pre-hash is the guessing in the proof. Before publishing the verification key, the per-query reductions must know the value that determines the puncture points of an adaptively chosen query, and they obtain it by guessing. Without the pre-hash, that value is the message, and the guess costs $2^{\msglen}$. With the pre-hash, that value is the digest. In the proof the pre-hash key switches to lossy mode, which is undetectable, and then every digest lies in a set of size at most $r$ that the reduction can enumerate, so the guess costs $r$. Injective mode in the real scheme costs nothing in return. Distinct messages have distinct digests, so the pre-hash does not create forgeries. Moreover, no efficient adversary can find digest collisions even in the proof's lossy mode, because a collision-finder is itself a mode-distinguisher: in injective mode collisions do not exist, so finding one certifies the lossy key.
+
+\subsection{Main Result} \label{sec-salted-proof}
+
+\begin{theorem} \label{thm-adaptive}
+Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$. Let $\TLF$ be a tunable lossy function whose advantage at parameter $r$ is negligible for every PPT adversary, and let $r = r(\secp)$ be super-polynomial with $\nu_{\mathsf{inj}}(\secp,r)$ and $\nu_{\mathsf{enum}}(\secp,r)$ negligible. Let $\saltlen = \omega(\log\secp)$. Suppose there is a function $\eps = \eps(\secp)$ such that every adversary running in time polynomial in $\secp$ and $r(\secp)$ has advantage at most $\eps$ against $\CDL[\GG,g,f]$, against $\iO$, and against each of $\PRF_1,\ldots,\PRF_4$, and such that
+$$
+r^2 \cdot 2^{\saltlen} \cdot \eps
+$$
+is negligible. Then for every PPT adversary $\advA$, the advantage $\AdvEUFCMA{\SchSScheme[\GG, \HF^{\mathsf{sio}}]}{\advA}$ is negligible.
+\end{theorem}
+
+\begin{corollary} \label{cor-adaptive-qp}
+In the setting of Theorem~\ref{thm-adaptive}, let $r = 2^{(\log\secp)^2}$ and $\saltlen = (\log\secp)^2$, and suppose every adversary running in time at most $2^{(\log\secp)^3}$ has advantage at most $2^{-(\log\secp)^3}$ against $\CDL[\GG,g,f]$, $\iO$, and each $\PRF_i$. Then $\SchSScheme[\GG, \HF^{\mathsf{sio}}]$ is adaptively EUF-CMA secure.
+\end{corollary}
+
+\paragraph*{Discussion.} The notion is standard adaptive EUF-CMA, and the message length $\msglen$ is any polynomial. For each adversary the proof uses a polynomial upper bound $q$ on its number of signing queries, but $q$ does not enter the construction or the size of the hash circuit. The proof loses a factor at most $r$ when changing one signing response and a factor at most $r\cdot2^{\saltlen}$ when handling a forgery that uses the trigger branch. These are losses in advantage; the reductions run in time polynomial in $\secp$ and $r$, the cost of enumerating the lossy image included, which is why the hypothesis bounds adversaries of that time. Corollary~\ref{cor-adaptive-qp} checks the hypothesis at the quasi-polynomial end: $r^2\cdot2^{\saltlen}\cdot\eps = 2^{3(\log\secp)^2 - (\log\secp)^3}$, which is negligible, so quasi-polynomially secure primitives together with a quasi-polynomial image bound, as in the LWE-based instantiation of Section~\ref{sec-lf}, give the result. Subexponentially secure primitives satisfy the hypothesis for any $r\cdot2^{\saltlen} \le 2^{\secp^{\delta}/4}$. Messages of arbitrary length are first hashed to $\bits^{\msglen}$ as in Section~\ref{sec-prelims}; the resulting bound has the additional collision-resistance term described there.
+
+The trigger-forgery reduction uses DL, with the same advantage bound $\eps$. The stated CDL bound supplies it. Indeed, given a DL solution $x$ for $X = g^x$, one obtains a CDL solution by returning $(1_\GG,\, x f(1_\GG) \bmod p)$. Since $f$ has no zeros, $f(1_\GG) \ne 0$, and the reduction is tight.
+
+The proof is in Appendix~\ref{app-adaptive}. It has three parts. First, the pre-hash key switches to lossy mode, and two aborts are added, for repeated slots and for digest collisions; the collision abort costs only the mode-switch advantage, since in injective mode collisions do not exist. Second, a hybrid over signing queries replaces honest responses by trigger responses one query at a time; each step guesses the query's digest from the enumerated lossy image and runs a puncture-and-swap chain around an exact exchange of the honest and trigger signature triples. The temporary circuits of these steps contain two hardwired points each and disappear at both endpoints, so the published hash circuit keeps its fixed polynomial size. Third, a forgery either takes the main branch, which gives a CDL solution tightly, or the trigger branch, which the reduction converts to a DL solution after guessing the forgery's digest and salt at cost $r\cdot2^{\saltlen}$. With a quasi-polynomial $r$ the losses are quasi-polynomial rather than subexponential, but they are not polynomial. Removing the guessing entirely, or removing the salt, remains open.

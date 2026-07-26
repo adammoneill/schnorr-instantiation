@@ -1,0 +1,13 @@
+\section{Open Problems} \label{sec-conclusion}
+
+\heading{Unsalted Schnorr.} Theorem~\ref{thm-adaptive} applies to the salted scheme. We do not prove adaptive security for ordinary Schnorr without placing a query bound in the hash circuit. The salt gives the proof an input coordinate that is independent of the Schnorr verification equation. Ordinary Schnorr has no such coordinate. Proving adaptive security for ordinary Schnorr without a query bound in the scheme remains open.
+
+\heading{Polynomial security.} Theorem~\ref{thm-adaptive} guesses the digest of one message in each signing hybrid and guesses $(\dig(m^*),\salt^*)$ when treating a trigger-branch forgery. The lossy pre-hash bounds each guess by the image size $r$, so the losses are quasi-polynomial for quasi-polynomial $r$, but they are not polynomial. A proof that punctures at adaptively selected inputs without guessing would remove the remaining loss. Prefix-guessing techniques for adaptively secure signatures~\cite{CCS:RamWat14} and adaptive security analyses for GGM-based puncturable PRFs~\cite{AC:FKPR14,C:JKKKPW17} are natural starting points.
+
+\heading{One hash function for all users.} In our unforgeability constructions the hash key depends on the user's public key $X$, so each user has a different hash function. It is open to construct one hash function that works for all users.
+
+\heading{Weaker assumptions.} Corollary~\ref{cor-bk} uses a strongly efficiently enumerable ELF built from exponential DDH. It would be interesting to construct a post-quantum tunable lossy function with a comparable universal injective mode. For unforgeability, the main question is whether iO can be replaced by a weaker tool.
+
+\heading{Dilithium.} Part~II proves the key-recovery and static results; the salted-adaptive port is laid out at the end of Section~\ref{sec-dil-static} and remains to be written in full. Independent of the ports, four questions are open: removing the flooding condition from the static result, so that a polynomial modulus suffices; balanced short decompositions at NTT-friendly prime moduli; the sparse challenge set $B_\tau$; and compression with hints. The module lift is bookkeeping except where those questions enter.
+
+\heading{Extensions.} It would also be interesting to extend the proofs to key-prefixed Schnorr, multi-user security, and threshold signing. Each setting requires a separate treatment of the signing simulation.

@@ -1,0 +1,101 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1.2in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[colorlinks,citecolor=black,linkcolor=blue]{hyperref}
+
+\newcommand{\GG}{\mathbb{G}}
+\newcommand{\Zp}{\mathbb{Z}_p}
+\newcommand{\getsr}{\mathrel{\stackrel{\raisebox{-1pt}{\tiny\$}}{\gets}}}
+\newcommand{\dlog}{\mathsf{dlog}}
+\newcommand{\heading}[1]{\medskip\noindent\textbf{#1}\ }
+
+\title{Can CDL Be Proved from DL When the\\ Conversion Function Is Lossy?}
+\author{}
+\date{July 21, 2026}
+
+\begin{document}
+\maketitle
+\vspace{-3em}
+
+\begin{abstract}
+\noindent We examine a candidate reduction from DL to the circular discrete-logarithm (CDL) assumption of Cho, Fuchsbauer, O'Neill, and Sefranek~\cite{CFOS25}, in which the conversion function is instantiated with a keyed lossy function: switch the key to lossy mode, guess the image point of the adversary's solution from the enumerable lossy image, program the challenge using the guess, and absorb the guessing loss with subexponential DL. We show the reduction has no extraction mechanism, and that the obstruction is structural rather than quantitative. We also record what survives: an injective-mode lossy key is a well-founded instance of CDL, with the same generic-group justification as the ECDSA conversion function.
+\end{abstract}
+
+\heading{The question.}
+Let $\GG$ be a cyclic group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be an efficient function, called a conversion function. The circular discrete-logarithm problem $\mathrm{CDL}[\GG,f]$ of~\cite{CFOS25} asks, given $h \getsr \GG$, to find $(R,z) \in \GG \times \Zp$ such that
+$$g^z = R \cdot h^{f(R)} \qquad \text{and} \qquad f(R) \ne 0.$$
+CDL implies DL, and in the ROM it tightly implies unforgeability of Schnorr signatures~\cite{CFOS25}. A necessary condition on $f$ is that every nonzero value have a small preimage, and in the elliptic-curve generic group model of Groth and Shoup~\cite{GS22} this condition is also sufficient~\cite{CFOS25}.
+
+Now suppose $f$ is instantiated with a keyed lossy function, used in injective mode. Such a family has two key-generation modes with indistinguishable keys. Injective-mode keys make the function injective. Lossy-mode keys make the image lie in a set of size at most $r$, which for the constructions we have in mind the key generator can enumerate. The bound $r$ must be super-polynomial, since a collision search distinguishes the modes in time about $\sqrt{r}$.
+
+The candidate reduction from DL is the following. Given a DL challenge $Y = g^y$, generate a lossy-mode key; the switch from the real injective mode is undetectable. Every valid solution now has $c = f(R)$ in the enumerable lossy image $C$. Guess $c^\ast \getsr C$, correctly with probability $1/r$, and program the challenge $h$ as a function of $Y$ and the guess. If a solution with $f(R) = c^\ast$ let the reduction compute $y$, the guessing loss $1/r$ would be absorbed by subexponential hardness of DL. We show the last step has no mechanism.
+
+\heading{The exponent accounting.}
+Write a CDL solution in exponents. Let $\rho = \dlog_g(R)$, let $y_h = \dlog_g(h)$, and let $c = f(R)$, which the reduction computes from $R$. The solution equation says
+$$z = \rho + c \cdot y_h.$$
+For this equation to involve the challenge $Y$ at all, the reduction must know a representation $h = g^{\alpha} Y^{\beta}$ with known $(\alpha,\beta)$; if it samples $h$ without one, the equation relates $\rho$ to an unknown $y_h$ that has no known connection to $y$. So take $h = g^{\alpha}Y^{\beta}$, where $(\alpha, \beta)$ may depend on the guess $c^\ast$. Then
+$$z = \rho + c\,(\alpha + \beta y).$$
+The reduction knows $z$, $c$, $\alpha$, and $\beta$. The unknowns are $\rho$ and $y$. This is one linear equation in two unknowns. To compute $y$, the reduction must know $\rho = \dlog_g(R)$ for the adversary's point $R$.
+
+\heading{What lossiness gives, and what it does not.}
+Lossiness constrains the value $c$, not the point $R$. Suppose the guess is correct, so the reduction knows $c^\ast = f(R)$ in advance. This tells it which preimage class $R$ lies in. In lossy mode that class has size about $p/r$, which is super-polynomially large. Knowing a class of this size that contains $R$ does not give $\dlog_g(R)$. Moreover, no choice of $(\alpha,\beta)$ changes the shape of the equation above. In fact the guess adds nothing that the reduction does not get anyway, since $c = f(R)$ can be read off the solution after the adversary halts; a guess is needed only to program $h$ in advance, and the accounting shows that no programming of the single group element $h$ produces a second equation.
+
+It is instructive to compare with proofs in which the reduction builds the hash function itself, per instance, as an obfuscated circuit. There the reduction can plant a comparison pair $(W, c^\ast)$ inside the circuit, with $W = Y g^{u}$ for a known $u$, together with a check that accepts only when $R = W$. The check determines $R$, so $\rho = u + y$ is a known affine function of $y$, and the solution equation becomes a second constraint; the system is then solvable for $y$. In CDL this is unavailable for a reason of quantifiers. The function $f$ is fixed in the assumption before the challenge $h$ is sampled, so $f$ cannot contain $Y$, and nothing determines $R$ beyond membership in a super-polynomial-size class.
+
+\heading{Reruns and the circularity.}
+A second equation also cannot be manufactured by running the adversary again. Run the adversary on $h$ and on $h' = h \cdot g^{t}$. Each run returns its own point, $R$ and $R'$, and each new equation introduces the new unknown $\dlog_g$ of its point, so the count never closes. The useful configuration would be two solutions with the \emph{same} point $R$ and \emph{different} values $c \ne c'$, which gives two independent equations in $y$ alone. A fixed function $f$ rules this configuration out: the same $R$ has the same value $c = f(R)$ in both runs, and the two equations coincide. This is the circularity for which the assumption is named. It is also exactly the configuration that the forking lemma creates in the ROM, where the oracle is reprogrammed to return two different values on the same $R$. A standard-model $f$ admits no analogue.
+
+\heading{No statistical route.}
+One might instead hope that lossy mode makes CDL statistically hard, so that no extraction is needed and the mode switch alone completes a proof. It does not. Solutions are dense in lossy mode, and a generic attack finds them; the attack is the small-preimage necessity argument of~\cite{CFOS25} run in lossy mode. Sample $W \getsr \GG$ and set $t = f(W)$, resampling in the rare case $t = 0$. The image has at most $r$ classes and the class sizes sum to $p$, so by Cauchy--Schwarz the class of a uniformly sampled point has expected size at least $p/r$. Now repeat: sample $z \getsr \Zp$, set $R \gets g^{z} h^{-t}$, and check whether $f(R) = t$. The point $R$ is uniform, so each trial succeeds with probability $|f^{-1}(t)|/p$, which is at least $1/r$ in expectation. A hit gives the valid solution $(R, z)$, since $g^{z} = R\, h^{t} = R\, h^{f(R)}$, with no discrete logarithm computed anywhere. A $T$-time adversary therefore has advantage about $T/r$ in lossy mode. For super-polynomial $r$ this is negligible for polynomial $T$, so the lossy game is not trivially broken; but the attack shows that lossy-mode CDL is a computational statement, not a statistical one. The mode switch replaces one unproven computational assumption by another, and the regress does not terminate. In injective mode the same attack has success about $T/p$, consistent with the assumption.
+
+\heading{What extraction requires.}
+The algebraic group model makes the missing piece explicit. Suppose the adversary output, along with $(R,z)$, a representation $R = g^{u} h^{v}$ with known $(u,v)$. Then $\rho = u + v\, y_h$, and the solution equation becomes
+$$z = u + (v + c)\, y_h .$$
+If $v + c \ne 0$, the reduction computes $y_h = (z-u)/(v+c)$, and then $y = (y_h - \alpha)/\beta$ when $\beta \ne 0$. The remaining branch $v = -c$ means $R = g^{u} h^{-c}$, which is precisely the shape produced by the sampling attack above; on this branch the equation reads $z = u$ and contains no information about $y$, and hardness must come from the difficulty of hitting $f(g^{u}h^{-c}) = c$, which is exactly where small preimages enter. The two branches locate the roles precisely. The small-preimage condition, of which lossiness is a keyed relative, controls the sampling branch. Extraction on the other branch requires knowledge of the adversary's representation, which the AGM grants by fiat and the standard model does not. The elliptic-curve generic-group analysis of~\cite{CFOS25} is the idealized version of this two-branch argument, and injectivity is its best case.
+
+\heading{The barrier.}
+There is also an external reason to expect no such reduction. A CDL solution $(R,z)$ is a forgery: for the messageless Schnorr scheme with public key $h$ and hash value $c = f(R)$, the pair $(R,z)$ verifies. So $\mathrm{CDL}[\GG,f]$ says that this scheme is universally unforgeable under key-only attack, for the fixed standard-model hash $f$. Reductions from DL to standard-model unforgeability of Schnorr-type schemes are the subject of the meta-reduction line of Paillier and Vergnaud~\cite{PV05} and its successors~\cite{GBL08,Seu12,FJS19}. Assuming one-more DL is hard, no algebraic reduction of this kind exists, and the meta-reduction converts any candidate reduction into a one-more-DL solver of comparable running time, so subexponential-time algebraic reductions are covered relative to subexponential one-more DL. The reduction contemplated here is algebraic, since $h = g^{\alpha}Y^{\beta}$. Two caveats apply. The published statements concern a fixed public hash function, whereas here the reduction chooses the lossy key itself; this appears immaterial, because the key material of the known lossy-function constructions consists of group elements of an unrelated group or of lattice matrices, and cannot encode $Y$. And the barrier does not cover non-algebraic reductions; a proof, if one exists, must use the group representation in a non-algebraic way.
+
+\heading{What survives.}
+Two parts of the idea stand. First, an injective-mode key of a lossy family is a well-founded instance of CDL. Injective-mode keys give preimage size one, the strongest form of the small-preimage condition, which is necessary in general and sufficient in the elliptic-curve generic group model~\cite{CFOS25}. So CDL for an injective-mode lossy key has the same standing as CDL for the ECDSA conversion function. It remains an assumption rather than a theorem from DL. Second, the quantitative instinct is right-shaped. The guessing loss is $1/r$, and with quasi-polynomial $r$, available from LWE-based lossy functions~\cite{PW08}, even quasi-polynomial DL hardness absorbs it. If an extraction mechanism for the non-sampling branch were found, the loss accounting would go through. The missing piece is the second equation, not the loss.
+
+\begin{thebibliography}{CFOS25}
+
+\bibitem[CFOS25]{CFOS25}
+G.~Cho, G.~Fuchsbauer, A.~O'Neill, and M.~Sefranek.
+Schnorr signatures are tightly secure in the {ROM} under a non-interactive assumption.
+In \emph{CRYPTO 2025}. ePrint 2024/1528.
+
+\bibitem[FJS19]{FJS19}
+N.~Fleischhacker, T.~Jager, and D.~Schr\"oder.
+On tight security proofs for {Schnorr} signatures.
+\emph{Journal of Cryptology}, 32(2), 2019.
+
+\bibitem[GBL08]{GBL08}
+S.~Garg, R.~Bhaskar, and S.~V. Lokam.
+Improved bounds on security reductions for discrete log based signatures.
+In \emph{CRYPTO 2008}.
+
+\bibitem[GS22]{GS22}
+J.~Groth and V.~Shoup.
+On the security of {ECDSA} with additive key derivation and presignatures.
+In \emph{EUROCRYPT 2022}.
+
+\bibitem[PV05]{PV05}
+P.~Paillier and D.~Vergnaud.
+Discrete-log-based signatures may not be equivalent to discrete log.
+In \emph{ASIACRYPT 2005}.
+
+\bibitem[PW08]{PW08}
+C.~Peikert and B.~Waters.
+Lossy trapdoor functions and their applications.
+In \emph{STOC 2008}.
+
+\bibitem[Seu12]{Seu12}
+Y.~Seurin.
+On the exact security of {Schnorr}-type signatures in the random oracle model.
+In \emph{EUROCRYPT 2012}.
+
+\end{thebibliography}
+
+\end{document}

@@ -1,0 +1,192 @@
+\section{Key-Recovery Security of Schnorr Signatures} \label{sec-lf-kr}
+
+We instantiate the hash function with a tunable lossy function in injective mode, followed by a collision-resistant outer hash. The main theorem is concrete and holds for every image bound $r$. A strongly efficiently enumerable ELF gives the asymptotic corollary: the reduction runs in polynomial time, so ordinary DL hardness suffices in the Schnorr group.
+
+\subsection{The Construction} \label{sec-lf-constr}
+
+Let $\GG$ be a cyclic group of prime order $p$ with generator $g$. Let $\TLF$ be a tunable lossy function with algorithms $\TLFKg,\TLFEv,\TLFEnum$. Its domain is $\bits^{\ellin}$ and its range is $\Ygrave$. Recall from Section~\ref{sec-lf} that $M=2^{\ellin}$, and fix an injective encoding $\enc{\cdot}\colon\GG\times\bits^{\msglen}\to\bits^{\ellin}$.
+
+Let $\CRHF=(\CRHFKg,\CRHFEv)$ be a keyed family from $\Ygrave$ to $\Zp$. Algorithm $\CRHFKg$ on input $\usecp$ outputs a key $k$, and $\CRHFEv$ is deterministic and efficient. We require collision resistance: for every PPT adversary $\advA$,
+$$
+\Pr\left[
+\begin{array}{l}
+k\getsr\CRHFKg(\usecp);\ (y_0,y_1)\getsr\advA(k):\\
+y_0\ne y_1\ \land\ \CRHFEv(k,y_0)=\CRHFEv(k,y_1)
+\end{array}
+\right]
+$$
+is negligible. A collision-resistant hash with $\mu=\Omega(\secp)$ output bits, followed by the canonical embedding $\bits^\mu\hookrightarrow\Zp$, gives such a family when $2^\mu\le p$.
+
+\begin{construction} \label{constr-lf}
+Fix an image parameter $r\in[M]$. The keyed hash family $\HF^{\mathsf{tlf}}_r=(\HFKg,\HFEv)$ is defined as follows. Algorithm $\HFKg$ on input $X\in\GG$ computes
+$$
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})
+\qquad\text{and}\qquad
+k\getsr\CRHFKg(\usecp),
+$$
+and returns $\hk=(K,k)$. Algorithm $\HFEv$ on inputs $\hk=(K,k)$ and $(R,m)\in\GG\times\bits^{\msglen}$ returns
+$$
+\CRHFEv\bigl(k,\TLFEv(K,\enc{R,m})\bigr).
+$$
+\end{construction}
+
+Key generation ignores $X$. Lossy keys are used only in the proof. The outer hash maps the possibly structured range $\Ygrave$ to the scalar required by Schnorr. Collision resistance rules out a constant outer map; it is not used in the key-recovery reduction.
+
+\begin{proposition} \label{prop-lf-cr}
+If $\CRHF$ is collision resistant and $\nu_{\mathsf{inj}}(\secp,r)$ is negligible, then $\HF^{\mathsf{tlf}}_r$ is collision resistant.
+\end{proposition}
+
+\begin{proof}
+Condition on $\TLFEv(K,\cdot)$ being injective. Suppose an adversary returns distinct inputs $(R_0,m_0)$ and $(R_1,m_1)$ with equal hash values. Since the encoding and $\TLFEv(K,\cdot)$ are injective,
+$$
+y_0:=\TLFEv(K,\enc{R_0,m_0})
+\qquad\text{and}\qquad
+y_1:=\TLFEv(K,\enc{R_1,m_1})
+$$
+are distinct. Their outer hashes are equal, giving a collision for $\CRHF$. The excluded event has probability at most $\nu_{\mathsf{inj}}(\secp,r)$.
+\end{proof}
+
+\subsection{Main Result} \label{sec-lf-thm}
+
+\begin{theorem} \label{thm-bk}
+Let $\advA$ be an adversary against BK-CMA of $\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]$ that runs in time $t_{\advA}$ and makes at most $q_s$ signing queries. For every $r\in[M]$, there are a distinguisher $\advD$ and a DL algorithm $\advB$ such that
+$$
+\AdvBKCMA{\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]}{\advA}
+\le
+\AdvTLF{\TLF,r}{\advD}
++\AdvDL{\GG,g}{\advB}
++\nu_{\mathsf{enum}}(\secp,r)
++q_s e^{-\secp}.
+$$
+Adversary $\advD$ runs in time $t_{\advA}+q_s\poly(\secp)$, and $\advB$ runs in time
+$$
+t_{\advA}+\tau(\secp,r)+(q_s+1)\secp r\poly(\secp).
+$$
+\end{theorem}
+
+The proof replaces the signing oracle by rejection sampling over the enumerated lossy image. Conditioned on acceptance, the simulated signature has exactly the honest distribution.
+
+The games are in Figure~\ref{fig-bk-games}. In the figure, write
+$$
+H(R,m)=\CRHFEv(k,\TLFEv(K,\enc{R,m})).
+$$
+Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function to lossy mode at the same value $r$. Game $\Gm_2$ enumerates the lossy image once and replaces honest signing by rejection sampling.
+
+\begin{figure}[t]
+\twoCols{0.43}{0.52}{
+\ExperimentHeader{Game $\mathsf{G}[\mathsf{mode},b]$}
+
+\begin{oracle}{$\Initialize$}
+\item $x\getsr\Zp\;;\;X\gets g^x$
+\item $k\getsr\CRHFKg(\usecp)$
+\item $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{mode})$
+\item If $b=1$:
+\item \quad $S\getsr\TLFEnum(\mathsl{td})$
+\item \quad $C\gets\{\CRHFEv(k,y):y\in S\}$
+\item Return $(X,K,k)$
+\end{oracle}
+\ExptSepSpace
+\begin{oracle}{$\Finalize(x')$}
+\item Return $(x'=x)$
+\end{oracle}
+}
+{
+\ExperimentHeader{$\SignOracle(m)$}
+
+\begin{oracle}{$\SignOracle(m)$}
+\item If $b=0$:
+\item \quad $r'\getsr\Zp\;;\;R\gets g^{r'}$
+\item \quad $c\gets H(R,m)\;;\;s\gets(r'+cx)\bmod p$
+\item \quad Return $(R,s)$
+\item For $i=1,\ldots,\secp|C|$:
+\item \quad $s\getsr\Zp\;;\;c\getsr C$
+\item \quad $R\gets g^sX^{-c}$
+\item \quad If $H(R,m)=c$: Return $(R,s)$
+\item Return $\bot$
+\end{oracle}
+}
+\vspace{-12pt}
+\caption{Games for the proof of Theorem~\ref{thm-bk}. We set $\Gm_0=\mathsf{G}[\mathsf{inj},0]$, $\Gm_1=\mathsf{G}[\mathsf{lossy},0]$, and $\Gm_2=\mathsf{G}[\mathsf{lossy},1]$.}\label{fig-bk-games}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
+We first prove that the rejection-sampling oracle is exact.
+
+\begin{lemma} \label{lem-sim}
+Fix $x\in\Zp$, $X=g^x$, a key $K$, an outer-hash key $k$, a message $m$, and a list $S$ such that $\Image(\TLFEv(K,\cdot))\subseteq S$. Let
+$$
+C=\{\CRHFEv(k,y):y\in S\}.
+$$
+For $(c,s)\in C\times\Zp$, call $(c,s)$ good if
+$$
+\CRHFEv\bigl(k,\TLFEv(K,\enc{g^sX^{-c},m})\bigr)=c.
+$$
+Then $\varphi(c,s):=g^sX^{-c}$ is a bijection from the set of good pairs to $\GG$.
+\end{lemma}
+
+\begin{proof}
+For $R\in\GG$, define
+$$
+c_R:=\CRHFEv(k,\TLFEv(K,\enc{R,m}))
+\qquad\text{and}\qquad
+s_R:=\mathsf{dlog}_g(R)+c_Rx\pmod p.
+$$
+The enumeration condition gives $c_R\in C$. We also have
+$$
+g^{s_R}X^{-c_R}=R,
+$$
+so $(c_R,s_R)$ is good and $\varphi(c_R,s_R)=R$.
+
+Conversely, let $(c,s)$ be good and set $R=\varphi(c,s)$. Goodness gives $c=c_R$. The equation $R=g^sX^{-c}$ then gives $s=s_R$. Thus the good pairs are exactly $\{(c_R,s_R):R\in\GG\}$, and $\varphi$ maps each such pair to $R$.
+\end{proof}
+
+A trial in game $\Gm_2$ is uniform on $C\times\Zp$. Lemma~\ref{lem-sim} gives exactly $p$ good pairs, so a trial accepts with probability $1/|C|$. Conditioned on acceptance, $R$ is uniform in $\GG$, and the returned response is $s=\mathsf{dlog}_g(R)+c_Rx\bmod p$. This is exactly an honest Schnorr signature. The probability that all $\secp|C|$ trials fail is at most $e^{-\secp}$.
+
+\begin{proof}[of Theorem~\ref{thm-bk}]
+The distinguisher $\advD$, on input $K$, samples $x\getsr\Zp$ and $k\getsr\CRHFKg(\usecp)$. It runs $\advA$ on $(g^x,K,k)$, answers signing queries honestly, and returns 1 exactly when $\advA$ outputs $x$. The two input distributions for $\advD$ give games $\Gm_0$ and $\Gm_1$. Hence
+$$
+|\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]|
+\le\AdvTLF{\TLF,r}{\advD}.
+$$
+
+Next condition on successful enumeration in $\Gm_2$. By Lemma~\ref{lem-sim}, each signing query has exactly the distribution in $\Gm_1$ unless its rejection loop fails. Therefore
+$$
+|\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]|
+\le\nu_{\mathsf{enum}}(\secp,r)+q_se^{-\secp}.
+$$
+
+Finally, algorithm $\advB$, on input a DL challenge $X$, samples
+$$
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})
+\qquad\text{and}\qquad
+k\getsr\CRHFKg(\usecp),
+$$
+and runs $\advA$ on $(X,K,k)$. It answers signing queries as in $\Gm_2$ and returns the value output by $\advA$. This perfectly simulates $\Gm_2$, so
+$$
+\Pr[\Gm_2\Rightarrow1]=\AdvDL{\GG,g}{\advB}.
+$$
+The image is enumerated once. Constructing $C$ takes $r\poly(\secp)$ time, and each signing query uses at most $\secp r$ trials. This gives the claimed running times and completes the proof.
+\end{proof}
+
+\begin{corollary} \label{cor-bk}
+Suppose $\TLF$ is a strongly efficiently enumerable ELF in the sense stated after Definition~\ref{def-lf}. In this case the distribution of $\HF^{\mathsf{tlf}}_r$ is independent of $r$; denote it by $\HF^{\mathsf{tlf}}$. If DL is hard against PPT algorithms in $\GG$, then $\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure.
+\end{corollary}
+
+\begin{proof}
+Suppose a PPT adversary $\advA$ has nonnegligible BK-CMA advantage. Fix an inverse polynomial $\epsilon$ such that this advantage is at least $4\epsilon$ for infinitely many security parameters. The distinguisher $\advD$ of Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives $K$ and never uses the image bound. Let $q$ be the polynomial supplied by the ELF guarantee for $\advD$ and $\epsilon$, and set $r(\secp)=\lceil q(\secp)\rceil$. Then $\AdvTLF{\TLF,r}{\advD}\le\epsilon$. The injective-mode distribution does not depend on this choice of $r$, so the left side of the theorem is still the advantage against the honest scheme.
+
+For this fixed polynomial $r$, algorithm $\advB$ is PPT. Its DL advantage is negligible. The enumeration-failure and truncation terms are also negligible. For all sufficiently large parameters the right side is less than $4\epsilon$, a contradiction.
+\end{proof}
+
+\paragraph*{Instantiation and comparison.} Zhandry constructs a strongly efficiently enumerable ELF from exponential DDH, or constant-$k$ exponential $k$-linear~\cite{C:Zhandry16}. Its honest key contains auxiliary components at several security levels. The honest distribution is fixed. For a given attack, the lossy hybrid selects a component whose security level is large enough. Corollary~\ref{cor-bk} therefore uses ordinary DL in the Schnorr group; neither the DL reduction nor the Schnorr group must have subexponential security. The auxiliary ELF construction assumes exponential DDH, and the proof chooses $r$ as a function of the attack.
+
+The proof of Theorem~\ref{thm-bk} is pointwise in $r$, so it also applies to injective and lossy distributions defined at one fixed value of $r$. The one-level DDH construction of Peikert and Waters~\cite[Sections~5.2--5.3]{STOC:PeiWat08} gives an illustrative example. Let its auxiliary group have order $q'\le M$, set $r=q'$, and retain the lossy concealer vector $s$ as the enumeration trapdoor. The lossy image is then enumerable in time $q'\poly(\secp)$. Ignoring constants and lower-order terms, the generic-group estimates have the form
+$$
+\poly(\ellin)\frac{t_{\advD}^2}{q'}
++
+\frac{\bigl(t_{\advA}+q_s\secp q'\poly(\secp)\bigr)^2}{p}.
+$$
+This estimate illustrates the tradeoff: increasing $q'$ also makes enumeration more expensive. We do not claim the displayed expression as a full concrete-security proposition. The ELF cascade instead uses ordinary DL in the Schnorr group and exponential DDH in its auxiliary groups.
+
+Paillier and Vergnaud~\cite{AC:PaiVer05} prove BK-CMA security for Schnorr with any hash function under OMDL. Their result covers \emph{any} hash function, while ours covers a particular keyed family. Our group assumption is ordinary DL, but the hash construction additionally uses exponential DDH and collision resistance. OMDL is interactive; all of our assumptions are non-interactive.

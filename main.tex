@@ -1,246 +1,161 @@
-\def\llncs{0}     % 0 = not llncs; 1 = llncs
+\newif\iffull
+\fulltrue
+
+\def\llncs{1}       % 1 = using llncs
 \def\showoverflow{0}% 1 = show overflows when llncs=1
 \def\setmargin{0}   % 0 = do not set; 1 = set
 % it sets via latex. Instead set via pdf directly
 \def\papertype{0}   % 0 = letter; 1 = a4;
 \def\myfontsize{1}  % 0 = 10pt; 1 = 11pt; 0 is what llncs uses;
-\def\savespace{0}   % 0L = do not save space; 1 = save space
+\def\savespace{0}   % 0 = do not save space; 1 = save space
 % use times font
 
 \def\anonymous{0}   % 0 = non-anonymous; 1 = anonymous
 \def\addtoc{0}      % 0 = exclude TOC; 1 = include TOC
-\def\fullversion{2} % 0 = short version; 1 = full version
+\def\fullversion{1} % 0 = short version; 1 = full version
 \def\submission{0}  % 0 = normal version; 1 = submission version
 
-
-\def\instplace{0}
 \def\authnotes{1}   % 0 = authnotes off; 1 = authnotes on
 
 
-\ifnum\llncs=1 
-  \ifnum\papertype=0
-    \ifnum\myfontsize=0s
-      \ifnum\showoverflow=1
-        \documentclass[twoside,envcountsame,runningheads,draft]{llncs}
-      \else
-        \documentclass[twoside,envcountsame,runningheads]{llncs}
-      \fi
-    \else
-      \ifnum\showoverflow=1
-        \documentclass[11pt,twoside,envcountsame,runningheads,draft]{llncs}
-      \else
-        \documentclass[11pt,twoside,envcountsame,runningheads]{llncs}
-      \fi
-      \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
-    \fi
-  \else
-    \ifnum\myfontsize=0
-      \ifnum\showoverflow=1
-        \documentclass[a4paper,twoside,envcountsame,runningheads,draft]{llncs}
-      \else
-        \documentclass[a4paper,twoside,envcountsame,runningheads]{llncs}
-      \fi
-    \else
-      \ifnum\showoverflow=1
-        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads,draft]{llncs}
-      \else
-        \documentclass[a4paper,11pt,twoside,envcountsame,runningheads]{llncs}
-      \fi
-    \fi
-  \fi
+\ifnum\llncs=1
+         \documentclass[twoside,envcountsame,runningheads]{llncs}
 \else
-  \ifnum\papertype=0
-    \ifnum\myfontsize=0
-      \documentclass[twoside]{article}
-    \else
       \documentclass[11pt,twoside]{article}
-      %LOOK HERE
-      %\usepackage[letterpaper,hmargin=0.68in,vmargin=0.58in]{geometry}
       \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
-    \fi
-  \else
-    \ifnum\myfontsize=0
-      \documentclass[a4paper,twoside]{article}
-    \else
-      \documentclass[11pt,a4paper,twoside]{article}
-    \fi
-  \fi
-\fi
-
-\iffalse
-%sarah's hacks; comment out as desired
-\usepackage{titlesec}
-\usepackage{tikz}       % for drawing diagrams (Figures 1 and 2)
-\usetikzlibrary{arrows.meta, positioning} % for arrows and node placement
-
-\usepackage{array}       % for table column formatting
-\usepackage{booktabs}    % nicer table lines (optional, cleaner than \hline)
-\usepackage{graphicx}   
-\floatsep=3pt plus1pt minus2pt
-%\dblfloatsep=\floatsep
-%\textfloatsep=6pt plus5pt minus2pt
-%\dbltextfloatsep=\textfloatsep
-%\abovecaptionskip=3pt
-\beforetitleunit=6pt plus12pt minus2pt
-%\aftertitleunit=3pt plus3pt minus1pt
-\aftertitleunit=\beforetitleunit
-\titlespacing*\section{0pt}{\beforetitleunit}{\aftertitleunit}
-\titlespacing*\subsection{0pt}{\beforetitleunit}{\aftertitleunit}
-\titlespacing*\subsubsection{0pt}{\beforetitleunit}{\aftertitleunit}
-\titlespacing*\paragraph{0pt}{\beforetitleunit}{1em}
-\fi
+ \fi
 
 
-\usepackage{xspace}
 \usepackage{graphicx,rotating}
-%\usepackage{graphicx,pstricks,rotating}
-
-\ifnum\savespace=1
-\usepackage{times}
-\fi
-
-\usepackage[normalem]{ulem}
-\useunder{\uline}{\ul}{}
-
 
 \usepackage{url}
-%\usepackage{latexsym}
-\usepackage{amscd,amsfonts,amsmath,amssymb}
+\usepackage{amscd,amsfonts,amsmath,amssymb,pifont}
+\usepackage{bbm,stmaryrd}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\usepackage{placeins}
+\usepackage{crypto-environments}
+\usepackage{xcolor}
+\usepackage{xargs}
+\usepackage{tikz}
+\usetikzlibrary{calc}
 
-\usepackage{color}
+\usepackage{breakcites}
 \usepackage{longtable}
+\usepackage{centernot}
 \usepackage{multirow,setspace}
-\renewcommand{\topfraction}{0.9}
-\renewcommand{\textfraction}{0.1}
+\usepackage{dashbox}
 
-\usepackage{float}
+%\usepackage{float}
 \usepackage{booktabs}
-\usepackage{caption}
+\usepackage[font=small]{caption}
 \captionsetup[table]{skip=10pt}
 
-\ifnum\llncs=1
-  \usepackage[dvips]{graphics}
-\else
-  \ifnum\anonymous=0
-    \usepackage[%dvips,
-    pdftitle={},
-    pdfauthor={},
-    pdfpagelabels=true, linktocpage=true,
-    pagebackref,% references from biblio to pages where cited
-    pdftex]{hyperref}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+
+\ifnum\anonymous=0
+    \usepackage[pdftex, pdftitle={},
+      pdfauthor={},
+      pdfpagelabels=true, linktocpage=true, pagebackref,
+	   breaklinks,colorlinks,citecolor=black,linkcolor=blue   %% -> no more ugly boxes
+   ]{hyperref}
   \else
     \usepackage[%dvips,
     pdftex,
-    pdftitle={},    pdfauthor={}, pdfpagelabels=true, linktocpage=true]{hyperref}
-  \fi
+    pdftitle={},
+    pdfauthor={}, pdfpagelabels=true, linktocpage=true,      pagebackref,breaklinks,colorlinks,citecolor=black,linkcolor=blue
+   ]{hyperref}
 \fi
 
-% --- -----------------------------------------------------------------
-% --- Page styles
-% --- -----------------------------------------------------------------
+\usepackage{cleveref}
 
-\ifnum\setmargin=1
-  \ifnum\papertype=1
-    % a4 paper size
-    \setlength{\textwidth}{16.0cm}
-    \setlength{\textheight}{23.0cm}
-    \setlength{\evensidemargin}{-0.04cm}
-    \setlength{\oddsidemargin}{-0.04cm}
-    \setlength{\topmargin}{-0.5cm}
-    \setlength{\headheight}{0.5cm}
-  \else
-    % letter paper size
-       \ifnum\submission=0
-    \setlength{\evensidemargin}{-0.1in}
-    \setlength{\oddsidemargin}{-0.1in}
-    \setlength{\textwidth}{6.8in}
-    \setlength{\textheight}{9.4in}
-    \setlength{\topmargin}{-0.35in}
-    \setlength{\headheight}{0in}
-    \setlength{\headsep}{0in}
-    \setlength{\footskip}{0.5in}
-       \else
-    \setlength{\evensidemargin}{-0.2in}
-    \setlength{\oddsidemargin}{-0.2in}
-    \setlength{\textwidth}{6.8in}
-    \setlength{\textheight}{9.5in}
-    \setlength{\topmargin}{-0.3in}
-    \setlength{\headheight}{0in}
-    \setlength{\headsep}{0in}
-    \setlength{\footskip}{0.4in}
-       \fi
-  \fi
-\fi
-% --------- Add these once in your preamble ----------
-% ---- Add these once in your preamble ----
-\usepackage{booktabs}
-\usepackage{tabularx}
-\usepackage{array}
 
-\usepackage[most]{tcolorbox}
 \usepackage{enumitem}
-\usepackage{booktabs}
-\tcbset{colback=white,colframe=black,boxrule=0.6pt,left=4pt,right=4pt,top=4pt,bottom=4pt,arc=1pt,outer arc=1pt}
+\setitemize{noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt}
 
-% -----------------------------------------------------
- 
-% --- -----------------------------------------------------------------
-% --- Document-specific definitions.
-% --- -----------------------------------------------------------------
+\usepackage{algorithm,algpseudocode}
+\usepackage{orcidlink}
+
 
 \input{header}
-% --- -----------------------------------------------------------------
-% --- The document starts here.
-% --- -----------------------------------------------------------------t
-\pagenumbering{gobble}
+
+% Compact part headings (llncs's \part does \cleardoublepage, too wasteful here)
+\newcounter{paperpart}
+\renewcommand{\thepaperpart}{\Roman{paperpart}}
+\newcommand{\paperpart}[2]{\par\refstepcounter{paperpart}\vspace{3.5ex}\begin{center}{\bfseries\large Part \thepaperpart}\\[0.5ex]{\bfseries\Large #1}\end{center}\vspace{1.5ex}\label{#2}}
+
+
+\newtheorem{Theorem}{Theorem}
+
+\hyphenation{en-cap-su-la-tion}
+\hyphenation{ASIA-CRYPT}
+
+
 \begin{document}
-% --- hard-disable both printing and extra margin from lineno ---
-
-% in your header.tex or at the very end of main.tex, AFTER all packages
 
 
-\input{abstract}
 
-\vspace{-30mm}
-\input{intro}
-\input{cons}
-\input{enc}
-\input{auth}
-\input{accomplishments}
-\input{schd}
-
-% --- -----------------------------------------------------------------
-% --- The Bibliography.
-% --- -----------------------------------------------------------------
+\setlength{\abovedisplayskip}{7pt}
+\setlength{\belowdisplayskip}{7pt}
+\setlength{\abovedisplayshortskip}{5pt}
+\setlength{\belowdisplayshortskip}{5pt}
 
 
-% For final copy, edit main.bbl by adding the command
-% \setlength{\parskip}{-1pt}
-% right after the \begin{bibliography}{10} command. This will make a more
-% compact and prettier bib.
-\ifnum\savespace=0
-%\begin{small}
+\title{Instantiating Schnorr Signatures}
+% \authnote{Adam}{Title decision pending the Dilithium merge: candidates are "Instantiating Schnorr and Dilithium Signatures" or "Instantiating Fiat--Shamir Signatures". Also the author list grows: Ojaswi, Carter, Xinyu, Alex Hoover.}
+\titlerunning{Instantiating Schnorr Signatures}
+\author{Adam O'Neill\inst{1}\orcidlink{0009-0006-0233-6466}
+% \and Coauthor Name\inst{2}
+}
+\authorrunning{Adam O'Neill}
+\institute{Manning CICS, UMass Amherst, Amherst, USA \\ \email{adamoneill@umass.edu}
+% \and Institution \\ \email{email}
+}
 
-\bibliographystyle{alpha}
-\bibliography{abbrev3,crypto,extra,extra2}
+\maketitle
 
-\def\shortbib{1}
-% \bibliographystyle{alpha}
-% \bibliography{abbrev,crypto}
-%\end{small}
-\else
-%\begin{small}
-\def\shortbib{1}
-\bibliographystyle{abbrv}
+\setcounter{footnote}{0}
 
-\bibliography{cryptobib/abbrev3,cryptobib/crypto,cryptobib/extra,cryptobib/extra2}
+\begin{abstract}
+    Almost all positive security results for the widely used Schnorr signature scheme are in idealized models. The exception is a standard-model result of Paillier and Vergnaud (ASIACRYPT 2005), who prove key-recovery security for any hash function under the interactive OMDL assumption. We give standard-model instantiations under non-interactive assumptions, including, to our knowledge, the first to achieve any form of existential unforgeability for Schnorr.
+
+    For key recovery, we define tunable lossy functions. Their lossy image bound is a parameter, and our reduction gives an explicit tradeoff among mode indistinguishability, image-enumeration time, and DL security. The proof replaces random-oracle programming by rejection sampling over the enumerated image. Instantiating the construction with Zhandry's strongly efficiently enumerable ELFs gives key-recovery security from ordinary DL in the Schnorr group, exponential DDH in auxiliary groups, and collision-resistant hashing.
+
+    For unforgeability, we instantiate the hash function with an obfuscated circuit built from puncturable PRFs and a conversion function for the circular discrete-logarithm problem. Polynomially secure CDL, iO, and puncturable PRFs give static-message unforgeability, where the forger declares its signing and forgery messages before seeing the verification key. For a salted variant of Schnorr in which the message enters the hash through a tunable lossy function in injective mode, we prove adaptive EUF-CMA security for messages of any polynomial length. Finally, we extend the program to lattice-based Fiat--Shamir. For an uncompressed Dilithium-shaped scheme over a power-of-two modulus with gadget challenges, we prove key-recovery security from search LWE and the lossy pre-hash, with no obfuscation and every ingredient lattice-based, and static-message unforgeability from SIS, LWE, iO, and puncturable PRFs, all polynomially secure at a quasi-polynomial modulus, via a circular-SIS problem that reduces tightly to SIS. The reduction switches the pre-hash to lossy mode and guesses hash digests from its enumerable image, so the guessing losses are bounded by the image size rather than by the message space. With a quasi-polynomial image bound, quasi-polynomially secure CDL, iO, and puncturable PRFs suffice. The signer samples both its nonce and its salt uniformly and independently.
+
+    \keywords{Schnorr signatures \and random-oracle instantiation \and lossy functions \and obfuscation}
+\end{abstract}
+
+\input{01-intro}
+\input{02-prelims}
+
+\paperpart{Schnorr Signatures}{part-schnorr}
+
+\input{03-lf-kr}
+\input{04-io-uf}
+\input{05-adaptive}
+
+\paperpart{Dilithium-Shaped Signatures}{part-dilithium}
+
+\input{06-dilithium}
+
+\input{06-conclusion}
+
+\clearpage
+\begin{credits}
+\subsubsection{\ackname}
+Acknowledgments to be added.
+\end{credits}
 
 
-%\end{small}
- \fi
+\bibliographystyle{alphaurl}
+\bibliography{abbrev3,crypto,extra,extra2,bibfiles/main}
 
-% --- -----------------------------------------------------------------
-% --- The Appendix.
-% --- -----------------------------------------------------------------
+
 \appendix
+\input{appendix-adaptive}
+
+
 \end{document}
