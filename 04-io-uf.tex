@@ -1,8 +1,8 @@
 \section{Static-Message Unforgeability of Schnorr Signatures} \label{sec-io-uf}
 
-In this section we prove static-message unforgeability, denoted EUF-static. The forger declares its signing messages and forgery message before seeing the verification key. The hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}. Since the messages are fixed in advance, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-adaptive} proves adaptive security for the salted scheme under quasi-polynomially secure assumptions.
+In this section we prove static-message unforgeability, EUF-static, as defined in Section~\ref{sec-schnorr}. The forger declares its signing messages and forgery message before seeing the verification key. The hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}. Since the messages are fixed in advance, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-adaptive} proves adaptive security for the salted scheme under quasi-polynomially secure assumptions.
 
-Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the discussion after the theorem for why this is without loss of strength.
+Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the Discussion in Section~\ref{sec-io-thm} for why this is without loss of strength.
 
 \subsection{The Construction} \label{sec-io-constr}
 
@@ -55,8 +55,8 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \begin{minipage}{4.6in}
 \begin{tabbing}
 123\=123\=123\=\kill
-\textbf{Circuit} $\CircC'[X, k_1\{T\}, k_2\{T\}, (R_i, m_i, v_i)_{i \in [q]}](R, m)$: \\
-\> If $(R,m) = (R_i, m_i)$ for some $i \in [q]$: Return $v_i$ \comment{hardwired} \\
+\textbf{Circuit} $\CircC'[X, k_1\{T\}, k_2\{T\}, (R_i, m_i, v_i)_{i \in [q_s]}](R, m)$: \\
+\> If $(R,m) = (R_i, m_i)$ for some $i \in [q_s]$: Return $v_i$ \comment{hardwired} \\
 \> $a \gets \PRFEv_1(k_1\{T\}, \enc{R,m}) \;;\; b \gets \PRFEv_2(k_2\{T\}, \enc{R,m})$ \\
 \> Return $\big(f(R \cdot X^{a} \cdot g^{b}) + a\big) \bmod p$
 \end{tabbing}
@@ -64,7 +64,7 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 }
 \end{center}
 \vspace{-6pt}
-\caption{The punctured, hardwired circuit $\CircC'$ used from Game~$\Gm_2$ on, where $T := \{\enc{R_i,m_i} : i \in [q]\}$. It is padded to the same size bound $s(\secp, Q)$ as $\CircC$.}\label{fig-circuit-punctured}
+\caption{The punctured, hardwired circuit $\CircC'$ used from Game~$\Gm_2$ on, where $T := \{\enc{R_i,m_i} : i \in [q_s]\}$. It is padded to the same size bound $s(\secp, Q)$ as $\CircC$.}\label{fig-circuit-punctured}
 \vspace{-3pt}\hrulefill
 \vspace{-1ex}
 \end{figure}
@@ -76,11 +76,11 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \begin{tabbing}
 123\=123\=123\=123\=\kill
 \textbf{Game} $\Gm_j$, for $j\in\{0,\ldots,5\}$: \\
-\> $((m_1,\ldots,m_q),m^*,\state)\getsr\advA_0(\usecp)$ \\
+\> $((m_1,\ldots,m_{q_s}),m^*,\state)\getsr\advA_0(\usecp)$ \\
 \> If $j\le4$: $x\getsr\Zp \;;\; X\gets g^x$ \\
 \> Else: $X\getsr\GG$ \\
 \> $k_1\getsr\PRFKg_1(\usecp) \;;\; k_2\getsr\PRFKg_2(\usecp)$ \\
-\> For $i\in[q]$: \\
+\> For $i\in[q_s]$: \\
 \>\> If $j=5$: \\
 \>\>\> $v_i,s_i\getsr\Zp \;;\; R_i\gets g^{s_i}X^{-v_i}$ \\
 \>\> Else: \\
@@ -91,13 +91,13 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \>\>\> Else: $v_i\getsr\Zp$ \\
 \>\>\> $s_i\gets(r'_i+v_ix)\bmod p$ \\
 \> If $j\ge1$ and $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$: Return $0$ \\
-\> $T\gets\{\enc{R_i,m_i}:i\in[q]\}$ \\
+\> $T\gets\{\enc{R_i,m_i}:i\in[q_s]\}$ \\
 \> If $j\le1$: $\widetilde C\getsr\iO(\usecp,\CircC[X,k_1,k_2])$ \\
 \> Else: \\
 \>\> $k_1\{T\}\getsr\PRFPunc_1(k_1,T) \;;\; k_2\{T\}\getsr\PRFPunc_2(k_2,T)$ \\
-\>\> $\widetilde C\getsr\iO(\usecp,\CircC'[X,k_1\{T\},k_2\{T\},(R_i,m_i,v_i)_{i\in[q]}])$ \\
-\> $(R^*,s^*)\getsr\advA_1((X,\widetilde C),((R_i,s_i))_{i\in[q]},\state)$ \\
-\> Return $\bigl(m^*\notin\{m_1,\ldots,m_q\}\land\SchVf((X,\widetilde C),m^*,(R^*,s^*))\bigr)$
+\>\> $\widetilde C\getsr\iO(\usecp,\CircC'[X,k_1\{T\},k_2\{T\},(R_i,m_i,v_i)_{i\in[q_s]}])$ \\
+\> $(R^*,s^*)\getsr\advA_1((X,\widetilde C),((R_i,s_i))_{i\in[q_s]},\state)$ \\
+\> Return $\bigl(m^*\notin\{m_1,\ldots,m_{q_s}\}\land\SchVf((X,\widetilde C),m^*,(R^*,s^*))\bigr)$
 \end{tabbing}
 \end{minipage}
 }
@@ -109,13 +109,13 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \end{figure}
 
 \begin{proof}[of Theorem~\ref{thm-uf}]
-Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary declaring messages $m_1, \ldots, m_q$ with $q \le Q$ and forgery message $m^* \notin \{m_1,\ldots,m_q\}$. All games output 1 iff the final output of $\advA_1$ is a valid forgery on $m^*$. We state the change made in each game below.
+Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary declaring messages $m_1, \ldots, m_{q_s}$ with $q_s \le Q$ and forgery message $m^* \notin \{m_1,\ldots,m_{q_s}\}$. All games output 1 iff the final output of $\advA_1$ is a valid forgery on $m^*$. We state the change made in each game below.
 
-\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}$ with $\advA$: the game receives $(m_1,\ldots,m_q,m^*)$ from $\advA_0$, generates $x \getsr \Zp$, $X \gets g^x$, PRF keys $k_1, k_2$, the circuit $\tilde{\CircC} \getsr \iO(\CircC[X,k_1,k_2])$, and honest signatures $\sigma_i = (R_i, s_i)$ on each $m_i$ using $x$, and runs $\advA_1$ on $(\vkey = (X, \tilde{\CircC}), (\sigma_i)_i)$.
+\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}$ with $\advA$: the game receives $(m_1,\ldots,m_{q_s},m^*)$ from $\advA_0$, generates $x \getsr \Zp$, $X \gets g^x$, PRF keys $k_1, k_2$, the circuit $\tilde{\CircC} \getsr \iO(\CircC[X,k_1,k_2])$, and honest signatures $\sigma_i = (R_i, s_i)$ on each $m_i$ using $x$, and runs $\advA_1$ on $(\vkey = (X, \tilde{\CircC}), (\sigma_i)_i)$.
 
-\heading{Game $\Gm_1$.} The shared code already samples the independent signing randomness $r'_1,\ldots,r'_q$ before building the circuit in $\Gm_0$; this is an exact reordering of the real game. Game $\Gm_1$ differs only in that it aborts (outputs 0) if $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$. A repeat requires $R_i=R_j$ for independent uniform $R_i,R_j$, so the abort has probability at most $q^2/p$. Hence $\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]\le q^2/p$.
+\heading{Game $\Gm_1$ (collision abort).} The shared code already samples the independent signing randomness $r'_1,\ldots,r'_{q_s}$ before building the circuit in $\Gm_0$; this is an exact reordering of the real game. Game $\Gm_1$ differs only in that it aborts (outputs 0) if $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$. A repeat requires $R_i=R_j$ for independent uniform $R_i,R_j$, so the abort has probability at most $q_s^2/p$. Hence $\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]\le q_s^2/p$.
 
-\heading{Game $\Gm_2$.} The game replaces $\tilde{\CircC}$ by an obfuscation of the circuit $\CircC'$ of Figure~\ref{fig-circuit-punctured}. Define $T := \{\enc{R_i,m_i} : i \in [q]\}$. For each $i\in[q]$, define
+\heading{Game $\Gm_2$ (hardwiring).} The game replaces $\tilde{\CircC}$ by an obfuscation of the circuit $\CircC'$ of Figure~\ref{fig-circuit-punctured}. Define $T := \{\enc{R_i,m_i} : i \in [q_s]\}$. For each $i\in[q_s]$, define
 $$
 \begin{aligned}
 a_i&:=\PRFEv_1(k_1,\enc{R_i,m_i}),&
@@ -123,31 +123,31 @@ b_i&:=\PRFEv_2(k_2,\enc{R_i,m_i}),\\
 v_i&:=\big(f(R_iX^{a_i}g^{b_i})+a_i\big)\bmod p.
 \end{aligned}
 $$
-Circuit $\CircC'$ contains the punctured keys $k_1\{T\},k_2\{T\}$ and the hardwired triples $(R_i,m_i,v_i)_{i\in[q]}$. The two circuits compute the same function. On input $(R_i,m_i)$, circuit $\CircC$ outputs $v_i$, which is exactly the value that $\CircC'$ has hardwired. The abort of $\Gm_1$ makes these triples well-defined because the points are distinct. At encoded inputs outside $T$, the punctured keys agree with $k_1,k_2$ by functionality preservation of puncturing. Both circuits are padded to size $s(\secp,Q)$. Indistinguishability of $\iO(\CircC)$ and $\iO(\CircC')$ then gives a PPT adversary $\advD_1$ against $\iO$ with $\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]\le\AdvIO{}{\advD_1}$.
+Circuit $\CircC'$ contains the punctured keys $k_1\{T\},k_2\{T\}$ and the hardwired triples $(R_i,m_i,v_i)_{i\in[q_s]}$. The two circuits compute the same function. On input $(R_i,m_i)$, circuit $\CircC$ outputs $v_i$, which is exactly the value that $\CircC'$ has hardwired. The abort of $\Gm_1$ makes these triples well-defined because the points are distinct. At encoded inputs outside $T$, the punctured keys agree with $k_1,k_2$ by functionality preservation of puncturing. Both circuits are padded to size $s(\secp,Q)$. Indistinguishability of $\iO(\CircC)$ and $\iO(\CircC')$ then gives a PPT adversary $\advD_1$ against $\iO$ with $\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]\le\AdvIO{}{\advD_1}$.
 
-\heading{Game $\Gm_3$.} The values $a_i, b_i$ are drawn uniformly from $\Zp$, independently for each $i$, and each $v_i$ is recomputed as $\big(f(R_i X^{a_i} g^{b_i}) + a_i\big) \bmod p$ from these uniform values. The honest signatures still use $x$: signature $i$ is $(R_i, s_i)$ with $s_i = (r'_i + v_i x) \bmod p$, matching the hardwired value $v_i$ at $(R_i, m_i)$.
+\heading{Game $\Gm_3$ (uniform masks).} The values $a_i, b_i$ are drawn uniformly from $\Zp$, independently for each $i$, and each $v_i$ is recomputed as $\big(f(R_i X^{a_i} g^{b_i}) + a_i\big) \bmod p$ from these uniform values. The honest signatures still use $x$: signature $i$ is $(R_i, s_i)$ with $s_i = (r'_i + v_i x) \bmod p$, matching the hardwired value $v_i$ at $(R_i, m_i)$.
 
-We pass from $\Gm_2$ to $\Gm_3$ in two sub-hybrids. First replace $(a_i)_{i\in[q]}$ by independent uniform values and recompute each $v_i$. This change is bounded by the pseudorandomness of $\PRF_1$ at $T$. Then do the same for $(b_i)_{i\in[q]}$ and $\PRF_2$. In each sub-hybrid the reduction receives the punctured key of the relevant PRF together with the challenge values at the punctured points, which are either the true PRF outputs or independent uniform values. It builds $\CircC'$ from the punctured keys and the hardwired data, and it assembles the honest signatures using $x$. Both the punctured keys and $x$ are available to it. Writing $\AdvPRF{}{\advD_2}$ for the sum of the two advantages,
+We pass from $\Gm_2$ to $\Gm_3$ in two sub-hybrids. First replace $(a_i)_{i\in[q_s]}$ by independent uniform values and recompute each $v_i$. This change is bounded by the pseudorandomness of $\PRF_1$ at $T$. Then do the same for $(b_i)_{i\in[q_s]}$ and $\PRF_2$. In each sub-hybrid the reduction receives the punctured key of the relevant PRF together with the challenge values at the punctured points, which are either the true PRF outputs or independent uniform values. It builds $\CircC'$ from the punctured keys and the hardwired data, and it assembles the honest signatures using $x$. Both the punctured keys and $x$ are available to it. Writing $\AdvPRF{}{\advD_2}$ for the sum of the two advantages,
 $$\Pr[\Gm_2 \Rightarrow 1] - \Pr[\Gm_3 \Rightarrow 1] \le \AdvPRF{}{\advD_2} \;.$$
 
-\heading{Game $\Gm_4$.} Each hardwired value $v_i$ is replaced by an independent uniform value in $\Zp$, and the values $a_i, b_i$ are no longer sampled. We claim $\Pr[\Gm_3 \Rightarrow 1] = \Pr[\Gm_4 \Rightarrow 1]$. Fix $R_i$. In $\Gm_3$ the pair $(a_i, b_i)$ is uniform on $\Zp^2$. Over the choice of $b_i$, the group element $U_i := R_i X^{a_i} g^{b_i}$ is uniform and independent of $a_i$. Then, over the choice of $a_i$, the value $v_i = \big(f(U_i) + a_i\big) \bmod p$ is uniform and independent of $R_i$ and $U_i$. Moreover, $a_i$ and $b_i$ appear nowhere else in $\Gm_3$: the keys $k_1, k_2$ in the circuit are punctured at $(R_i, m_i)$, the circuit hardwires only $v_i$, and the signature uses only $v_i$. So replacing each $v_i$ by an independent uniform value leaves the joint distribution of the adversary's view unchanged, and the equality of the two games is exact.
+\heading{Game $\Gm_4$ (uniform hash values).} Each hardwired value $v_i$ is replaced by an independent uniform value in $\Zp$, and the values $a_i, b_i$ are no longer sampled. We claim $\Pr[\Gm_3 \Rightarrow 1] = \Pr[\Gm_4 \Rightarrow 1]$. Fix $R_i$. In $\Gm_3$ the pair $(a_i, b_i)$ is uniform on $\Zp^2$. Over the choice of $b_i$, the group element $U_i := R_i X^{a_i} g^{b_i}$ is uniform and independent of $a_i$. Then, over the choice of $a_i$, the value $v_i = \big(f(U_i) + a_i\big) \bmod p$ is uniform and independent of $R_i$ and $U_i$. Moreover, $a_i$ and $b_i$ appear nowhere else in $\Gm_3$: the keys $k_1, k_2$ in the circuit are punctured at $(R_i, m_i)$, the circuit hardwires only $v_i$, and the signature uses only $v_i$. So replacing each $v_i$ by an independent uniform value leaves the joint distribution of the adversary's view unchanged, and the equality of the two games is exact.
 
 This step is where the change of variables of Game~$\Gm_5$ becomes available. In $\Gm_3$ the value $v_i$ is a function of $R_i$, so $R_i$ cannot be defined in terms of $v_i$. In $\Gm_4$ the value $v_i$ is an independent uniform value, so it can be sampled before $R_i$.
 
-\heading{Game $\Gm_5$.} The game produces each honest signature without $x$, by a change of variables in the signing randomness. In $\Gm_4$, signature $i$ is $(R_i, s_i)$ with $R_i = g^{r'_i}$ for a uniform $r'_i$ and $s_i = (r'_i + v_i x) \bmod p$. In $\Gm_5$, the game instead samples $v_i \getsr \Zp$ and $s_i \getsr \Zp$ first, sets $R_i \gets g^{s_i} X^{-v_i}$, and outputs $\sigma_i = (R_i, s_i)$; the abort condition of $\Gm_1$ is evaluated on these $R_i$, and the circuit hardwires $v_i$ at $(R_i, m_i)$ as before. Forming $R_i$ this way uses $X$ but not $x$, and $x$ appears nowhere else in $\Gm_5$, so $\Gm_5$ runs without $x$.
+\heading{Game $\Gm_5$ (signing without the secret).} The game produces each honest signature without $x$, by a change of variables in the signing randomness. In $\Gm_4$, signature $i$ is $(R_i, s_i)$ with $R_i = g^{r'_i}$ for a uniform $r'_i$ and $s_i = (r'_i + v_i x) \bmod p$. In $\Gm_5$, the game instead samples $v_i \getsr \Zp$ and $s_i \getsr \Zp$ first, sets $R_i \gets g^{s_i} X^{-v_i}$, and outputs $\sigma_i = (R_i, s_i)$; the abort condition of $\Gm_1$ is evaluated on these $R_i$, and the circuit hardwires $v_i$ at $(R_i, m_i)$ as before. Forming $R_i$ this way uses $X$ but not $x$, and $x$ appears nowhere else in $\Gm_5$, so $\Gm_5$ samples $X \getsr \GG$ directly, as in Figure~\ref{fig-static-games}; the distribution of $X$ is unchanged.
 
-We claim $\Pr[\Gm_4 \Rightarrow 1] = \Pr[\Gm_5 \Rightarrow 1]$. Fix $x$ and the value $v_i$, which in both games is uniform and independent of everything else. The map $r'_i \mapsto s_i = (r'_i + v_i x) \bmod p$ is a bijection of $\Zp$, and it takes a uniform $r'_i$ to a uniform $s_i$. Under this map the signature does not change: $g^{s_i} X^{-v_i} = g^{s_i - v_i x} = g^{r'_i} = R_i$, and the second component is $s_i = r'_i + v_i x$ in both games. The circuit is built from the same hardwired data in both games, in particular from the same point $R_i$ and the same value $v_i$. So $(\vkey, \sigma_1, \ldots, \sigma_q)$ has the same distribution in $\Gm_4$ and $\Gm_5$.
+We claim $\Pr[\Gm_4 \Rightarrow 1] = \Pr[\Gm_5 \Rightarrow 1]$. Fix $x$ and the value $v_i$, which in both games is uniform and independent of everything else. The map $r'_i \mapsto s_i = (r'_i + v_i x) \bmod p$ is a bijection of $\Zp$, and it takes a uniform $r'_i$ to a uniform $s_i$. Under this map the signature does not change: $g^{s_i} X^{-v_i} = g^{s_i - v_i x} = g^{r'_i} = R_i$, and the second component is $s_i = r'_i + v_i x$ in both games. The circuit is built from the same hardwired data in both games, in particular from the same point $R_i$ and the same value $v_i$. So $(\vkey, \sigma_1, \ldots, \sigma_{q_s})$ has the same distribution in $\Gm_4$ and $\Gm_5$.
 
 Note that the tuple $(R_i, v_i, s_i)$ in $\Gm_5$ is a simulated Schnorr transcript in the sense of honest-verifier zero knowledge, and the hardwired entry $(R_i, m_i, v_i)$ plays the role of programming the random oracle at a point chosen before the circuit is published. This is the step that is available in the static game and not in the adaptive game, and Section~\ref{sec-adaptive} starts from exactly this observation.
 
 \heading{From $\Gm_5$ to CDL.} We build a PPT adversary $\advB$ against $\CDL[\GG,g,f]$ with
 $$\Pr[\Gm_5 \Rightarrow 1] \le \AdvCDL{\GG,g,f}{\advB} \;.$$
-Adversary $\advB$ receives $h$ from the CDL game and sets $X \gets h$. It runs $\advA_0$, then builds the circuit and signatures exactly as in $\Gm_5$; this requires the punctured keys, the uniform values $v_i, s_i$, and $X$, but not $x$. It runs $\advA_1$ and receives a forgery $(R^*, s^*)$ on $m^*$. If the forgery is invalid, $\advB$ aborts. Since $m^* \notin \{m_1,\ldots,m_q\}$, the point $(R^*, m^*)$ is not hardwired and $\enc{R^*,m^*}\notin T$. Thus the hash value of the forgery is $c^* = \big(f(R^* X^{a^*} g^{b^*}) + a^*\big) \bmod p$ for $a^* \gets \PRFEv_1(k_1\{T\},\enc{R^*,m^*})$ and $b^* \gets \PRFEv_2(k_2\{T\},\enc{R^*,m^*})$, which $\advB$ computes from the punctured keys. Validity gives $g^{s^*} = R^* X^{c^*}$, and hence
+Adversary $\advB$ receives $h$ from the CDL game and sets $X \gets h$. It runs $\advA_0$, then builds the circuit and signatures exactly as in $\Gm_5$; this requires the punctured keys, the uniform values $v_i, s_i$, and $X$, but not $x$. It runs $\advA_1$ and receives a forgery $(R^*, s^*)$ on $m^*$. If the forgery is invalid, $\advB$ aborts. Since $m^* \notin \{m_1,\ldots,m_{q_s}\}$, the point $(R^*, m^*)$ is not hardwired and $\enc{R^*,m^*}\notin T$. Thus the hash value of the forgery is $c^* = \big(f(R^* X^{a^*} g^{b^*}) + a^*\big) \bmod p$ for $a^* \gets \PRFEv_1(k_1\{T\},\enc{R^*,m^*})$ and $b^* \gets \PRFEv_2(k_2\{T\},\enc{R^*,m^*})$, which $\advB$ computes from the punctured keys. Validity gives $g^{s^*} = R^* X^{c^*}$, and hence
 $$g^{s^* + b^*} = \big(R^* X^{a^*} g^{b^*}\big) \cdot h^{f(R^* X^{a^*} g^{b^*})} \;.$$
 Adversary $\advB$ outputs $\big(R^* X^{a^*} g^{b^*},\, (s^* + b^*) \bmod p\big)$. Since $f$ has no zeros, this output wins the CDL game whenever the forgery is valid.
 
 \heading{Conclusion.} Collecting the bounds,
-$$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q^2}{p} \;,$$
+$$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;,$$
 and every term on the right is negligible under the hypotheses of the theorem.
 \end{proof}
 

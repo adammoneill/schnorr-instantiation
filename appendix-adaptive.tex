@@ -1,15 +1,15 @@
 \section{Proof of Theorem~\ref{thm-adaptive}} \label{app-adaptive}
 
-Fix a PPT adversary $\advA$ making at most $q=q(\secp)$ signing queries, and let $N\le q$ be the number it makes in a given execution. Since $q$ is polynomial and $r$ is super-polynomial, $q\le r$ for all sufficiently large $\secp$. Throughout, $d=\dig(m)$ denotes the encoded digest $\enc{\TLFEv(K,m)}_d$ of a message $m$ under the current pre-hash key $K$.
+Fix a PPT adversary $\advA$ making at most $q_s=q_s(\secp)$ signing queries, and let $N\le q_s$ be the number it makes in a given execution. Since $q_s$ is polynomial and $r$ is super-polynomial, $q_s\le r$ for all sufficiently large $\secp$. Throughout, $d=\dig(m)$ denotes the encoded digest $\enc{\TLFEv(K,m)}_d$ of a message $m$ under the current pre-hash key $K$.
 
 \heading{From the real game to the lossy chain.} The real game is the EUF-CMA game for $\SchSScheme[\GG,\HF^{\mathsf{sio}}]$, in which the pre-hash key is generated in injective mode. We first add two aborts. The event $\mathsf{Bad}_{\mathsf{rep}}$ occurs if two signing queries use the same slot $u=(d,\salt)$. The event $\mathsf{Bad}_{\mathsf{col}}$ occurs if two distinct messages among the signing queries and the forgery message have equal digests. When either event occurs, the game outputs 0. The games with and without the aborts are identical until an abort occurs, so their output probabilities differ by at most the abort probability in injective mode. In injective mode, distinct messages have distinct digests unless key sampling fails, so $\mathsf{Bad}_{\mathsf{col}}$ requires the failure event, and $\mathsf{Bad}_{\mathsf{rep}}$ requires a repeated salt or the failure event. Hence the two aborts cost at most
 $$
-\frac{q(q-1)}{2^{\saltlen+1}}+\nu_{\mathsf{inj}}(\secp,r) \;.
+\frac{q_s(q_s-1)}{2^{\saltlen+1}}+\nu_{\mathsf{inj}}(\secp,r) \;.
 $$
 
 Next switch the pre-hash key to lossy mode at the same $r$. The distinguisher for this switch receives $K$, samples $x$ and all PRF keys itself, builds the obfuscated circuit, runs the game including both abort checks, and outputs the game's result. It is PPT, so the switch costs $\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}$ for a PPT distinguisher $\advD_{\mathsf{mode}}$. All subsequent games use a lossy key. In particular, in every subsequent game an execution that reaches $\Finalize$ without aborting has all digests of distinct relevant messages distinct, because $\mathsf{Bad}_{\mathsf{col}}$ output 0 otherwise.
 
-\heading{The outer games.} For $0\le i\le q$, Game $\Gm_i$ is given in Figure~\ref{fig-game-adaptive}. It answers the first $i$ signing queries by the trigger procedure and the rest honestly. The salts and honest nonces are sampled before key generation. Moving these independent choices earlier changes no distribution. Every game publishes the original circuit $\CircS$ of Figure~\ref{fig-circuit-salted}. Game $\Gm_0$ is the lossy game with aborts of the previous paragraph, and $\Gm_q$ answers every signing query without the secret exponent.
+\heading{The outer games.} For $0\le i\le q_s$, Game $\Gm_i$ is given in Figure~\ref{fig-game-adaptive}. It answers the first $i$ signing queries by the trigger procedure and the rest honestly. The salts and honest nonces are sampled before key generation. Moving these independent choices earlier changes no distribution. Every game publishes the original circuit $\CircS$ of Figure~\ref{fig-circuit-salted}. Game $\Gm_0$ is the lossy game with aborts of the previous paragraph, and $\Gm_{q_s}$ answers every signing query without the secret exponent.
 
 \begin{figure}[t]
 \begin{center}
@@ -20,7 +20,7 @@ Next switch the pre-hash key to lossy mode at the same $r$. The distinguisher fo
 \textbf{Game} $\Gm_i$: \\
 \textsc{Initialize}: \\
 \> $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})$ \\
-\> For $j\in[q]$: $\salt_j\getsr\bits^{\saltlen} \;;\; r_j\getsr\Zp$ \\
+\> For $j\in[q_s]$: $\salt_j\getsr\bits^{\saltlen} \;;\; r_j\getsr\Zp$ \\
 \> $x\getsr\Zp \;;\; X\gets g^x \;;\; k_\ell\getsr\PRFKg_\ell(\usecp)$ for $\ell\in[4]$ \\
 \> $\widetilde{\CircS}\getsr\iO(\usecp,\CircS[X,k_1,k_2,k_3,k_4])$ \\
 \> $j\gets0 \;;\; U\gets\emptyset \;;\; M\gets\emptyset \;;\; \mathsf{bad}\gets\false$ \\
@@ -50,7 +50,7 @@ Next switch the pre-hash key to lossy mode at the same $r$. The distinguisher fo
 \end{figure}
 
 
-We next define the temporary circuit used to compare adjacent games. It occurs only in the proof. Fix a slot $u=(d,\salt)$, two distinct group elements $R,W$, and two values $v,c \in \Zp$. Let
+We next define the temporary circuit $C_j$ used to compare the adjacent games at query $j$. It occurs only in the proof. Fix a slot $u=(d,\salt)$, two distinct group elements $R,W$, and two values $v,c \in \Zp$. Let
 $$
 t:=\enczero{u},\qquad
 T:=\{\encone{R,u},\encone{W,u}\},
@@ -78,13 +78,13 @@ The two entries of $L$ are sorted by their first coordinates, and $T$ is the cor
 }
 \end{center}
 \vspace{-6pt}
-\caption{The temporary circuit used when changing the answer to query $j$. It is padded to the same fixed size bound as the other circuits in the proof.}\label{fig-circuit-query}
+\caption{The temporary circuit $C_j$ used when changing the answer to query $j$. It is padded to the same fixed size bound $s'(\secp)$ as the published circuit.}\label{fig-circuit-query}
 \vspace{-3pt}\hrulefill
 \vspace{-1ex}
 \end{figure}
 
 
-\heading{Changing query $j$.} Fix $j\in[q]$ and restrict to executions with $N\ge j$. We compare $\Gm_{j-1}$ and $\Gm_j$. At each endpoint, first introduce the bad event
+\heading{Changing query $j$.} Fix $j\in[q_s]$ and restrict to executions with $N\ge j$. We compare $\Gm_{j-1}$ and $\Gm_j$. At each endpoint, first introduce the bad event
 $$
 \mathsf{Bad}_{\mathsf{eq}} := [R=W],
 \qquad
@@ -92,15 +92,17 @@ R:=g^{r_j},
 \qquad
 W:=g^{s_1}X^{-c},
 $$
-where $t_j=\enczero{d_j,\salt_j}$, $c=\PRFEv_3(k_3,t_j)$, and $s_1=\PRFEv_4(k_4,t_j)$, and output 0 when it occurs. Conditional on the view before query $j$, the point $R$ is uniform and independent of $W$. The two endpoint aborts therefore cost at most $2/p$ in total. Every intermediate game uses the same rule with its current values of $R,c,s_1,W$. In particular, when a PRF challenge changes $c$ or $s_1$, the game recomputes both $W$ and $\mathsf{Bad}_{\mathsf{eq}}$. This change is part of that PRF hybrid. Thus every game in the middle of the chain has $R\ne W$.
+where $t_j=\enczero{d_j,\salt_j}$, $c=\PRFEv_3(k_3,t_j)$, and $s_1=\PRFEv_4(k_4,t_j)$, and output 0 when it occurs. Conditional on the view before query $j$, the point $R$ is uniform and independent of $W$. The two endpoint aborts therefore cost at most $2/p$ in total. Every intermediate game uses the same rule with its current values of $R,c,s_1,W$, computed at the guessed slot; on executions where the guess is wrong the output is 0 in any case, so the two definitions of the event agree on every execution that can output 1. In particular, when a PRF challenge changes $c$ or $s_1$, the game recomputes both $W$ and $\mathsf{Bad}_{\mathsf{eq}}$. This change is part of that PRF hybrid. Thus every game in the middle of the chain has $R\ne W$.
 
-The reduction now guesses the digest of query $j$. It computes $S\getsr\TLFEnum(\mathsl{td})$, chooses $\widehat d$ uniformly from the encoded list $\{\enc{y}_d : y \in S\}$ before publishing the verification key, and aborts if $d_j\ne\widehat d$, where $d_j=\dig(m_j)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the list $S$ has at most $r$ entries and contains every digest the lossy key can produce, so it contains $d_j$. The guess is unused in the two endpoint games and is independent of the adversary's view. Hence for $b\in\{j-1,j\}$,
+The reduction now guesses the digest of query $j$. At key generation it computes $S\getsr\TLFEnum(\mathsl{td})$, removes duplicates, encodes the entries, and extends the resulting list to length exactly $r$ with distinct strings with first bit 1, which are never encodings of range elements. Call the result $L_S$. The reduction chooses an index $\widehat\imath \getsr [r]$, sets $\widehat d \gets L_S[\widehat\imath\,]$, and aborts at the end unless $d_j = \widehat d$, where $d_j = \dig(m_j)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the list $S$ contains every digest the lossy key can produce, so $d_j$ occurs in $L_S$, at exactly one position. The index $\widehat\imath$ is uniform and independent of everything else, so on the executions where $d_j$ occurs in $L_S$ the guess is correct with probability exactly $1/r$, independently of the execution. Writing $E_b := [N \ge j \land \Gm_b \Rightarrow 1]$ for $b\in\{j-1,j\}$,
 $$
-\Pr[N\ge j \land \Gm_b\Rightarrow1]
-\le |S| \cdot \Pr[\widehat d=d_j \land N\ge j \land \Gm_b\Rightarrow1]
-+ \nu_{\mathsf{enum}}(\secp,r) \;,
+\frac{1}{r}\big(\Pr[E_b] - \nu_{\mathsf{enum}}(\secp,r)\big)
+\;\le\;
+\Pr[\widehat d = d_j \land E_b]
+\;\le\;
+\frac{1}{r}\Pr[E_b] \;.
 $$
-since on successful enumeration $d_j$ occurs in the encoded list and the guess is uniform on it. Thus the guess costs a factor $|S|\le r$, plus one $\nu_{\mathsf{enum}}$ term per endpoint. The salt $\salt_j$ and nonce $r_j$ were sampled, not guessed. This is the step the pre-hash improves. Without it, the guessed value would be the message itself, at a cost of $2^{\msglen}$; with the lossy key, every digest lies in a set of size at most $r$ that the reduction can enumerate.
+The hybrid chain below compares the guessed games, which fix the slot $u=(\widehat d,\salt_j)$ before key generation and output 0 when the guess is wrong. On the executions with a correct guess they agree with the games $\Gm_b$, so their win probabilities are $\Pr[\widehat d = d_j \land E_b]$, and a bound of $\epsilon_j$ on their difference gives $|\Pr[E_{j-1}] - \Pr[E_j]| \le r\,\epsilon_j + 2\nu_{\mathsf{enum}}(\secp,r)$. Thus the guess costs a factor $r$, plus one $\nu_{\mathsf{enum}}$ term per endpoint. The salt $\salt_j$ and nonce $r_j$ were sampled, not guessed. This is the step the pre-hash improves. Without it, the guessed value would be the message itself, at a cost of $2^{\msglen}$; with the lossy key, every digest lies in a set of size at most $r$ that the reduction can enumerate.
 
 Set
 $$
@@ -155,7 +157,7 @@ $\mathsf{H}_8$ & Return $(W,s_1,\salt_j)$ instead of $(R,s_0,\salt_j)$ & Exact \
 
 We justify the changes. First replace the obfuscation of $\CircS$ by an obfuscation of $C_j$ in Figure~\ref{fig-circuit-query}, with $T=\{t_R,t_W\}$ and $L=\{(t_R,v),(t_W,c)\}$. At the true values these circuits compute the same function. On input $(W,\widehat d,\salt_j)$ both return $c$. On input $(R,\widehat d,\salt_j)$ the trigger comparison fails because $R\ne W$, and both return the main-branch value $v$. At every other input whose last two components are $(\widehat d,\salt_j)$, the trigger comparison fails and both use the main branch. At all other inputs, functionality preservation of puncturing applies. The switch is therefore justified by iO, in its auxiliary-state form from Definition~\ref{def-io}. At both the forward and reverse iO switches, the reduction first checks $\mathsf{Bad}_{\mathsf{eq}}$; if it is set, the reduction outputs 0 without invoking iO, or equivalently submits two identical dummy circuits. Thus iO is invoked only on functionally equivalent circuits.
 
-Next replace the outputs of $\PRF_1$ at both strings in $T$ by independent uniform values, and then do the same for $\PRF_2$. Only the values at $t_R$ are used to compute $v$. We puncture at both strings so that the circuit description does not distinguish $R$ from $W$. The puncture set $T$ is sampled independently of $k_1,k_2$, and all other game data is auxiliary state, so Definition~\ref{def-pprf} applies directly.
+Next replace the outputs of $\PRF_1$ at both strings in $T$ by independent uniform values, and then do the same for $\PRF_2$. Only the values at $t_R$ are used to compute $v$. We puncture at both strings so that the circuit description does not distinguish $R$ from $W$. The puncture set $T$ is sampled independently of $k_1,k_2$, and all other game data is auxiliary state. The sampler producing them enumerates the lossy image, so it runs in time polynomial in $\secp$ and $r$, which the hypothesis of the theorem covers.
 
 Now $a,b$ are uniform. For fixed $R$, the element $U:=RX^ag^b$ is uniform and independent of $a$. It follows that $v=f(U)+a$ is uniform and independent of $R$ and of the remaining state. We may replace $v$ by an independent uniform value and discard $a,b$; this change is exact. We then change variables in the first triple: sampling $r_j,v$, setting $R=g^{r_j}$ and $s_0=r_j+vx$, has the same distribution as sampling $s_0,v$ and setting
 $$
@@ -163,7 +165,7 @@ R=g^{s_0}X^{-v}.
 $$
 This is also exact.
 
-Next replace $c=\PRFEv_3(k_3,t)$ by a uniform value and then replace $s_1=\PRFEv_4(k_4,t)$ by a uniform value. These changes follow from puncturable-PRF security at $t$. When $c$ or $s_1$ changes, so do $W$, $t_W$, the current event $\mathsf{Bad}_{\mathsf{eq}}$, and the puncture set $T$. The string $t$ is fixed independently of $k_3,k_4$. In the $\PRF_3$ and $\PRF_4$ reductions, the challenge value first determines $W$ and $t_W$; the reduction then generates the independent keys $k_1,k_2$ and punctures them at $T=\{t_R,t_W\}$. The reverse reductions use the same order.
+Next replace $c=\PRFEv_3(k_3,t)$ by a uniform value and then replace $s_1=\PRFEv_4(k_4,t)$ by a uniform value. These changes follow from puncturable-PRF security at $t$. When $c$ or $s_1$ changes, so do $W$, $t_W$, the current event $\mathsf{Bad}_{\mathsf{eq}}$, and the puncture set $T$. The string $t$ is fixed independently of $k_3,k_4$. In the $\PRF_3$ and $\PRF_4$ reductions, the challenge value first determines $W$ and $t_W$; the reduction then generates the independent keys $k_1,k_2$ and punctures them at $T=\{t_R,t_W\}$. These reductions hold $k_3\{t\},k_4\{t\}$ and answer trigger queries with the punctured keys. A query before $j$ whose slot equals $u$ cannot be answered this way, and does not need to be: on such an execution either the guess is wrong or query $j$ later reuses the slot and the game sets $\mathsf{Bad}_{\mathsf{rep}}$, so the output is 0 in every case, and the reduction outputs 0 as soon as this happens. The reverse reductions use the same order.
 
 \heading{Exchanging the two triples.} At this point
 $$
@@ -179,15 +181,15 @@ The remaining state does not identify either entry of $L$ as the honest or trigg
 
 We now reverse the preceding changes while returning $(W,s_1,\salt_j)$. Restore the outputs of $\PRF_4$ and $\PRF_3$; reverse the change of variables for the first triple; restore the main-branch value $v$; restore the outputs of $\PRF_2$ and $\PRF_1$; and finally replace $C_j$ by $\CircS$ using iO. Each reverse game samples the hidden values with the same distribution as in the corresponding forward game, and its puncturable-PRF experiment provides the true values. At the endpoint the original circuit is published and query $j$ is answered by the trigger procedure, giving $\Gm_j$.
 
-For each $j$, there are PPT distinguishers $\advD^{\mathsf{io}}_{j,\beta}$ and $\advD^{\mathsf{prf}}_{j,\beta,\ell}$, for $\beta\in\{0,1\}$ and $\ell\in[4]$, such that, on writing
+For each $j$, there are distinguishers $\advD^{\mathsf{io}}_{j,\beta}$ and $\advD^{\mathsf{prf}}_{j,\beta,k}$, running in time polynomial in $\secp$ and $r$, for $\beta\in\{0,1\}$ and $k\in[4]$, such that, on writing
 $$
 \epsilon_j
 :=
 \sum_{\beta\in\{0,1\}}
 \left(
 \AdvIO{}{\advD^{\mathsf{io}}_{j,\beta}}
-+\sum_{\ell=1}^4
-\AdvPRF{\PRF_\ell}{\advD^{\mathsf{prf}}_{j,\beta,\ell}}
++\sum_{k=1}^4
+\AdvPRF{\PRF_k}{\advD^{\mathsf{prf}}_{j,\beta,k}}
 \right),
 $$
 we have
@@ -197,11 +199,11 @@ $$
 $$
 Summing over the signing queries gives
 $$
-\left|\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_q\Rightarrow1]\right|
-\le r\sum_{j=1}^q\epsilon_j+\frac{2q}{p}+2q\,\nu_{\mathsf{enum}}(\secp,r) \;.
+\left|\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_{q_s}\Rightarrow1]\right|
+\le r\sum_{j=1}^{q_s}\epsilon_j+\frac{2q_s}{p}+2q_s\,\nu_{\mathsf{enum}}(\secp,r) \;.
 $$
 
-Both forgery reductions below maintain the set $U$ and emulate the $\mathsf{Bad}_{\mathsf{rep}}$ abort of Figure~\ref{fig-game-adaptive}.
+Both forgery reductions below maintain the set $U$ and the recorded messages, and emulate the $\mathsf{Bad}_{\mathsf{rep}}$ and $\mathsf{Bad}_{\mathsf{col}}$ aborts of Figure~\ref{fig-game-adaptive}.
 
 \heading{A main-branch forgery.} We build a CDL adversary $\advB_{\mathsf{main}}$. It receives a challenge $h$, sets $X=h$, generates the four PRF keys and the obfuscated circuit, and answers every signing query by the trigger procedure. Suppose $\advA$ returns a valid forgery $(R^*,s^*,\salt^*)$ on the fresh message $m^*$ and the hash circuit takes the main branch. Set $u^*=(\dig(m^*),\salt^*)$ and compute
 $$
@@ -219,12 +221,7 @@ $$
 \le \AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}} \;.
 $$
 
-\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and takes the trigger branch. The reduction computes $S\getsr\TLFEnum(\mathsl{td})$ and guesses
-$$
-\widehat u=(\widehat d,\widehat{\salt})
-\getsr \{\enc{y}_d : y \in S\}\times\bits^{\saltlen}
-$$
-before publishing the verification key, and aborts unless $\widehat u=(\dig(m^*),\salt^*)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the list $S$ contains $\dig(m^*)$. Since the honest circuit at the endpoint is independent of $\widehat u$, this costs the factor $|S|\cdot2^{\saltlen}\le r\cdot2^{\saltlen}$.
+\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and takes the trigger branch. The reduction builds the padded list $L_S$ as in the signing hops, chooses an index $\widehat\imath \getsr [r]$ and a salt $\widehat{\salt} \getsr \bits^{\saltlen}$, and sets $\widehat u = (L_S[\widehat\imath\,], \widehat{\salt})$ before publishing the verification key. It aborts unless $\widehat u=(\dig(m^*),\salt^*)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the digest $\dig(m^*)$ occurs in $L_S$, and then the guess is correct with probability exactly $1/(r\cdot2^{\saltlen})$, independently of the execution, so the case costs the factor $r\cdot2^{\saltlen}$.
 
 Set $\widehat t=\enczero{\widehat u}$. For this reduction, puncture $k_4$ at $\widehat t$ and use the temporary circuit $C_{\mathsf{forg}}$ in Figure~\ref{fig-circuit-trigger-forgery}. Its final line reuses the main branch of $\CircS$.
 
@@ -247,18 +244,18 @@ Set $\widehat t=\enczero{\widehat u}$. For this reduction, puncture $k_4$ at $\w
 }
 \end{center}
 \vspace{-6pt}
-\caption{The temporary circuit for a trigger-branch forgery. The main branch is copied unchanged from Figure~\ref{fig-circuit-salted}.}\label{fig-circuit-trigger-forgery}
+\caption{The temporary circuit for a trigger-branch forgery, padded to the size bound $s'(\secp)$. The main branch is copied unchanged from Figure~\ref{fig-circuit-salted}.}\label{fig-circuit-trigger-forgery}
 \vspace{-3pt}\hrulefill
 \vspace{-1ex}
 \end{figure}
 
 If $\widehat s=\PRFEv_4(k_4,\widehat t)$ and $Z=g^{\widehat s}$, then $C_{\mathsf{forg}}$ and $\CircS$ compute the same function, so iO permits the switch. Puncturable-PRF security then replaces $\widehat s$ by a uniform value, so $Z=g^{\widehat s}$ is uniform in $\GG$.
 
-Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$. It samples $x\getsr\Zp$, sets $X=g^x$, writes $\widehat c:=\PRFEv_3(k_3,\widehat t)$, and builds $C_{\mathsf{forg}}$ with $Z=Y$. This has exactly the distribution of the uniform hybrid because $Y$ is uniform in $\GG$. The reduction answers signing queries with the trigger procedure using the punctured key. It aborts if a signing query has encoding $\widehat t$; when the guess is correct, this requires a signing query whose slot equals $(\dig(m^*),\salt^*)$, and hence a distinct queried message with digest $\dig(m^*)$, which the $\mathsf{Bad}_{\mathsf{col}}$ abort excludes, or the pair $(m^*,\salt^*)$ itself among the queries, which freshness of $m^*$ excludes. If the valid forgery takes the trigger branch at the guessed pair, then
+Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$. It samples $x\getsr\Zp$, sets $X=g^x$, writes $\widehat c:=\PRFEv_3(k_3,\widehat t)$, and builds $C_{\mathsf{forg}}$ with $Z=Y$. This has exactly the distribution of the uniform hybrid because $Y$ is uniform in $\GG$. The reduction answers signing queries with the trigger procedure using the punctured key. It aborts if a signing query has encoding $\widehat t$. When the guess is correct, such a query has slot $(\dig(m^*),\salt^*)$. That requires either a distinct queried message with digest $\dig(m^*)$, which the $\mathsf{Bad}_{\mathsf{col}}$ abort excludes, or the pair $(m^*,\salt^*)$ itself among the queries, which freshness of $m^*$ excludes. If the valid forgery takes the trigger branch at the guessed pair, then
 $$
 g^{s^*}=(YX^{-\widehat c})X^{\widehat c}=Y,
 $$
-so $\advB_{\mathsf{trig}}$ returns $s^*$ as the discrete logarithm of $Y$. Thus there are PPT distinguishers $\advD_{\mathsf{trig}}^{\mathsf{io}}$ and $\advD_{\mathsf{trig}}^{\mathsf{prf}}$ such that
+so $\advB_{\mathsf{trig}}$ returns $s^*$ as the discrete logarithm of $Y$. Thus there are distinguishers $\advD_{\mathsf{trig}}^{\mathsf{io}}$ and $\advD_{\mathsf{trig}}^{\mathsf{prf}}$, running in time polynomial in $\secp$ and $r$, such that
 $$
 \Pr[E_{\mathsf{trig}}]
 \le
@@ -281,20 +278,20 @@ $$
 +\AdvIO{}{\advD_{\mathsf{trig}}^{\mathsf{io}}}
 +\AdvPRF{\PRF_4}{\advD_{\mathsf{trig}}^{\mathsf{prf}}}
 \right)\\
-&\qquad+r\sum_{j=1}^q\epsilon_j
-+\frac{q(q-1)}{2^{\saltlen+1}}
-+\frac{2q}{p}
+&\qquad+r\sum_{j=1}^{q_s}\epsilon_j
++\frac{q_s(q_s-1)}{2^{\saltlen+1}}
++\frac{2q_s}{p}
 +\nu_{\mathsf{inj}}(\secp,r)
-+(2q+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
++(2q_s+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
 \end{aligned}
 $$
-Every reduction in this bound runs in time polynomial in $\secp$ and $r$; the enumeration of the lossy image is the only super-polynomial cost, and the hypothesis of the theorem bounds adversaries of exactly this time. We bound the display under the hypotheses of the theorem. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. Using $q\le r$, the display is at most
+Every reduction in this bound runs in time polynomial in $\secp$ and $r$; the enumeration of the lossy image is the only super-polynomial cost, and the hypothesis of the theorem bounds adversaries of exactly this time. We bound the display under the hypotheses of the theorem. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. Using $q_s\le r$, the display is at most
 $$
 \AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
 +\left(1+3r\cdot2^{\saltlen}+10r^2+2r\right)\eps
-+\frac{q(q-1)}{2^{\saltlen+1}}
++\frac{q_s(q_s-1)}{2^{\saltlen+1}}
 +\nu_{\mathsf{inj}}(\secp,r)
-+(2q+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
++(2q_s+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
 $$
-The first term is negligible because $\TLF$ is secure and $\advD_{\mathsf{mode}}$ is PPT. The second is at most $16\,r^2\,2^{\saltlen}\eps$, which is negligible by hypothesis. The remaining terms are negligible because $\saltlen=\omega(\log\secp)$, $q$ is polynomial, and $\nu_{\mathsf{inj}},\nu_{\mathsf{enum}}$ are negligible at $r$. This proves the theorem. \qed
-\adam{Constant check for your pass: each $\epsilon_j$ has $2$ iO and $8$ PRF terms (forward and reverse sandwich); the aggregation constant $16$ above is loose and just needs $r^2 2^{\saltlen}\eps$ absorption; $q\le r$ uses $r$ super-polynomial.}
+The first term is negligible because $\TLF$ is secure and $\advD_{\mathsf{mode}}$ is PPT. The second is at most $16\,r^2\,2^{\saltlen}\eps$, which is negligible by hypothesis. The remaining terms are negligible because $\saltlen=\omega(\log\secp)$, $q_s$ is polynomial, and $\nu_{\mathsf{inj}},\nu_{\mathsf{enum}}$ are negligible at $r$. This proves the theorem. \qed
+\adam{Constant check for your pass: each $\epsilon_j$ has $2$ iO and $8$ PRF terms (forward and reverse sandwich); the aggregation constant $16$ above is loose and just needs $r^2 2^{\saltlen}\eps$ absorption; $q_s\le r$ uses $r$ super-polynomial.}

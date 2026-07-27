@@ -30,7 +30,7 @@ $$
 $$
 \end{construction}
 
-Key generation ignores $X$. Lossy keys are used only in the proof. The outer hash maps the possibly structured range $\Ygrave$ to the scalar required by Schnorr. Collision resistance rules out a constant outer map; it is not used in the key-recovery reduction.
+\paragraph*{Discussion.} Key generation ignores $X$. Lossy keys are used only in the proof. The outer hash maps the possibly structured range $\Ygrave$ to the scalar required by Schnorr. Collision resistance rules out a constant outer map; it is not used in the key-recovery reduction.
 
 \begin{proposition} \label{prop-lf-cr}
 If $\CRHF$ is collision resistant and $\nu_{\mathsf{inj}}(\secp,r)$ is negligible, then $\HF^{\mathsf{tlf}}_r$ is collision resistant.
@@ -70,7 +70,7 @@ The games are in Figure~\ref{fig-bk-games}. In the figure, write
 $$
 H(R,m)=\CRHFEv(k,\TLFEv(K,\enc{R,m})).
 $$
-Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function to lossy mode at the same value $r$. Game $\Gm_2$ enumerates the lossy image once and replaces honest signing by rejection sampling.
+Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function to lossy mode at the same value $r$. Game $\Gm_2$ enumerates the lossy image once and replaces honest signing by rejection sampling; if $C$ is empty, which occurs only within the enumeration failure event, the oracle returns $\bot$.
 
 \begin{figure}[t]
 \twoCols{0.43}{0.52}{
@@ -112,13 +112,9 @@ Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function
 We first prove that the rejection-sampling oracle is exact.
 
 \begin{lemma} \label{lem-sim}
-Fix $x\in\Zp$, $X=g^x$, a key $K$, an outer-hash key $k$, a message $m$, and a list $S$ such that $\Image(\TLFEv(K,\cdot))\subseteq S$. Let
+Fix $x\in\Zp$, $X=g^x$, a function $H \colon \GG \times \bits^{\msglen} \to \Zp$, a message $m$, and a finite set $C$ with $\Image(H) \subseteq C$. For $(c,s)\in C\times\Zp$, call $(c,s)$ good if
 $$
-C=\{\CRHFEv(k,y):y\in S\}.
-$$
-For $(c,s)\in C\times\Zp$, call $(c,s)$ good if
-$$
-\CRHFEv\bigl(k,\TLFEv(K,\enc{g^sX^{-c},m})\bigr)=c.
+H\bigl(g^sX^{-c},m\bigr)=c.
 $$
 Then $\varphi(c,s):=g^sX^{-c}$ is a bijection from the set of good pairs to $\GG$.
 \end{lemma}
@@ -126,11 +122,11 @@ Then $\varphi(c,s):=g^sX^{-c}$ is a bijection from the set of good pairs to $\GG
 \begin{proof}
 For $R\in\GG$, define
 $$
-c_R:=\CRHFEv(k,\TLFEv(K,\enc{R,m}))
+c_R:=H(R,m)
 \qquad\text{and}\qquad
 s_R:=\mathsf{dlog}_g(R)+c_Rx\pmod p.
 $$
-The enumeration condition gives $c_R\in C$. We also have
+The hypothesis $\Image(H) \subseteq C$ gives $c_R\in C$. We also have
 $$
 g^{s_R}X^{-c_R}=R,
 $$
@@ -139,7 +135,7 @@ so $(c_R,s_R)$ is good and $\varphi(c_R,s_R)=R$.
 Conversely, let $(c,s)$ be good and set $R=\varphi(c,s)$. Goodness gives $c=c_R$. The equation $R=g^sX^{-c}$ then gives $s=s_R$. Thus the good pairs are exactly $\{(c_R,s_R):R\in\GG\}$, and $\varphi$ maps each such pair to $R$.
 \end{proof}
 
-A trial in game $\Gm_2$ is uniform on $C\times\Zp$. Lemma~\ref{lem-sim} gives exactly $p$ good pairs, so a trial accepts with probability $1/|C|$. Conditioned on acceptance, $R$ is uniform in $\GG$, and the returned response is $s=\mathsf{dlog}_g(R)+c_Rx\bmod p$. This is exactly an honest Schnorr signature. The probability that all $\secp|C|$ trials fail is at most $e^{-\secp}$.
+A trial in game $\Gm_2$ is uniform on $C\times\Zp$. Apply Lemma~\ref{lem-sim} with $H(R,m) := \CRHFEv(k,\TLFEv(K,\enc{R,m}))$ and the set $C$ of the game; on executions where enumeration succeeds, $\Image(H) \subseteq C$ holds. The lemma gives exactly $p$ good pairs, so a trial accepts with probability $1/|C|$. Conditioned on acceptance, $R$ is uniform in $\GG$, and the returned response is $s=\mathsf{dlog}_g(R)+c_Rx\bmod p$. This is exactly an honest Schnorr signature. The probability that all $\secp|C|$ trials fail is at most $e^{-\secp}$.
 
 \begin{proof}[of Theorem~\ref{thm-bk}]
 The distinguisher $\advD$, on input $K$, samples $x\getsr\Zp$ and $k\getsr\CRHFKg(\usecp)$. It runs $\advA$ on $(g^x,K,k)$, answers signing queries honestly, and returns 1 exactly when $\advA$ outputs $x$. The two input distributions for $\advD$ give games $\Gm_0$ and $\Gm_1$. Hence
@@ -167,21 +163,19 @@ $$
 The image is enumerated once. Constructing $C$ takes $r\poly(\secp)$ time, and each signing query uses at most $\secp r$ trials. This gives the claimed running times and completes the proof.
 \end{proof}
 
-\paragraph*{Why the construction uses two modes.} The scheme deploys the injective mode, and the lossy mode occurs only in the proof. One might ask whether the second mode is needed at all, since the rejection-sampling oracle of $\Gm_2$ works for any hash function with a small enumerable image. If the deployed hash were itself lossy, the simulation would apply directly to the real game, and key-recovery security would follow from hardness of DL against time $r\cdot\poly(\secp)$ with no assumption about modes.
-
-The reason is that the simulator is also an attack. Lemma~\ref{lem-sim} says each trial of the rejection-sampling oracle produces a valid signature with probability exactly $1/|C|$, and the trial uses only the verification key. An adversary that runs the same loop on a message of its choice therefore obtains a signature on it. This gives the following bound, which holds for every hash function and uses nothing about how it is built.
+\paragraph*{Why the construction uses two modes.} The second mode is necessary because the rejection-sampling simulator is also an attack. The oracle of $\Gm_2$ uses only the verification key, and by Lemma~\ref{lem-sim} each of its trials produces a valid signature with probability exactly $1/|C|$. An adversary that runs the same loop on a message of its choice therefore obtains a signature on it. This gives the following bound, which holds for every hash function and uses nothing about how it is built. In the statement, a plain function $H$ is taken as a keyed hash family whose key generation outputs the empty key.
 
 \begin{proposition} \label{prop-lossy-forge}
-Let $H \colon \GG \times \bits^{\msglen} \to \Zp$ be efficient with $|\Image(H)| \le r$, and suppose a set $C \supseteq \Image(H)$ of size at most $r$ can be computed in time $\tau$. Then there is an adversary that runs in time $\tau + \secp r \poly(\secp)$, makes no signing queries, and wins the EUF-CMA game against $\SchScheme[\GG,H]$ with probability at least $1 - e^{-\secp}$.
+Let $H \colon \GG \times \bits^{\msglen} \to \Zp$ be efficient, and suppose a set $C \supseteq \Image(H)$ of size at most $r$ can be computed in time $\tau$. Then there is an adversary that runs in time $\tau + \secp r \poly(\secp)$, makes no signing queries, and wins the EUF-CMA game against $\SchScheme[\GG,H]$ with probability at least $1 - e^{-\secp}$.
 \end{proposition}
 
 \begin{proof}
 The adversary fixes any message $m^*$ and repeats the loop of the $\SignOracle$ of Figure~\ref{fig-bk-games} on $m^*$, which uses only $X$ and $H$. By Lemma~\ref{lem-sim} each trial succeeds with probability $1/|C|$, and by the argument preceding the proof of Theorem~\ref{thm-bk} the probability that all $\secp|C|$ trials fail is at most $e^{-\secp}$. Any output of the loop is a valid signature on $m^*$, and no signing query was made.
 \end{proof}
 
-Two consequences. First, deploying a lossy hash would give a scheme that is universally forgeable in time about $r$. Taking the quasi-polynomial $r = 2^{(\log \secp)^2}$ at $\secp = 128$ gives $r = 2^{49}$, so the scheme would offer about $49$ bits of unforgeability security in a group chosen for $128$. The injective mode has no such attack, and this is what the second mode buys: the conclusion is about a scheme that is not already broken, and mode indistinguishability is what carries it there from the lossy game.
+Two consequences. First, a deployed hash function with a small image gives a scheme that is universally forgeable in time about $r$. Taking the quasi-polynomial $r = 2^{(\log \secp)^2}$ at $\secp = 128$ gives $r = 2^{49}$, so such a scheme would offer about $49$ bits of unforgeability security in a group chosen for 128-bit security. The deployed scheme therefore uses the injective mode, whose image is large and admits no such attack. The lossy mode occurs only inside the proof, and mode indistinguishability transfers the conclusion of the lossy game to the deployed scheme.
 
-Second, and independently of our construction, Proposition~\ref{prop-lossy-forge} shows that lossiness alone cannot give unforgeability. Any image small enough to rejection-sample against is small enough to forge against, in the same time. So the technique of this section is confined to key recovery for a structural reason, and unforgeability needs a different tool. That is the subject of Section~\ref{sec-io-uf}, where the conversion function of the CDL assumption has small preimages and hence a large image, which is exactly the regime in which the loop above is too slow to be either a simulation or an attack.
+Second, and independently of our construction, Proposition~\ref{prop-lossy-forge} shows that lossiness alone cannot give unforgeability. Any image small enough to rejection-sample against is small enough to forge against, in the same time. So the technique of this section stops at key recovery for a structural reason, and unforgeability requires a different tool. That tool is the subject of Section~\ref{sec-io-uf}. The conversion function there has small preimages, so its image is large, and the loop above is too slow to be a simulation or an attack.
 
 For a strongly efficiently enumerable ELF, in the sense stated after Definition~\ref{def-lf}, the injective mode does not depend on the image parameter, so the distribution of $\HF^{\mathsf{tlf}}_r$ is the same for every $r$. We write $\HF^{\mathsf{tlf}}$ for it.
 
