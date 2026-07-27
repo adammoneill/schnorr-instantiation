@@ -1372,7 +1372,7 @@
 \crefname{thm}{Theorem}{Theorems}
 \crefname{table}{Table}{Tables}
 
-\newcommand{\adam}[1]{{\color{purple}[Adam: #1]}}
+\newcommand{\adam}[1]{\ifnum\authnotes=1 {\color{purple}[Adam: #1]}\fi}
 \newcommand{\doreen}[1]{{\color{blue}[Doreen: #1]}}
 \newcommand{\georg}[1]{{\color{blue}[Georg: \bf #1]}}
 \newcommand{\gavin}[1]{{\color{red}[Gavin: #1]}}
