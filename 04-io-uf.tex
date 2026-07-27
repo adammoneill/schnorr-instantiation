@@ -40,8 +40,13 @@ Evaluating the hash function costs two PRF evaluations, two exponentiations, and
 \subsection{Main Result} \label{sec-io-thm}
 
 \begin{theorem} \label{thm-uf}
-Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$ such that $\CDL[\GG,g,f]$ holds. Let $\PRF_1, \PRF_2$ be puncturable PRFs as above, and let $\iO$ be an indistinguishability obfuscator. Then for every PPT adversary $\advA = (\advA_0, \advA_1)$ that declares at most $Q$ signing messages, the advantage $\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA}$ is negligible.
+Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$. Let $\PRF_1, \PRF_2$ be puncturable PRFs as above, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CDL[\GG,g,f]$, a distinguisher $\advD_1$ against $\iO$, and a distinguisher $\advD_2$ for the puncturable PRFs, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
+$$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;.$$
 \end{theorem}
+
+\begin{corollary} \label{cor-uf}
+If $\CDL[\GG,g,f]$ holds, the PRFs and $\iO$ are secure, and $p$ is super-polynomial, then for every PPT adversary declaring polynomially many messages, the advantage $\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA}$ is negligible.
+\end{corollary}
 
 \paragraph*{Discussion.} We comment on the zero-free condition. Given a candidate conversion function $f$, define $f'(R)=1$ when $f(R)=0$ and $f'(R)=f(R)$ otherwise. Each preimage size under $f'$ increases by at most $\mathsf{Size}_f(0)$. Thus, when $\mathsf{Size}_f(0)/p$ is negligible, the small-preimage EC-GGM analysis of~\cite{C:CFOS25} also applies to $f'$. We take this zero-free function as part of the construction and place it in the obfuscated circuit. This is evidence for the modified CDL assumption, not a black-box reduction from CDL for $f$ to CDL for $f'$. The condition is useful because the CDL game rejects solutions $(R,z)$ with $f'(R)=0$, and a zero-free function rules out that failure.
 
@@ -148,7 +153,7 @@ Adversary $\advB$ outputs $\big(R^* X^{a^*} g^{b^*},\, (s^* + b^*) \bmod p\big)$
 
 \heading{Conclusion.} Collecting the bounds,
 $$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;,$$
-and every term on the right is negligible under the hypotheses of the theorem.
+which is the bound of the theorem; the running-time claims follow by inspection of the reductions.
 \end{proof}
 
 \begin{remark} \label{rem-tight}

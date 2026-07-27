@@ -285,7 +285,9 @@ $$
 +(2q_s+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
 \end{aligned}
 $$
-Every reduction in this bound runs in time polynomial in $\secp$ and $r$; the enumeration of the lossy image is the only super-polynomial cost, and the hypothesis of the theorem bounds adversaries of exactly this time. We bound the display under the hypotheses of the theorem. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. Using $q_s\le r$, the display is at most
+This is the bound of the theorem, and the running-time claims follow by inspection: the enumeration of the lossy image is the only super-polynomial cost. \qed
+
+\paragraph*{Proof of Corollary~\ref{cor-adaptive}.} We bound the display of the theorem under the hypotheses of the corollary. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. Using $q_s\le r$, the display is at most
 $$
 \AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
 +\left(1+3r\cdot2^{\saltlen}+10r^2+2r\right)\eps
@@ -293,5 +295,5 @@ $$
 +\nu_{\mathsf{inj}}(\secp,r)
 +(2q_s+1)\,\nu_{\mathsf{enum}}(\secp,r) \;.
 $$
-The first term is negligible because $\TLF$ is secure and $\advD_{\mathsf{mode}}$ is PPT. The second is at most $16\,r^2\,2^{\saltlen}\eps$, which is negligible by hypothesis. The remaining terms are negligible because $\saltlen=\omega(\log\secp)$, $q_s$ is polynomial, and $\nu_{\mathsf{inj}},\nu_{\mathsf{enum}}$ are negligible at $r$. This proves the theorem. \qed
+The first term is negligible because $\TLF$ is secure and $\advD_{\mathsf{mode}}$ is PPT. The second is at most $16\,r^2\,2^{\saltlen}\eps$, which is negligible by hypothesis. The remaining terms are negligible because $\saltlen=\omega(\log\secp)$, $q_s$ is polynomial, and $\nu_{\mathsf{inj}},\nu_{\mathsf{enum}}$ are negligible at $r$. This proves the corollary. \qed
 \adam{Constant check for your pass: each $\epsilon_j$ has $2$ iO and $8$ PRF terms (forward and reverse sandwich); the aggregation constant $16$ above is loose and just needs $r^2 2^{\saltlen}\eps$ absorption; $q_s\le r$ uses $r$ super-polynomial.}

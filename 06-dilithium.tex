@@ -215,11 +215,23 @@ which is a $\CSIS$ solution $(\mat{z}_1{+}\mat{v}_1,\ \mat{z}_2{+}\mat{v}_2,\ \m
 \subsection{Main Result} \label{sec-dil-thm}
 
 \begin{theorem} \label{thm-dil}
-Let $q = 2^k$, let $\chal = \bits^{\ell}$ with $\ell = nk$, and let $f = \GDec$. Suppose $\ell(\colsA+n)/B$ is negligible. Suppose $\CSIS_{\GDec,\chal,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}$ holds, decision $\LWE_{q,n,\colsA,q_s,B}$ holds for every polynomial $q_s$, decision $\LWE_{q,n,\colsA,\ell,1}$ holds, $\PRF_1$ and $\PRF_2$ are puncturable PRFs with the domains and ranges of Section~\ref{sec-dil-constr}, and $\iO$ is an indistinguishability obfuscator. Then for every PPT adversary $\advA = (\advA_0, \advA_1)$ that declares at most $Q$ signing messages, the advantage $\AdvEUFSTATIC{\DSScheme[\HF^{\mathsf{lio}}]}{\advA}$ is negligible.
+Let $q = 2^k$, let $\chal = \bits^{\ell}$ with $\ell = nk$, and let $f = \GDec$. Let $\PRF_1$ and $\PRF_2$ be puncturable PRFs with the domains and ranges of Section~\ref{sec-dil-constr}, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CSIS$, a distinguisher $\advD_{\mathsf{io}}$ against $\iO$, distinguishers $\advD^{\mathsf{prf}}_1, \advD^{\mathsf{prf}}_2$ for the PRFs, and distinguishers $\advD_1, \advD_2$ against decision LWE, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
+$$
+\begin{aligned}
+\AdvEUFSTATIC{\DSScheme[\HF^{\mathsf{lio}}]}{\advA}
+\le\ &\AdvCSIS{\GDec,\chal,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB}
++ \AdvIO{}{\advD_{\mathsf{io}}} \\
+&+ \sum_{i=1}^{2}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_i}
++ \AdvLWE{q,n,\colsA,q_s,B}{\advD_1}
++ \AdvLWE{q,n,\colsA,\ell,1}{\advD_2} \\
+&+ q_s \cdot \frac{4\ell(\colsA+n)}{2B+1}
++ q_s^2(2B+1)^{-n} \;.
+\end{aligned}
+$$
 \end{theorem}
 
 \begin{corollary} \label{cor-dil-sis}
-Assume the setting and hypotheses of Theorem~\ref{thm-dil}, with the $\CSIS$ hypothesis replaced by $\SIS_{q,n,\colsA+\ell+n,\Bclip+B}$. Then the scheme $\DSScheme[\HF^{\mathsf{lio}}]$ is EUF-static secure.
+Assume the setting of Theorem~\ref{thm-dil}, and suppose $\ell(\colsA+n)/B$ is negligible, $\SIS_{q,n,\colsA+\ell+n,\Bclip+B}$ holds, decision LWE holds at the parameters of the theorem, and the PRFs and $\iO$ are secure. Then the scheme $\DSScheme[\HF^{\mathsf{lio}}]$ is EUF-static secure.
 \end{corollary}
 
 The corollary follows from Theorem~\ref{thm-dil} and Lemma~\ref{lem-csis-sis}; the factor $4$ of the lemma is absorbed asymptotically. The assumption profile is SIS, LWE, puncturable PRFs, and the assumptions underlying iO, all polynomially secure, at a quasi-polynomial modulus, since the flooding condition requires $B$, and hence $q \ge B^2$, to be super-polynomial, and quasi-polynomial suffices. To our knowledge this is the first standard-model static-message unforgeability result for a lattice-based Fiat--Shamir signature scheme.
@@ -258,7 +270,7 @@ $$
 + q_s^2(2B+1)^{-n} \;,
 \end{aligned}
 $$
-where the single iO term is the hardwiring switch of $\Gm_3$; the later hops change only the distribution of the hardwired data, which their own reductions build and obfuscate themselves, so no further iO invocation occurs. Every term is negligible under the hypotheses.
+where the single iO term is the hardwiring switch of $\Gm_3$; the later hops change only the distribution of the hardwired data, which their own reductions build and obfuscate themselves, so no further iO invocation occurs. This is the bound of the theorem, and the running-time claims follow by inspection.
 \end{proof}
 
 \paragraph*{Discussion.} The flooding condition is what fixes the hardwired points before any hash value is computed. With rejection at polynomial $B$, the identity of the accepted attempt depends on the hash values, which are what the hybrids replace, so the puncture set is not fixed in advance and the selective puncturing argument does not apply. Moreover the rejected attempts' pairs are correlated with the secret, which blocks the key switch. We do not know a proof in that regime, and we record it as an open problem in Section~\ref{sec-conclusion}. The key-recovery result has no such condition, because its simulation never punctures. \adam{All: Internal review note: the polynomial-$B$ static claim was withdrawn after we found the acceptance/puncturing circularity and the secret-correlation of rejected attempts; do not re-attempt it casually. The flooding regime keeps all primitives polynomially secure; the cost is a quasi-polynomial modulus.}
