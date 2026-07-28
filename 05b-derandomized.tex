@@ -1,0 +1,174 @@
+\section{Derandomized Schnorr: Removing the Query Bound and the Salt} \label{sec-derand}
+
+\adam{New section, from the derandomization observation. Needs the group's read: the static proof runs the appendix hop machinery with slot $m$ and no salt, and the adaptive theorem is stated by difference from Theorem~\ref{thm-adaptive}. Check especially the repeat-query replay convention and the claim that the puncture sets are fixed before key generation in the static case.}
+
+The two unforgeability results so far each pay a price. Theorem~\ref{thm-uf} is bounded: the hash circuit is padded to hold one table entry per declared message, so the scheme depends on a polynomial $Q$ and the guarantee covers only forgers declaring at most $Q$ messages. Theorem~\ref{thm-adaptive} is unbounded, but only for a modified scheme, in which the signer draws a salt and transmits it.
+
+This section removes both prices at once by derandomizing the signer. The nonce becomes a pseudorandom function of the signing key and the message, as in EdDSA~\cite{eddsa}, which is how the deployed variant of Schnorr already works. The signature format and the verification algorithm are unchanged. With a deterministic signer, the trigger branch of Section~\ref{sec-adaptive} can be indexed by the message alone, and two things follow. The hash circuit no longer stores a table, so its size does not depend on any query count, and the query bound of Theorem~\ref{thm-uf} disappears. And the salt is no longer needed, so Theorem~\ref{thm-adaptive} applies to a scheme whose only difference from deployed Schnorr is the nonce derivation.
+
+\paragraph*{Why the salt was needed, and why derandomizing replaces it.} The trigger branch answers a signing query on $m$ with a fixed point $W_m$ determined by $m$, so it produces one signature per message. A randomized signer produces a fresh signature every time, so an adversary that queries the same message twice sees two different signatures from the real scheme and the same signature twice from the reduction. Section~\ref{sec-adaptive} fixes this by giving each query its own slot, using a fresh salt. A deterministic signer produces one signature per message as well, so the mismatch does not arise, and the slot can be the message.
+
+\subsection{The Scheme} \label{sec-derand-scheme}
+
+Let $\PRF_0$ be a pseudorandom function with domain $\bits^{\msglen}$ and range $\Zp$. It need not be puncturable.
+
+\begin{construction} \label{constr-derand}
+Let $\HF$ be a keyed hash family for $\GG$ and message space $\bits^{\msglen}$. The \emph{derandomized Schnorr signature scheme} $\SchDScheme[\GG,\HF] = (\SchKeys,\SchSign,\SchVf)$ works as follows. Algorithm $\SchKeys$ samples $x\getsr\Zp$ and $k_0\getsr\PRFKg_0(\usecp)$, sets $X\gets g^x$, samples $\hk\getsr\HFKg(X)$, and returns
+$$
+\vkey=(X,\hk)
+\qquad\text{and}\qquad
+\skey=(x,k_0,\hk).
+$$
+Algorithm $\SchSign$ on input $\skey,m$ sets
+$$
+r \gets \PRFEv_0(k_0,m),
+\qquad
+R \gets g^{r},
+\qquad
+c \gets \HFEv(\hk,(R,m)),
+\qquad
+s \gets (r+cx)\bmod p,
+$$
+and returns $(R,s)$. Algorithm $\SchVf$ is that of Schnorr (Section~\ref{sec-schnorr}): on inputs $(X,\hk),m,(R,s)$ it computes $c \gets \HFEv(\hk,(R,m))$ and returns $\big(g^s = RX^c\big)$.
+\end{construction}
+
+\paragraph*{Discussion.} Verification, the signature format, and the verification key are exactly those of Schnorr. The only change is that the signer derives its nonce from the message instead of sampling it, which is what EdDSA does and what deployments already implement. Derandomizing preserves unforgeability generically~\cite{SAC:MNPV98}; we do not use that transfer, since we prove the results directly for the derandomized scheme, but it explains why the change is not a weakening. Signing is deterministic, so the same message always receives the same signature. In the security games below this means a repeated query may be answered by replaying the earlier answer, and the hybrid arguments run over the distinct queried messages.
+
+\subsection{The Construction} \label{sec-derand-constr}
+
+Let $\PRF_1,\PRF_2$ be puncturable PRFs with domain $\bits^{\ellin}$ and range $\Zp$, where $\enc{\cdot}$ is the injective encoding of Section~\ref{sec-io-constr}, and let $\PRF_3,\PRF_4$ be puncturable PRFs with domain $\bits^{\msglen}$ and range $\Zp$. Let $\iO$ be an indistinguishability obfuscator, and fix $\GG,g,p$ and the zero-free conversion function $f$ as in Section~\ref{sec-io-uf}. We call the message $m$ the \emph{slot}; the PRFs $\PRF_3,\PRF_4$ determine one trigger point for each slot.
+
+\begin{figure}[t]
+\begin{center}
+\fbox{
+\begin{minipage}{4.6in}
+\begin{tabbing}
+123\=123\=123\=\kill
+\textbf{Circuit} $\CircDer[X, k_1, k_2, k_3, k_4](R, m)$: \\
+\> $c_t \gets \PRFEv_3(k_3, m) \;;\; s_t \gets \PRFEv_4(k_4, m)$ \\
+\> If $R = g^{s_t} \cdot X^{-c_t}$: Return $c_t$ \comment{trigger branch} \\
+\> $a \gets \PRFEv_1(k_1, \enc{R,m}) \;;\; b \gets \PRFEv_2(k_2, \enc{R,m})$ \\
+\> Return $\big(f(R \cdot X^{a} \cdot g^{b}) + a\big) \bmod p$ \comment{main branch}
+\end{tabbing}
+\end{minipage}
+}
+\end{center}
+\vspace{-6pt}
+\caption{The hash circuit underlying $\HF^{\mathsf{der}}$. It is padded to a fixed polynomial size bound $s''(\secp)$ before obfuscation. The bound does not depend on any query count, because the circuits appearing in the proof hardwire two points, whatever the number of signing queries.}\label{fig-circuit-derand}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
+\begin{construction} \label{constr-der}
+The keyed hash family $\HF^{\mathsf{der}} = (\HFKg,\HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X\in\GG$ computes $k_i\getsr\PRFKg_i(\usecp)$ for $i\in[4]$ and $\widetilde{\CircDer}\getsr\iO(\usecp,\CircDer[X,k_1,k_2,k_3,k_4])$ for the circuit of Figure~\ref{fig-circuit-derand}, padded to size $s''(\secp)$, and returns $\hk\gets\widetilde{\CircDer}$. Algorithm $\HFEv$ evaluates the obfuscated circuit.
+\end{construction}
+
+\paragraph*{Discussion.} For a slot $m$, write
+$$
+c_m=\PRFEv_3(k_3,m),
+\qquad
+s_m=\PRFEv_4(k_4,m),
+\qquad
+W_m=g^{s_m}X^{-c_m}.
+$$
+The trigger branch returns $c_m$ on input $(W_m,m)$, and $(W_m,s_m)$ is a valid signature on $m$ that uses no secret exponent. This is how the reduction signs. An honest signer reaches the trigger point with probability $1/p$ per message, so the branch does not affect honest use.
+
+The size bound $s''(\secp)$ is where this construction differs from Construction~\ref{constr-io}. There the proof replaces the circuit by one carrying a table of $q_s$ hardwired point-value pairs, so the honest circuit must be padded to hold $Q$ of them and the scheme depends on $Q$. Here the proof changes one signature at a time, and the temporary circuit of each step carries two hardwired points, whatever $q_s$ is. The padding is therefore a fixed polynomial and the scheme carries no query parameter.
+
+\subsection{Static-Message Unforgeability without a Query Bound} \label{sec-derand-static}
+
+\begin{theorem} \label{thm-der-static}
+Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f\colon\GG\to\Zp$ be efficient with $\mathsf{Size}_f(0)=0$. Let $\advA=(\advA_0,\advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s$ signing messages, where $q_s$ is not bounded by any parameter of the scheme. There are an adversary $\advB_{\mathsf{main}}$ against $\CDL[\GG,g,f]$, an adversary $\advB_{\mathsf{trig}}$ against DL, a distinguisher $\advD_0$ against $\PRF_0$, and, for $j\in[q_s]$ and $\beta\in\{0,1\}$, distinguishers $\advD^{\mathsf{io}}_{j,\beta}$ against $\iO$ and $\advD^{\mathsf{prf}}_{j,\beta,i}$ against $\PRF_i$ for $i\in[4]$, together with $\advD^{\mathsf{io}}_{\mathsf{trig}}$ and $\advD^{\mathsf{prf}}_{\mathsf{trig}}$, each running in time $t_{\advA}+\poly(\secp,q_s)$, such that, writing
+$$
+\epsilon_j
+:=
+\sum_{\beta\in\{0,1\}}
+\Big(
+\AdvIO{}{\advD^{\mathsf{io}}_{j,\beta}}
++\sum_{i=1}^{4}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_{j,\beta,i}}
+\Big),
+$$
+we have
+$$
+\begin{aligned}
+\AdvEUFSTATIC{\SchDScheme[\GG,\HF^{\mathsf{der}}]}{\advA}
+\le\ &\AdvPRF{\PRF_0}{\advD_0}
++\AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}} \\
+&+\AdvDL{\GG,g}{\advB_{\mathsf{trig}}}
++\AdvIO{}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++\AdvPRF{\PRF_4}{\advD^{\mathsf{prf}}_{\mathsf{trig}}} \\
+&+\sum_{j=1}^{q_s}\epsilon_j
++\frac{2q_s}{p} \;.
+\end{aligned}
+$$
+\end{theorem}
+
+\begin{corollary} \label{cor-der-static}
+If $\CDL[\GG,g,f]$ holds, $\PRF_0,\ldots,\PRF_4$ and $\iO$ are secure, and $p$ is super-polynomial, then $\SchDScheme[\GG,\HF^{\mathsf{der}}]$ is EUF-static secure against every PPT adversary.
+\end{corollary}
+
+\paragraph*{Discussion.} Corollary~\ref{cor-der-static} is ordinary static security of one fixed scheme against every PPT adversary, with no query parameter anywhere and with every assumption polynomially hard. Compared with Corollary~\ref{cor-uf} it removes the bound $Q$, and compared with Theorem~\ref{thm-adaptive} it keeps the signature format of Schnorr. What it does not do is make the queries adaptive; Section~\ref{sec-derand-adaptive} treats that.
+
+Two features of the static game do the work. The declared messages are fixed before key generation, so the reduction knows every slot it will need to program and guesses nothing; this is what keeps the loss polynomial. And the trigger branch recomputes programmed points instead of storing them, so no table appears in the published circuit; this is what removes $Q$.
+
+\begin{proof}[of Theorem~\ref{thm-der-static}]
+Let $\advA_0$ declare $m_1,\ldots,m_{q_s}$ and $m^*\notin\{m_1,\ldots,m_{q_s}\}$. Signing is deterministic, so a repeated declared message receives the same signature; we answer repeats by replaying and index the hybrid by the distinct declared messages, which we continue to write $m_1,\ldots,m_{q_s}$.
+
+\heading{Game $\Gm_0$ (uniform nonces).} The game replaces each $r_i=\PRFEv_0(k_0,m_i)$ by an independent uniform $r_i\getsr\Zp$. The key $k_0$ is used nowhere else, and the messages are declared before key generation, so a single distinguisher $\advD_0$ bounds the change by $\AdvPRF{\PRF_0}{\advD_0}$. From here on the honest nonces are uniform, as in the randomized scheme.
+
+\heading{Games $\Gm_1,\ldots,\Gm_{q_s}$ (trigger signing).} For $0\le i\le q_s$, let $\Gm_i$ answer the first $i$ declared messages by the trigger procedure, returning $(W_{m_j},s_{m_j})$, and the remaining ones honestly. Every game publishes the honest circuit $\CircDer$ of Figure~\ref{fig-circuit-derand}; hardwired circuits occur only inside the reductions between adjacent games.
+
+Fix $j$ and compare $\Gm_{j-1}$ with $\Gm_j$. Both endpoints first introduce the event $\mathsf{Bad}_{\mathsf{eq}} := [R_j = W_{m_j}]$ and output $0$ when it occurs, where $R_j=g^{r_j}$ is the honest nonce point. Conditioned on the view before the change, $R_j$ is uniform and independent of $W_{m_j}$, so the two aborts cost at most $2/p$.
+
+The rest of the step is the chain of Appendix~\ref{app-adaptive}, with the slot $u=(d,\salt)$ there replaced by the message $m_j$ here, and with one simplification: the reduction is given $m_j$ by $\advA_0$ before key generation, so it does not guess. Concretely, it sets
+$$
+t=m_j,\qquad
+R=g^{r_j},\qquad
+t_R=\enc{R,m_j},\qquad
+W=g^{s_{m_j}}X^{-c_{m_j}},\qquad
+t_W=\enc{W,m_j},
+$$
+publishes an obfuscation of the analogue of the two-point circuit $C_j$ of Figure~\ref{fig-circuit-query}, with the slot input $(d,\salt)$ there replaced by the message $m$ and the salt input dropped, punctured at $T=\{t_R,t_W\}$ and at $t$, and runs the eight steps $\mathsf{H}_0$ through $\mathsf{H}_8$: replace $\CircDer$ by $C_j$ at the true values, make the $\PRF_1$ and $\PRF_2$ values on $T$ uniform, replace the main-branch hash value by a uniform value and discard the masks, change variables so the honest record is $(g^{s_0}X^{-v},v,s_0)$ for uniform $v,s_0$, make the $\PRF_3$ and $\PRF_4$ values at $t$ uniform, exchange the two records by Lemma~\ref{lem-swap}, and reverse. Each of the two directions invokes $\iO$ once and the four puncturable PRFs once, giving $\epsilon_j$, and the puncture sets are fixed by data available before key generation, so Definitions~\ref{def-pprf} and~\ref{def-io} apply with polynomial-time samplers. Hence
+$$
+\big|\Pr[\Gm_{j-1}\Rightarrow1]-\Pr[\Gm_j\Rightarrow1]\big|
+\le \epsilon_j+\frac{2}{p} \;.
+$$
+
+In $\Gm_{q_s}$ every signature is a trigger signature, and computing $W_{m}$ and $s_{m}$ uses $X$ and the PRF keys but not $x$.
+
+\heading{A main-branch forgery.} Let $E_{\mathsf{main}}$ be the event that $\advA_1$ returns a valid forgery on $m^*$ whose hash value comes from the main branch. Adversary $\advB_{\mathsf{main}}$ receives a CDL challenge $h$, sets $X\gets h$, samples the four PRF keys, publishes the obfuscated circuit, and answers the declared messages by the trigger procedure. Given a valid forgery $(R^*,s^*)$ it computes $a^*,b^*$ from $k_1,k_2$ at $\enc{R^*,m^*}$ and returns
+$$
+\big(R^*X^{a^*}g^{b^*},\ (s^*+b^*)\bmod p\big),
+$$
+which wins the CDL game by the computation of Section~\ref{sec-io-constr}, using that $f$ has no zeros. Hence $\Pr[E_{\mathsf{main}}]\le\AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}}$.
+
+\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and its hash value comes from the trigger branch, so that $R^*=W_{m^*}$. Here the static setting removes the guessing of Appendix~\ref{app-adaptive}: the forgery message $m^*$ is declared by $\advA_0$ before key generation, so the reduction knows the slot it must program.
+
+Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$, samples $x\getsr\Zp$ and sets $X\gets g^x$, punctures $k_4$ at $m^*$, and publishes an obfuscation of the analogue of the circuit $C_{\mathsf{forg}}$ of Figure~\ref{fig-circuit-trigger-forgery}, with the slot input retyped to the message in the same way, with $\widehat t=m^*$ and $Z=Y$. With $Z=g^{\widehat s}$ for $\widehat s=\PRFEv_4(k_4,m^*)$ this circuit computes the same function as $\CircDer$, so $\iO$ justifies the switch, and puncturable-PRF security at $m^*$ replaces $\widehat s$ by a uniform value, after which $Z=Y$ has the right distribution. Signing uses the punctured key and never needs slot $m^*$, since $m^*$ is not among the declared messages. If the forgery takes the trigger branch at $m^*$ then
+$$
+g^{s^*}=\big(YX^{-c_{m^*}}\big)X^{c_{m^*}}=Y,
+$$
+so $\advB_{\mathsf{trig}}$ returns $s^*$ as the discrete logarithm of $Y$. Hence
+$$
+\Pr[E_{\mathsf{trig}}]\le
+\AdvDL{\GG,g}{\advB_{\mathsf{trig}}}
++\AdvIO{}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++\AdvPRF{\PRF_4}{\advD^{\mathsf{prf}}_{\mathsf{trig}}} \;.
+$$
+
+\heading{Conclusion.} A valid forgery takes one of the two branches, so collecting the terms gives the stated bound. Every reduction runs in time $t_{\advA}+\poly(\secp,q_s)$, and no factor depending on the message space or on a guess appears.
+\end{proof}
+
+\subsection{Adaptive Security without a Salt} \label{sec-derand-adaptive}
+
+The same construction, composed with the lossy pre-hash of Section~\ref{sec-adaptive}, gives adaptive security for the derandomized scheme with no salt. Let $\HF^{\mathsf{dio}}$ be the family of Construction~\ref{constr-der} with the message replaced throughout by its digest $d=\dig(K,m)$, where $K$ is a tunable lossy function key generated in injective mode at key generation and placed in the verification key, exactly as in Section~\ref{sec-salted-constr}. The slot is then the digest.
+
+\begin{theorem} \label{thm-der-adaptive}
+Let $\GG,g,p,f$ be as in Theorem~\ref{thm-der-static}, let $\TLF$ be a tunable lossy function with image parameter $r$, and let $\advA$ be an adversary running in time $t_{\advA}$ and making at most $q_s$ signing queries. Then the bound of Theorem~\ref{thm-adaptive} holds for $\AdvEUFCMA{\SchDScheme[\GG,\HF^{\mathsf{dio}}]}{\advA}$ with the salt terms removed: the factor $r\cdot2^{\saltlen}$ in the trigger-forgery case becomes $r$, and the term $q_s(q_s-1)/2^{\saltlen+1}$ is absent.
+\end{theorem}
+
+\begin{proof}[sketch]
+The proof is that of Appendix~\ref{app-adaptive} with the slot $u=(d,\salt)$ replaced by $d$ throughout. Three changes account for the differences in the bound. There is no salt to repeat, so the abort $\mathsf{Bad}_{\mathsf{rep}}$ and its term disappear; a repeated message is answered by replaying, in both the real scheme and every game, because signing is deterministic. The digest-collision abort and the switch of the pre-hash to lossy mode are unchanged. In each per-query hop the reduction guesses the digest of the query from the enumerated lossy image, at cost $r$, exactly as there. In the trigger-forgery case it guesses only the digest of $m^*$, again at cost $r$, since the slot no longer contains a salt. The honest nonces are made uniform by one $\PRF_0$ hop at the start, as in Theorem~\ref{thm-der-static}.
+\end{proof}
+
+\paragraph*{Discussion.} Theorem~\ref{thm-der-adaptive} gives adaptive EUF-CMA security, with no query bound in the scheme, for a signature scheme whose format, verification algorithm, and verification key are those of Schnorr, and whose signer differs from the deployed one only in deriving the nonce from the key and message. The price relative to Theorem~\ref{thm-der-static} is the guessing, which the lossy pre-hash reduces to a factor $r$ per hop, so quasi-polynomially secure primitives suffice as in Corollary~\ref{cor-adaptive-qp}. Removing the guessing entirely, for instance by a partitioning argument that selects programmed slots without naming them in advance, is the main open problem left by this section.
