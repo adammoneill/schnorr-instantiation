@@ -1,6 +1,6 @@
 \section{Proof of Theorem~\ref{thm-adaptive}} \label{app-adaptive}
 
-Fix a PPT adversary $\advA$ making at most $q_s=q_s(\secp)$ signing queries, and let $N\le q_s$ be the number it makes in a given execution. Since $q_s$ is polynomial and $r$ is super-polynomial, $q_s\le r$ for all sufficiently large $\secp$. Throughout, $d=\dig(m)$ denotes the encoded digest $\enc{\TLFEv(K,m)}_d$ of a message $m$ under the current pre-hash key $K$.
+Fix a PPT adversary $\advA$ making at most $q_s=q_s(\secp)$ signing queries, and let $N\le q_s$ be the number it makes in a given execution. Throughout, $d=\dig(m)$ denotes the encoded digest $\enc{\TLFEv(K,m)}_d$ of a message $m$ under the current pre-hash key $K$.
 
 \heading{From the real game to the lossy chain.} The real game is the EUF-CMA game for $\SchSScheme[\GG,\HF^{\mathsf{sio}}]$, in which the pre-hash key is generated in injective mode. We first add two aborts. The event $\mathsf{Bad}_{\mathsf{rep}}$ occurs if two signing queries use the same slot $u=(d,\salt)$. The event $\mathsf{Bad}_{\mathsf{col}}$ occurs if two distinct messages among the signing queries and the forgery message have equal digests. When either event occurs, the game outputs 0. The games with and without the aborts are identical until an abort occurs, so their output probabilities differ by at most the abort probability in injective mode. In injective mode, distinct messages have distinct digests unless key sampling fails, so $\mathsf{Bad}_{\mathsf{col}}$ requires the failure event, and $\mathsf{Bad}_{\mathsf{rep}}$ requires a repeated salt or the failure event. Hence the two aborts cost at most
 $$
@@ -94,7 +94,7 @@ W:=g^{s_1}X^{-c},
 $$
 where $t_j=\enczero{d_j,\salt_j}$, $c=\PRFEv_3(k_3,t_j)$, and $s_1=\PRFEv_4(k_4,t_j)$, and output 0 when it occurs. Conditional on the view before query $j$, the point $R$ is uniform and independent of $W$. The two endpoint aborts therefore cost at most $2/p$ in total. Every intermediate game uses the same rule with its current values of $R,c,s_1,W$, computed at the guessed slot; on executions where the guess is wrong the output is 0 in any case, so the two definitions of the event agree on every execution that can output 1. In particular, when a PRF challenge changes $c$ or $s_1$, the game recomputes both $W$ and $\mathsf{Bad}_{\mathsf{eq}}$. This change is part of that PRF hybrid. Thus every game in the middle of the chain has $R\ne W$.
 
-The reduction now guesses the digest of query $j$. At key generation it computes $S\getsr\TLFEnum(\mathsl{td})$, removes duplicates, encodes the entries, and extends the resulting list to length exactly $r$ with distinct strings with first bit 1, which are never encodings of range elements. Call the result $L_S$. The reduction chooses an index $\widehat\imath \getsr [r]$, sets $\widehat d \gets L_S[\widehat\imath\,]$, and aborts at the end unless $d_j = \widehat d$, where $d_j = \dig(m_j)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the list $S$ contains every digest the lossy key can produce, so $d_j$ occurs in $L_S$, at exactly one position. The index $\widehat\imath$ is uniform and independent of everything else, so on the executions where $d_j$ occurs in $L_S$ the guess is correct with probability exactly $1/r$, independently of the execution. Writing $E_b := [N \ge j \land \Gm_b \Rightarrow 1]$ for $b\in\{j-1,j\}$,
+The reduction now guesses the digest of query $j$. At key generation it computes $S\getsr\TLFEnum(\mathsl{td})$, removes duplicates, encodes the entries, and extends the resulting list to length exactly $r$ by repeating a fixed string with first bit 1, which is never an encoding of a range element. Call the result $L_S$. The padding entries may repeat; only the encoded digests need to occupy one position each, which they do after deduplication. The reduction chooses an index $\widehat\imath \getsr [r]$, sets $\widehat d \gets L_S[\widehat\imath\,]$, and aborts at the end unless $d_j = \widehat d$, where $d_j = \dig(m_j)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the list $S$ contains every digest the lossy key can produce, so $d_j$ occurs in $L_S$, at exactly one position. The index $\widehat\imath$ is uniform and independent of everything else, so on the executions where $d_j$ occurs in $L_S$ the guess is correct with probability exactly $1/r$, independently of the execution. Writing $E_b := [N \ge j \land \Gm_b \Rightarrow 1]$ for $b\in\{j-1,j\}$,
 $$
 \frac{1}{r}\big(\Pr[E_b] - \nu_{\mathsf{enum}}(\secp,r)\big)
 \;\le\;
@@ -167,7 +167,17 @@ This is also exact.
 
 Next replace $c=\PRFEv_3(k_3,t)$ by a uniform value and then replace $s_1=\PRFEv_4(k_4,t)$ by a uniform value. These changes follow from puncturable-PRF security at $t$. When $c$ or $s_1$ changes, so do $W$, $t_W$, the current event $\mathsf{Bad}_{\mathsf{eq}}$, and the puncture set $T$. The string $t$ is fixed independently of $k_3,k_4$. In the $\PRF_3$ and $\PRF_4$ reductions, the challenge value first determines $W$ and $t_W$; the reduction then generates the independent keys $k_1,k_2$ and punctures them at $T=\{t_R,t_W\}$. These reductions hold $k_3\{t\},k_4\{t\}$ and answer trigger queries with the punctured keys. A query before $j$ whose slot equals $u$ cannot be answered this way, and does not need to be: on such an execution either the guess is wrong or query $j$ later reuses the slot and the game sets $\mathsf{Bad}_{\mathsf{rep}}$, so the output is 0 in every case, and the reduction outputs 0 as soon as this happens. The reverse reductions use the same order.
 
-\heading{Exchanging the two triples.} At this point
+\heading{Exchanging the two triples.} We isolate the step as a lemma, since it is the conceptual center of the proof.
+
+\begin{lemma} \label{lem-swap}
+Let $T_0=(R_0,v_0,s_0)$ and $T_1=(R_1,v_1,s_1)$ be independent and identically distributed, with $v_b,s_b\getsr\Zp$ and $R_b=g^{s_b}X^{-v_b}$, conditioned on $R_0\ne R_1$. Let $V$ be any random variable that depends on $(T_0,T_1)$ only through the unordered set $\{(R_0,v_0),(R_1,v_1)\}$ and through data whose distribution is unchanged when $T_0$ and $T_1$ are exchanged. Then $(V,R_0,s_0)$ and $(V,R_1,s_1)$ are identically distributed.
+\end{lemma}
+
+\begin{proof}
+Sample the unordered pair $\{T_0,T_1\}$ together with an independent uniform bit $\beta$, and let $T_0,T_1$ be its two elements in the order given by $\beta$. This reproduces the stated distribution, since the two triples are independent, identically distributed, and distinct in their first components. By hypothesis $V$ is a function of the unordered pair and of swap-invariant data, so $V$ is independent of $\beta$. Hence $(V,R_\beta,s_\beta)$ and $(V,R_{1-\beta},s_{1-\beta})$ have the same distribution, which is the claim.
+\end{proof}
+
+We apply the lemma with $V$ the adversary's entire view apart from the response to query $j$. At this point
 $$
  (g^{s_0}X^{-v},v,s_0)
 \qquad\text{and}\qquad
@@ -177,7 +187,7 @@ are independent and identically distributed, conditioned on their first componen
 
 Before comparing $\mathsf{H}_7$ and $\mathsf{H}_8$, discard the full PRF keys, $r_j,a,b$, and the unused challenge values. Keep only $x$, the punctured keys, $t$, the canonical sets $T,L$, the prior view, and the independent coins for the other signing queries. These values suffice to continue the game: public hash evaluation uses $C_j$; trigger signing at every other pair uses $k_3\{t\},k_4\{t\}$; and honest signing uses $x$ and $C_j$.
 
-The remaining state does not identify either entry of $L$ as the honest or trigger entry, and it contains no separate copy of $s_0$ or $s_1$. The view before query $j$ and the event $d_j=\widehat d$ are unchanged when the two triples are exchanged. Consequently, replacing the response $(R,s_0,\salt_j)$ by $(W,s_1,\salt_j)$ leaves the continuation and the adversary's view unchanged. This step is exact.
+The retained state is exactly of the kind Lemma~\ref{lem-swap} allows: the circuit $C_j$ contains the canonically ordered set $L$ and nothing that distinguishes its two entries, the punctured keys and $t$ are independent of the pair, and no separate copy of $s_0$ or $s_1$ survives. The view before query $j$ and the event $d_j=\widehat d$ are unchanged when the two triples are exchanged. Consequently, replacing the response $(R,s_0,\salt_j)$ by $(W,s_1,\salt_j)$ leaves the continuation and the adversary's view unchanged. This step is exact.
 
 We now reverse the preceding changes while returning $(W,s_1,\salt_j)$. Restore the outputs of $\PRF_4$ and $\PRF_3$; reverse the change of variables for the first triple; restore the main-branch value $v$; restore the outputs of $\PRF_2$ and $\PRF_1$; and finally replace $C_j$ by $\CircS$ using iO. Each reverse game samples the hidden values with the same distribution as in the corresponding forward game, and its puncturable-PRF experiment provides the true values. At the endpoint the original circuit is published and query $j$ is answered by the trigger procedure, giving $\Gm_j$.
 
@@ -221,7 +231,14 @@ $$
 \le \AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}} \;.
 $$
 
-\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and takes the trigger branch. The reduction builds the padded list $L_S$ as in the signing hops, chooses an index $\widehat\imath \getsr [r]$ and a salt $\widehat{\salt} \getsr \bits^{\saltlen}$, and sets $\widehat u = (L_S[\widehat\imath\,], \widehat{\salt})$ before publishing the verification key. It aborts unless $\widehat u=(\dig(m^*),\salt^*)$. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the digest $\dig(m^*)$ occurs in $L_S$, and then the guess is correct with probability exactly $1/(r\cdot2^{\saltlen})$, independently of the execution, so the case costs the factor $r\cdot2^{\saltlen}$.
+\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and takes the trigger branch. The reduction builds the padded list $L_S$ as in the signing hops, chooses an index $\widehat\imath \getsr [r]$ and a salt $\widehat{\salt} \getsr \bits^{\saltlen}$, and sets $\widehat u = (L_S[\widehat\imath\,], \widehat{\salt})$ before publishing the verification key. It aborts unless $\widehat u=(\dig(m^*),\salt^*)$.
+
+The order of the steps matters here, and we fix it. In $\Gm_{q_s}$ the published circuit is the honest $\CircS$, which does not depend on $\widehat u$, so $\widehat u$ is independent of the adversary's view. Except with probability $\nu_{\mathsf{enum}}(\secp,r)$, the digest $\dig(m^*)$ occurs in $L_S$, and then
+$$
+\Pr[E_{\mathsf{trig}} \land \widehat u=(\dig(m^*),\salt^*)]
+= \frac{1}{r\cdot2^{\saltlen}}\Pr[E_{\mathsf{trig}}] \;.
+$$
+We record this relation in $\Gm_{q_s}$, before any change to the circuit. Only afterwards do we replace $\CircS$ by the circuit $C_{\mathsf{forg}}$ below, which does depend on $\widehat u$, and bound that change by iO and puncturable-PRF security. Taken in the other order the relation would not be available, since a circuit built from $\widehat u$ can shift the distribution of the forgery slot. The case therefore costs the factor $r\cdot2^{\saltlen}$.
 
 Set $\widehat t=\enczero{\widehat u}$. For this reduction, puncture $k_4$ at $\widehat t$ and use the temporary circuit $C_{\mathsf{forg}}$ in Figure~\ref{fig-circuit-trigger-forgery}. Its final line reuses the main branch of $\CircS$.
 
@@ -287,7 +304,7 @@ $$
 $$
 This is the bound of the theorem, and the running-time claims follow by inspection: the enumeration of the lossy image is the only super-polynomial cost. \qed
 
-\paragraph*{Proof of Corollary~\ref{cor-adaptive}.} We bound the display of the theorem under the hypotheses of the corollary. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. Using $q_s\le r$, the display is at most
+\paragraph*{Proof of Corollary~\ref{cor-adaptive}.} We bound the display of the theorem under the hypotheses of the corollary. Each CDL, iO, and puncturable-PRF advantage above is at most $\eps$, and so is the DL advantage, by the tight reduction from DL to zero-free CDL given after the theorem statement. Each $\epsilon_j$ contains two iO and eight puncturable-PRF advantages, so $\epsilon_j\le10\eps$. The trivial algorithm that guesses a discrete logarithm has advantage $1/p$, and the same tight reduction gives $1/p\le\eps$. The corollary assumes $r$ super-polynomial and $q_s$ is polynomial, so $q_s\le r$ for all sufficiently large $\secp$, and the display is at most
 $$
 \AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
 +\left(1+3r\cdot2^{\saltlen}+10r^2+2r\right)\eps

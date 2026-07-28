@@ -13,12 +13,12 @@ Throughout, we say a computational problem \emph{holds} if every PPT adversary h
 \subsection{Signature Schemes and Schnorr Signatures} \label{sec-schnorr}
 
 \heading{Signature schemes.}
-A \emph{signature scheme} with message space $\MsgSp$ is a tuple of algorithms $\SigScheme = (\SigKeys, \SigSign, \SigVf)$ that work as follows. The key-generation algorithm $\SigKeys$ outputs a key pair $(\vkey,\skey)$. (We suppress the security parameter for simplicity.) The signing algorithm $\SigSign$ on inputs a signing key $\skey$ and a message $m \in \MsgSp$ outputs a signature $\sig$. The deterministic verification algorithm $\SigVf$ on inputs a verification key $\vkey$, a message $m \in \MsgSp$, and a signature $\sig$ outputs a bit. For correctness, we require that
+A \emph{signature scheme} with message space $\MsgSp$ is a tuple of algorithms $\SigScheme = (\SigKeys, \SigSign, \SigVf)$ that work as follows. The key-generation algorithm $\SigKeys$ outputs a key pair $(\vkey,\skey)$. (We suppress the security parameter for simplicity.) The signing algorithm $\SigSign$ on inputs a signing key $\skey$ and a message $m \in \MsgSp$ outputs a signature $\sig$. The deterministic verification algorithm $\SigVf$ on inputs a verification key $\vkey$, a message $m \in \MsgSp$, and a signature $\sig$ outputs a bit. We set $\SigVf(\vkey,m,\bot) = 0$. For correctness, we require that there is a negligible $\nu_{\mathsf{corr}}$ such that
 $$
  \Pr\big[ \SigVf\big(\vkey, m, \SigSign(\skey, m)\big) \Rightarrow 1 \big]
- = 1
+ \ge 1 - \nu_{\mathsf{corr}}(\secp)
 $$
-for all $(\vkey,\skey) \in \OutSet{\SigKeys}$ and all $m \in \MsgSp$, where the probability is over the coins for $\SigSign$.
+for all $m \in \MsgSp$, where the probability is over $(\vkey,\skey) \getsr \SigKeys$ and the coins for $\SigSign$. The Schnorr schemes of Part~I meet this with $\nu_{\mathsf{corr}} = 0$. The scheme of Part~II uses rejection sampling and returns $\bot$ when every attempt is rejected, which happens with probability at most $2^{-\secp}$, so it meets the relaxed requirement and not the perfect one.
 
 \heading{Keyed hash families.} A \emph{keyed hash family} for a group $\GG$ of prime order $p$ and message space $\MsgSp$ is a pair $\HF = (\HFKg, \HFEv)$ that works as follows. The key-generation algorithm $\HFKg$ on input a group element $X \in \GG$ outputs a hash key $\hk$. The deterministic evaluation algorithm $\HFEv$ on inputs $\hk$ and a pair $(R,m) \in \GG \times \MsgSp$ outputs an element of $\Zp$.
 
@@ -104,6 +104,7 @@ $$
 \AdvEUFSTATIC{\SigScheme}{\advA}
 =\Pr\big[\gameEUFSTATIC{\SigScheme}(\advA)\Rightarrow1\big].
 $$
+For a polynomial $Q$, the game $\gameEUFSTATIC{\SigScheme}$ with the added requirement $q_s \le Q(\secp)$ on the declared list is denoted $\mathrm{EUF\text{-}static}[Q]$, and the corresponding advantage is $\AdvEUFSTATICQ{\SigScheme}{\advA}$. We use the bounded notion for the two obfuscation-based constructions, whose hash circuit is padded to a size determined by $Q$, and the unbounded notion elsewhere.
 Finally, the \emph{key-recovery} advantage of $\advA$ is
 $$
 \AdvBKCMA{\SigScheme}{\advA}
@@ -225,6 +226,8 @@ is negligible, where $(T,\state)\getsr\mathcal{S}(\usecp)$, $k\getsr\PRFKg(\usec
 \end{definition}
 
 Puncturable PRFs follow from one-way functions via the GGM construction~\cite{AC:BonWat13,EC:BoyGilIsh15,CCS:KPTZ13}.
+
+\paragraph*{Exact ranges.} Several steps in our proofs replace a PRF output by a value that is \emph{exactly} uniform on $\Zp$, on $\chal_q$, or on an integer box. We therefore take the puncturable PRFs to have exactly these ranges. A puncturable PRF with range $\bits^{\ellin''}$ is converted to one with an arbitrary finite range $\mathcal{Y}$ by drawing $\secp$ blocks of $\lceil\log_2|\mathcal{Y}|\rceil + \secp$ bits, reducing each modulo $|\mathcal{Y}|$, and returning the first block whose reduction is unbiased, with a fixed default if all blocks fail. The default occurs with probability at most $2^{-\secp}$, so this changes each of our bounds by an additive $q_s 2^{-\secp}$, which we suppress. Where a step is called exact, it is exact for the converted primitive.
 
 \subsection{Indistinguishability Obfuscation} \label{sec-io}
 

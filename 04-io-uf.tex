@@ -1,8 +1,8 @@
-\section{Static-Message Unforgeability of Schnorr Signatures} \label{sec-io-uf}
+\section{Bounded Static-Message Unforgeability of Schnorr Signatures} \label{sec-io-uf}
 
 In this section we prove static-message unforgeability, EUF-static, as defined in Section~\ref{sec-schnorr}. The forger declares its signing messages and forgery message before seeing the verification key. The hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}. Since the messages are fixed in advance, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-adaptive} proves adaptive security for the salted scheme under quasi-polynomially secure assumptions.
 
-Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the Discussion in Section~\ref{sec-io-thm} for why this is without loss of strength.
+Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the Discussion in Section~\ref{sec-io-thm} for what this costs.
 
 \subsection{The Construction} \label{sec-io-constr}
 
@@ -22,13 +22,13 @@ Let $\PRF_1, \PRF_2$ be puncturable PRFs with domain $\bits^{\ellin}$ and range 
 }
 \end{center}
 \vspace{-6pt}
-\caption{The hash circuit underlying $\HF^{\mathsf{io}}$. It is padded to the size bound $s(\secp, Q)$ before obfuscation.}\label{fig-circuit}
+\caption{The hash circuit underlying $\HF^{\mathsf{io}}_Q$. It is padded to the size bound $s(\secp, Q)$ before obfuscation.}\label{fig-circuit}
 \vspace{-3pt}\hrulefill
 \vspace{-1ex}
 \end{figure}
 
 \begin{construction} \label{constr-io}
-The keyed hash family $\HF^{\mathsf{io}} = (\HFKg, \HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X \in \GG$ computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [2]$ and $\tilde{\CircC} \getsr \iO(\usecp, \CircC[X, k_1, k_2])$ for the circuit $\CircC$ in Figure~\ref{fig-circuit}, padded to size $s(\secp, Q)$, and returns $\hk \gets \tilde{\CircC}$. Algorithm $\HFEv$ on inputs $\hk = \tilde{\CircC}$ and $(R,m)$ returns $\tilde{\CircC}(R, m)$. Here $s(\secp, Q)$ is the fixed polynomial bounding the size of the circuits in the proof of Theorem~\ref{thm-uf}.
+The keyed hash family $\HF^{\mathsf{io}}_Q = (\HFKg, \HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X \in \GG$ computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [2]$ and $\tilde{\CircC} \getsr \iO(\usecp, \CircC[X, k_1, k_2])$ for the circuit $\CircC$ in Figure~\ref{fig-circuit}, padded to size $s(\secp, Q)$, and returns $\hk \gets \tilde{\CircC}$. Algorithm $\HFEv$ on inputs $\hk = \tilde{\CircC}$ and $(R,m)$ returns $\tilde{\CircC}(R, m)$. Here $s(\secp, Q)$ is the fixed polynomial bounding the size of the circuits in the proof of Theorem~\ref{thm-uf}.
 \end{construction}
 
 \paragraph*{Discussion.} The circuit computes $\big(f(R \cdot X^{a} \cdot g^{b}) + a\big) \bmod p$ with $(a,b)$ pseudorandom and specific to the input $(R,m)$. This is exactly how the reduction in the ROM proof of~\cite{C:CFOS25} answers a hash query, with fresh uniform $(a,b)$ per query replaced by PRF outputs. That choice serves two purposes. First, hash values are pseudorandom in $\Zp$ for any $f$, because $b$ makes the input to $f$ pseudorandom independent of $a$, and adding $a$ then makes the output pseudorandom. Second, a forgery is a CDL solution. Concretely, if $g^{s} = R \cdot X^{c}$ with $c = f(R X^{a} g^{b}) + a$, then multiplying both sides by $g^{b}$ gives $g^{s + b} = (R X^{a} g^{b}) \cdot X^{f(R X^{a} g^{b})}$, so $(R X^{a} g^{b},\, s+b)$ is a CDL solution for challenge $X$. The reduction generates the PRF keys itself, so it can recompute $(a,b)$ from the forgery.
@@ -41,14 +41,16 @@ Evaluating the hash function costs two PRF evaluations, two exponentiations, and
 
 \begin{theorem} \label{thm-uf}
 Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$. Let $\PRF_1, \PRF_2$ be puncturable PRFs as above, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CDL[\GG,g,f]$, a distinguisher $\advD_1$ against $\iO$, and a distinguisher $\advD_2$ for the puncturable PRFs, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
-$$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;.$$
+$$\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;.$$
 \end{theorem}
 
 \begin{corollary} \label{cor-uf}
-If $\CDL[\GG,g,f]$ holds, the PRFs and $\iO$ are secure, and $p$ is super-polynomial, then for every PPT adversary declaring polynomially many messages, the advantage $\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA}$ is negligible.
+Fix a polynomial $Q$. If $\CDL[\GG,g,f]$ holds, the PRFs and $\iO$ are secure, and $p$ is super-polynomial, then $\SchScheme[\GG, \HF^{\mathsf{io}}_Q]$ is $\mathrm{EUF\text{-}static}[Q]$ secure.
 \end{corollary}
 
-\paragraph*{Discussion.} We comment on the zero-free condition. Given a candidate conversion function $f$, define $f'(R)=1$ when $f(R)=0$ and $f'(R)=f(R)$ otherwise. Each preimage size under $f'$ increases by at most $\mathsf{Size}_f(0)$. Thus, when $\mathsf{Size}_f(0)/p$ is negligible, the small-preimage EC-GGM analysis of~\cite{C:CFOS25} also applies to $f'$. We take this zero-free function as part of the construction and place it in the obfuscated circuit. This is evidence for the modified CDL assumption, not a black-box reduction from CDL for $f$ to CDL for $f'$. The condition is useful because the CDL game rejects solutions $(R,z)$ with $f'(R)=0$, and a zero-free function rules out that failure.
+\paragraph*{Discussion.} The corollary is a statement about the family $\{\SchScheme[\GG,\HF^{\mathsf{io}}_Q]\}_Q$, one member per polynomial $Q$, and each member is secure against adversaries declaring at most $Q$ messages. It is not a statement of ordinary EUF-static security for a single scheme, and the difference is not cosmetic. Key generation pads the hash circuit to a size that accommodates $Q$ hardwired entries, so the scheme itself depends on $Q$; and no single polynomial $Q$ upper bounds the query count of every PPT adversary, since an adversary may declare $Q(\secp)+1$ messages. The signing algorithm is stateless and will sign any number of messages, but the proof covers only the first $Q$ of them. Removing the bound is an open problem, and Section~\ref{sec-adaptive} removes it at the price of modifying the scheme, which is one reason the salted construction is a qualitative advance rather than only a stronger security notion. Bounded notions of this kind also appear in the standard-model Fiat--Shamir instantiation of Mittelbach and Venturi~\cite{DBLP:journals/tcs/MittelbachV18}.
+
+\paragraph*{Discussion.} We comment on the zero-free condition. Given a candidate conversion function $f$, define $f'(R)=1$ when $f(R)=0$ and $f'(R)=f(R)$ otherwise. Each preimage size under $f'$ increases by at most $\mathsf{Size}_f(0)$. Thus, when $\mathsf{Size}_f(0)/p$ is negligible, the small-preimage EC-GGM analysis of~\cite{C:CFOS25} also applies to $f'$. We take this zero-free function as part of the construction and place it in the obfuscated circuit. Modifying $f$ at its zeros preserves the small-preimage generic-group evidence, up to the stated change in preimage size, but we do not reduce CDL for $f'$ to CDL for $f$, and we do not claim the two assumptions are equivalent. The condition is useful because the CDL game rejects solutions $(R,z)$ with $f'(R)=0$, and a zero-free function rules out that failure.
 
 The theorem assumes iO, which is not falsifiable. Existing constructions derive iO from explicit falsifiable assumptions~\cite{STOC:JaiLinSah21,EC:JaiLinSah22}. Puncturable PRFs follow from one-way functions~\cite{AC:BonWat13,EC:BoyGilIsh15,CCS:KPTZ13}, which DL implies. Thus the assumption profile is CDL plus the assumptions underlying iO.
 
@@ -116,7 +118,7 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \begin{proof}[of Theorem~\ref{thm-uf}]
 Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary declaring messages $m_1, \ldots, m_{q_s}$ with $q_s \le Q$ and forgery message $m^* \notin \{m_1,\ldots,m_{q_s}\}$. All games output 1 iff the final output of $\advA_1$ is a valid forgery on $m^*$. We state the change made in each game below.
 
-\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}$ with $\advA$: the game receives $(m_1,\ldots,m_{q_s},m^*)$ from $\advA_0$, generates $x \getsr \Zp$, $X \gets g^x$, PRF keys $k_1, k_2$, the circuit $\tilde{\CircC} \getsr \iO(\CircC[X,k_1,k_2])$, and honest signatures $\sigma_i = (R_i, s_i)$ on each $m_i$ using $x$, and runs $\advA_1$ on $(\vkey = (X, \tilde{\CircC}), (\sigma_i)_i)$.
+\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}$ with $\advA$: the game receives $(m_1,\ldots,m_{q_s},m^*)$ from $\advA_0$, generates $x \getsr \Zp$, $X \gets g^x$, PRF keys $k_1, k_2$, the circuit $\tilde{\CircC} \getsr \iO(\CircC[X,k_1,k_2])$, and honest signatures $\sigma_i = (R_i, s_i)$ on each $m_i$ using $x$, and runs $\advA_1$ on $(\vkey = (X, \tilde{\CircC}), (\sigma_i)_i)$.
 
 \heading{Game $\Gm_1$ (collision abort).} The shared code already samples the independent signing randomness $r'_1,\ldots,r'_{q_s}$ before building the circuit in $\Gm_0$; this is an exact reordering of the real game. Game $\Gm_1$ differs only in that it aborts (outputs 0) if $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$. A repeat requires $R_i=R_j$ for independent uniform $R_i,R_j$, so the abort has probability at most $q_s^2/p$. Hence $\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]\le q_s^2/p$.
 
@@ -152,7 +154,7 @@ $$g^{s^* + b^*} = \big(R^* X^{a^*} g^{b^*}\big) \cdot h^{f(R^* X^{a^*} g^{b^*})}
 Adversary $\advB$ outputs $\big(R^* X^{a^*} g^{b^*},\, (s^* + b^*) \bmod p\big)$. Since $f$ has no zeros, this output wins the CDL game whenever the forgery is valid.
 
 \heading{Conclusion.} Collecting the bounds,
-$$\AdvEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;,$$
+$$\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;,$$
 which is the bound of the theorem; the running-time claims follow by inspection of the reductions.
 \end{proof}
 
@@ -165,5 +167,5 @@ The EUF-static game requires the forgery message $m^*$ to lie outside the declar
 \end{remark}
 
 \begin{remark} \label{rem-bounded}
-The bound $Q$ enters the scheme only through the padding of the circuit, and it bounds the number of signatures the proof covers, not the number the signer can produce. Whether the bounded-signature restriction can be removed in the static setting without using the salted construction of Section~\ref{sec-adaptive} is open.
+The bound $Q$ enters the scheme only through the padding of the circuit. The signer is stateless and will produce any number of signatures, but the security notion proved is the bounded one, since the proof hardwires one table entry per declared message and indistinguishability obfuscation compares circuits of equal size. Whether the restriction can be removed in the static setting, without the salted construction of Section~\ref{sec-adaptive}, is open.
 \end{remark}
