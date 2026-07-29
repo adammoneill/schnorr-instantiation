@@ -169,13 +169,7 @@ Next replace $c=\PRFEv_3(k_3,t)$ by a uniform value and then replace $s_1=\PRFEv
 
 \heading{Exchanging the two triples.} We isolate the step as a lemma, since it is the conceptual center of the proof.
 
-\begin{lemma} \label{lem-swap}
-Let $T_0=(R_0,v_0,s_0)$ and $T_1=(R_1,v_1,s_1)$ be independent and identically distributed, with $v_b,s_b\getsr\Zp$ and $R_b=g^{s_b}X^{-v_b}$, conditioned on $R_0\ne R_1$. Let $V$ be any random variable that depends on $(T_0,T_1)$ only through the unordered set $\{(R_0,v_0),(R_1,v_1)\}$ and through data whose distribution is unchanged when $T_0$ and $T_1$ are exchanged. Then $(V,R_0,s_0)$ and $(V,R_1,s_1)$ are identically distributed.
-\end{lemma}
-
-\begin{proof}
-Sample the unordered pair $\{T_0,T_1\}$ together with an independent uniform bit $\beta$, and let $T_0,T_1$ be its two elements in the order given by $\beta$. This reproduces the stated distribution, since the two triples are independent, identically distributed, and distinct in their first components. By hypothesis $V$ is a function of the unordered pair and of swap-invariant data, so $V$ is independent of $\beta$. Hence $(V,R_\beta,s_\beta)$ and $(V,R_{1-\beta},s_{1-\beta})$ have the same distribution, which is the claim.
-\end{proof}
+The exchange step uses Lemma~\ref{lem-swap} of Appendix~\ref{app-derand}.
 
 We apply the lemma with $V$ the adversary's entire view apart from the response to query $j$. At this point
 $$

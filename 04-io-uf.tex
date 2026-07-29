@@ -1,4 +1,6 @@
-\section{Bounded Static-Message Unforgeability of Schnorr Signatures} \label{sec-io-uf}
+\section{Bounded Static-Message Unforgeability of Randomized Schnorr} \label{sec-io-uf}
+
+This appendix records the first unforgeability result we obtained, superseded in the body by Section~\ref{sec-derand}. It keeps the randomized signer of ordinary Schnorr and handles signing queries by hardwiring a table of declared signatures into the circuit. Because indistinguishability obfuscation compares circuits of equal size, the honest circuit must be padded to hold that table, so the scheme is indexed by a polynomial $Q$ and the guarantee is the bounded notion $\mathrm{EUF\text{-}static}[Q]$. The construction is simpler than the one in the body, and the proof is the source of the machinery used there.
 
 In this section we prove static-message unforgeability, EUF-static, as defined in Section~\ref{sec-schnorr}. The forger declares its signing messages and forgery message before seeing the verification key. The hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}. Since the messages are fixed in advance, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-adaptive} proves adaptive security for the salted scheme under quasi-polynomially secure assumptions.
 
