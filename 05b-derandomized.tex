@@ -4,7 +4,7 @@
 
 Proposition~\ref{prop-lossy-forge} showed that lossiness alone cannot give unforgeability. This section gives our main unforgeability result, using a different tool: the hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}, so that a forgery converts to a solution of the circular discrete-logarithm problem, together with a branch that lets the reduction answer signing queries without the secret key.
 
-The scheme is Schnorr with a derandomized signer. The nonce becomes a pseudorandom function of the signing key and the message, as in EdDSA~\cite{eddsa}, which is how the deployed variant of Schnorr already works. The signature format and the verification algorithm are unchanged. With a deterministic signer the reduction can index its programmed points by the message alone, and two things follow. The circuit stores no table of signatures, so its size does not depend on any query count and the scheme carries no query parameter. And no salt is needed, so the signature format is unchanged. The two appendices record what happens without derandomization: a query bound in Appendix~\ref{sec-io-uf}, and a salt on the wire in Appendix~\ref{sec-adaptive}.
+The scheme is Schnorr with a derandomized signer. The nonce becomes a pseudorandom function of the signing key and the message, as in EdDSA~\cite{eddsa}. The signature format and Schnorr verification equation are unchanged, while the verification key additionally carries the public hash key used in all of our instantiations. Relative to this keyed-hash Schnorr syntax, derandomization changes only nonce generation. With a deterministic signer the reduction can index its programmed points by the message alone, and two things follow. The circuit stores no table of signatures, so its size does not depend on any query count and the scheme carries no query parameter. And no salt is needed, so the signature format is unchanged. The two appendices record what happens without derandomization: a query bound in Appendix~\ref{sec-io-uf}, and a salt on the wire in Appendix~\ref{sec-adaptive}.
 
 \paragraph*{Why the signer is derandomized.} The reduction answers a signing query on $m$ with a fixed point $W_m$ determined by $m$, so it produces one signature per message. A randomized signer produces a fresh signature every time, so an adversary that queries the same message twice would see two different signatures from the real scheme and the same signature twice from the reduction. A deterministic signer produces one signature per message as well, so the mismatch does not arise. Appendix~\ref{sec-adaptive} takes the other route, keeping a randomized signer and giving each query its own slot by adding a salt to the signature; the salt is then transmitted, so the signature format changes. Appendix~\ref{sec-io-uf} takes a third route, hardwiring a table of declared signatures, which makes the hash circuit grow with the number of signatures the proof covers.
 
@@ -13,7 +13,11 @@ The scheme is Schnorr with a derandomized signer. The nonce becomes a pseudorand
 Let $\PRF_0$ be a pseudorandom function with domain $\bits^{\msglen}$ and range $\Zp$. It need not be puncturable.
 
 \begin{construction} \label{constr-derand}
-Let $\HF$ be a keyed hash family for $\GG$ and message space $\bits^{\msglen}$. The \emph{derandomized Schnorr signature scheme} $\SchDScheme[\GG,\HF] = (\SchKeys,\SchSign,\SchVf)$ works as follows. Algorithm $\SchKeys$ samples $x\getsr\Zp$ and $k_0\getsr\PRFKg_0(\usecp)$, sets $X\gets g^x$, samples $\hk\getsr\HFKg(X)$, and returns
+Let $\HF$ be a keyed hash family for $\GG$ and message space $\bits^{\msglen}$. The \emph{derandomized Schnorr signature scheme} is
+$$
+\SchDScheme[\GG,\HF] = (\SchKeys,\SchSign,\SchVf) \;.
+$$
+It works as follows. Algorithm $\SchKeys$ samples $x\getsr\Zp$ and $k_0\getsr\PRFKg_0(\usecp)$, sets $X\gets g^x$, samples $\hk\getsr\HFKg(X)$, and returns
 $$
 \vkey=(X,\hk)
 \qquad\text{and}\qquad
@@ -21,20 +25,19 @@ $$
 $$
 Algorithm $\SchSign$ on input $\skey,m$ sets
 $$
-r \gets \PRFEv_0(k_0,m),
-\qquad
-R \gets g^{r},
-\qquad
-c \gets \HFEv(\hk,(R,m)),
-\qquad
-s \gets (r+cx)\bmod p,
+\begin{aligned}
+r &\gets \PRFEv_0(k_0,m),
+& R &\gets g^{r},
+& c &\gets \HFEv(\hk,(R,m)),\\
+s &\gets (r+cx)\bmod p.
+\end{aligned}
 $$
 and returns $(R,s)$. Algorithm $\SchVf$ is that of Schnorr (Section~\ref{sec-schnorr}): on inputs $(X,\hk),m,(R,s)$ it computes $c \gets \HFEv(\hk,(R,m))$ and returns $\big(g^s = RX^c\big)$.
 \end{construction}
 
-\paragraph*{Discussion.} Verification, the signature format, and the verification key are exactly those of Schnorr. The only change is in how the signer produces its nonce. Derandomizing preserves unforgeability generically~\cite{SAC:MNPV98}; we do not use that transfer, since we prove the results directly for the derandomized scheme, but it explains why the change is not a weakening. Signing is deterministic, so the same message always receives the same signature. In the security games below this means a repeated query may be answered by replaying the earlier answer, and the hybrid arguments run over the distinct queried messages.
+\paragraph*{Discussion.} The signature format and Schnorr verification equation are unchanged. The verification key additionally carries the public hash key, as it does for every keyed-hash Schnorr instantiation in this paper. Relative to that syntax, the only change is in how the signer produces its nonce. Derandomizing preserves unforgeability generically~\cite{SAC:MNPV98}; we do not use that transfer, since we prove the results directly for the derandomized scheme, but it explains why the change is not a weakening. Signing is deterministic, so the same message always receives the same signature. In the security games below this means a repeated query may be answered by replaying the earlier answer, and the hybrid arguments run over the distinct queried messages.
 
-\paragraph*{Deterministic signing in deployed Schnorr.} We are not imposing determinism on Schnorr. The most widely deployed Schnorr variant already specifies it. In Ed25519 and Ed448~\cite{eddsa,RFC8032} the nonce is $r = H(\mathit{prefix} \,\|\, m)$, where $\mathit{prefix}$ is half of the hash of the private seed and $H$ is SHA-512. No randomness is drawn at signing time, and this is the specified algorithm rather than one option among several. Ed25519 is supported in OpenSSH since version 6.5 and is a signature algorithm of TLS~1.3. Our $\PRFEv_0(k_0,m)$ is that derivation, written as a PRF applied to the message under a key held with the signing key. One difference is worth recording: Ed25519 uses a single hash function, in separate domains, both for the nonce and for the challenge, whereas we keep $\PRF_0$ separate from the instantiated hash family.
+\paragraph*{Deterministic signing in EdDSA.} We are not introducing an unfamiliar signing mode. In Ed25519 and Ed448~\cite{eddsa,RFC8032} the nonce is $r = H(\mathit{prefix} \,\|\, m)$, where $\mathit{prefix}$ is half of the hash of the private seed and $H$ is SHA-512. No randomness is drawn at signing time, and this is the specified algorithm rather than one option among several. Ed25519 is supported in OpenSSH since version 6.5 and is a signature algorithm of TLS~1.3. Our $\PRFEv_0(k_0,m)$ is that derivation, written as a PRF applied to the message under a key held with the signing key. One difference is worth recording: Ed25519 uses a single hash function, in separate domains, both for the nonce and for the challenge, whereas we keep $\PRF_0$ separate from the instantiated hash family.
 
 Bitcoin's Schnorr signatures~\cite{add:BIP340} take the other route. Their nonce derivation is \emph{hedged}: fresh auxiliary randomness is combined with the secret key, and the result is hashed with the public key and the message. Fixing the auxiliary input makes the signer deterministic; supplying fresh randomness makes it randomized. The auxiliary input is there to limit differential fault attacks on hardware signers, which are known to be effective against fully deterministic signing~\cite{PSSLR18}, while the derivation from the key and message prevents nonce reuse if the randomness source fails.
 
@@ -87,7 +90,7 @@ The trigger branch returns $c_m$ on input $(W_m,m)$, and $(W_m,s_m)$ is a valid 
 
 The size bound $s''(\secp)$ is where this construction differs from Construction~\ref{constr-io}. There the proof replaces the circuit by one carrying a table of $q_s$ hardwired point-value pairs, so the honest circuit must be padded to hold $Q$ of them and the scheme depends on $Q$. Here the proof changes one signature at a time, and the temporary circuit of each step carries two hardwired points, whatever $q_s$ is. The padding is therefore a fixed polynomial and the scheme carries no query parameter.
 
-\paragraph*{Static security under polynomial assumptions.} Before the main result we record a weaker one that avoids the guessing entirely. In the static game the declared messages are fixed before key generation, so the reduction knows every slot it will program and needs no guess, and the loss stays polynomial. Theorem~\ref{thm-der-static} in Appendix~\ref{app-der-static} states this: the same scheme is EUF-static secure, with no query bound, under polynomially hard CDL, iO, and puncturable PRFs. It is the only unforgeability result in this paper whose assumptions are all polynomially hard, and it is subsumed in notion, though not in assumption strength, by the theorem below.
+\paragraph*{Static security under polynomial assumptions.} Before the main result we record a weaker one that avoids the guessing entirely. In the static game the declared messages are fixed before key generation, so the reduction knows every slot it will program and needs no guess, and the loss stays polynomial. Theorem~\ref{thm-der-static} in Appendix~\ref{app-der-static} states this: the same scheme is EUF-static secure, with no query bound, under polynomially hard CDL, iO, and puncturable PRFs. It is our ordinary EUF-static result for one fixed derandomized Schnorr scheme under polynomially hard assumptions. The result here is subsumed in notion, though not in assumption strength, by the theorem below.
 
 \subsection{Adaptive Security without a Salt} \label{sec-derand-adaptive}
 
@@ -131,4 +134,4 @@ Suppose the $\TLF$ advantage at parameter $r$ and the $\PRF_0$ advantage of ever
 
 The proof is in Appendix~\ref{app-derand}. It follows the shape of the static proof, with two differences. The messages are no longer known before key generation, so each per-query step guesses the digest of that query from the enumerated lossy image, at a cost of $r$; this is the only guessing in the proof, and it is what the pre-hash reduces from $2^{\msglen}$ to $r$. And the trigger-forgery case guesses the digest of $m^*$, again at cost $r$, rather than knowing it in advance. The trigger-forgery reduction uses DL, which the stated CDL bound implies: given $x$ with $X = g^x$, the pair $(1_\GG,\, x f(1_\GG)\bmod p)$ is a CDL solution, and $f(1_\GG)\ne0$ since $f$ has no zeros.
 
-\paragraph*{Discussion.} Theorem~\ref{thm-der-adaptive} gives adaptive EUF-CMA security, with no query bound in the scheme, for a signature scheme whose format, verification algorithm, and verification key are those of Schnorr, and whose signer differs from the deployed one only in deriving the nonce from the key and message. The price relative to Theorem~\ref{thm-der-static} is the guessing, which the lossy pre-hash reduces to a factor $r$ per hop, so quasi-polynomially secure primitives suffice (Corollary~\ref{cor-der-adaptive}). Removing the guessing entirely, for instance by a partitioning argument that selects programmed slots without naming them in advance, is the main open problem left by this section.
+\paragraph*{Discussion.} Theorem~\ref{thm-der-adaptive} gives adaptive EUF-CMA security, with no query bound in the scheme, for a signature scheme whose signature format and Schnorr verification equation are unchanged and whose verification key additionally carries the public hash key. Relative to this keyed-hash Schnorr syntax, the signer changes only by deriving the nonce from the key and message, as in Ed25519. The price relative to Theorem~\ref{thm-der-static} is the guessing, which the lossy pre-hash reduces to a factor $r$ per hop, so quasi-polynomially secure primitives suffice (Corollary~\ref{cor-der-adaptive}). Removing the guessing entirely, for instance by a partitioning argument that selects programmed slots without naming them in advance, is the main open problem left by this section.
