@@ -127,7 +127,7 @@
 \begin{abstract}
     The random-oracle-based Fiat--Shamir transform is fundamental to constructing practical signature schemes. It is uninstantiable---meaning, its random oracle cannot be securely replaced with a real hash function---in general (Goldwasser and Kalai, FOCS 2003). Here, we ask whether some of the most widely deployed instances of the paradigm can be instantiated. In particular, we study Schnorr signatures and the Lyubashevsky signature paradigm instantiated by Dilithium.
 
-   \quad\quad To instantiate Schnorr signatures for unforgeability, we use indistinguishability obfuscation and any conversion function meeting the circular discrete-logarithm assumption of Cho, Fuchsbauer, O'Neill, and Sefranek (CRYPTO 2025). The hash circuit has a main branch for extracting a CDL solution from a forgery and a trigger branch that lets the reduction sign without the secret key. A tunable lossy pre-hash lets the proof guess the digest of each adaptive query from an enumerable image, rather than guessing the message. One trigger gives one signature per message, so our main result is for \emph{derandomized} Schnorr, whose nonce is a pseudorandom function of the signing key and the message, as in Ed25519; repeated queries then receive the same signature in both the scheme and the proof. We prove fully adaptive EUF-CMA security in the standard model assuming that our assumptions are quasi-polynomially hard. We also prove that the derandomized construction without the lossy pre-hash is statically secure under only polynomially hard assumptions because static messages let the proof fix its punctures without guessing. When the signer must stay randomized, a salt is transmitted with each signature; independently sampled salts give separate trigger slots except with negligible collision probability and yield adaptive security.
+   \quad\quad To instantiate Schnorr signatures for unforgeability, we use indistinguishability obfuscation and any conversion function meeting the circular discrete-logarithm assumption of Cho, Fuchsbauer, O'Neill, and Sefranek (CRYPTO 2025). Our basic result keeps the classical Schnorr signing algorithm, with its randomized nonce, and proves bounded static-message security under polynomially hard assumptions. Its proof hardwires the declared signing points, so its circuit depends on an a priori query bound. The stronger constructions add a trigger branch that lets the reduction sign without the secret key. A tunable lossy pre-hash lets the proof guess the digest of each adaptive query from an enumerable image, rather than guessing the message. One trigger gives one signature per message, so our main result is for \emph{derandomized} Schnorr, whose nonce is a pseudorandom function of the signing key and the message, as in Ed25519; repeated queries then receive the same signature in both the scheme and the proof. We prove fully adaptive EUF-CMA security in the standard model assuming that our assumptions are quasi-polynomially hard. We also prove that the derandomized construction without the lossy pre-hash is statically secure under only polynomially hard assumptions because static messages let the proof fix its punctures without guessing. When the signer must stay randomized, a salt is transmitted with each signature; independently sampled salts give separate trigger slots except with negligible collision probability and yield adaptive security.
     
    \quad\quad Finally, we extend the program to lattice-based Fiat--Shamir with aborts, the paradigm of Lyubashevsky signatures that Dilithium instantiates. We prove two static-message unforgeability results, including ordinary static security with no query bound for a derandomized signer. For bounded static security, iO hides the switch to a functionally equivalent circuit with the declared point--value pairs hardwired, puncturable-PRF security replaces the selected masks by uniform values, and LWE replaces the masked inputs by uniform ones; a forgery gives a circular-SIS solution that the bit-decomposition identity converts to SIS. The derandomized theorem adds a PRF-derived trigger to remove the query bound.
 
@@ -139,6 +139,7 @@
 
 \paperpart{Schnorr Signatures}{part-schnorr}
 
+\input{04-io-uf}
 \input{05b-derandomized}
 
 \paperpart{Lattice-Based Signatures}{part-dilithium}
@@ -154,7 +155,6 @@
 \appendix
 \input{appendix-derand}
 \input{appendix-der-static}
-\input{04-io-uf}
 \input{05-adaptive}
 \input{appendix-adaptive}
 
