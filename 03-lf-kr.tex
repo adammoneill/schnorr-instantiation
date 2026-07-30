@@ -1,6 +1,6 @@
 \section{Key-Recovery Security of Schnorr Signatures} \label{sec-lf-kr}
 
-We instantiate the hash function with a tunable lossy function in injective mode, followed by a collision-resistant outer hash. The main theorem is concrete and holds for every image bound $r$. A strongly efficiently enumerable ELF gives the asymptotic corollary: the reduction runs in polynomial time, so ordinary DL hardness suffices in the Schnorr group.
+We instantiate the hash function with a tunable lossy function in injective mode, followed by a collision-resistant outer hash into $\Zp$. The outer hash supplies the scalar challenge required by Schnorr and, when the injective-mode failure probability is negligible, makes the deployed composite collision resistant. Its collision resistance is not used in the key-recovery reduction. The main theorem is concrete and holds for every image bound $r$. A strongly efficiently enumerable ELF gives the asymptotic corollary: the reduction runs in polynomial time, so ordinary DL hardness suffices in the Schnorr group.
 
 \subsection{The Construction} \label{sec-lf-constr}
 
@@ -30,7 +30,7 @@ $$
 $$
 \end{construction}
 
-\paragraph*{Discussion.} Key generation ignores $X$. Lossy keys are used only in the proof. The outer hash maps the possibly structured range $\Ygrave$ to the scalar required by Schnorr. Collision resistance rules out a constant outer map; it is not used in the key-recovery reduction.
+\paragraph*{Discussion.} Key generation ignores $X$, and lossy keys are used only in the proof. The outer hash maps the possibly structured range $\Ygrave$ to the scalar required by Schnorr. When the injective-mode failure probability is negligible, its collision resistance makes the composite hash collision resistant by Proposition~\ref{prop-lf-cr}. This property is separate from key recovery: the simulator needs only to apply the outer map to the enumerated lossy image. Without the condition, the allowed outer family could be constant. If its value is $c$, anyone can forge on any message by choosing $s\getsr\Zp$ and returning $(g^sX^{-c},s)$. We impose collision resistance to exclude such degenerate hash functions and to make the deployed composite collision resistant, not to justify the BK-CMA reduction.
 
 \begin{proposition} \label{prop-lf-cr}
 If $\CRHF$ is collision resistant and $\nu_{\mathsf{inj}}(\secp,r)$ is negligible, then $\HF^{\mathsf{tlf}}_r$ is collision resistant.
@@ -199,4 +199,4 @@ $$
 $$
 This estimate illustrates the tradeoff: increasing $q'$ also makes enumeration more expensive. We do not claim the displayed expression as a full concrete-security proposition. The ELF cascade instead uses ordinary DL in the Schnorr group and exponential DDH in its auxiliary groups.
 
-Paillier and Vergnaud~\cite{AC:PaiVer05} prove BK-CMA security for Schnorr with any hash function under OMDL. Their result covers \emph{any} hash function, while ours covers a particular keyed family. Our group assumption is ordinary DL, but the hash construction additionally uses exponential DDH and collision resistance. OMDL is interactive; all of our assumptions are non-interactive.
+Paillier and Vergnaud~\cite{AC:PaiVer05} prove BK-CMA security for Schnorr with any hash function under OMDL. Their result covers \emph{any} hash function, while ours covers a particular keyed family. Our group assumption is ordinary DL. The hash construction additionally uses exponential DDH for the ELF and collision resistance for the separate hash property of Proposition~\ref{prop-lf-cr}; the BK-CMA reduction does not use the latter. OMDL is interactive; all of our assumptions are non-interactive.

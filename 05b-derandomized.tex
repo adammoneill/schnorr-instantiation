@@ -86,7 +86,9 @@ s_m=\PRFEv_4(k_4,m),
 \qquad
 W_m=g^{s_m}X^{-c_m}.
 $$
-The trigger branch returns $c_m$ on input $(W_m,m)$, and $(W_m,s_m)$ is a valid signature on $m$ that uses no secret exponent. This is how the reduction signs. An honest signer reaches the trigger point with probability $1/p$ per message, so the branch does not affect honest use.
+The trigger branch returns $c_m$ on input $(W_m,m)$, and $(W_m,s_m)$ is a valid signature on $m$ that uses no secret exponent. This is how the reduction signs. Pseudorandomness of the nonce PRF first lets the proof replace the honest nonce by a uniform value. In that hybrid the honest signing point equals $W_m$ with probability $1/p$, so the trigger affects honest use only negligibly.
+
+The puncturable PRFs let the proof replace selected masks and trigger values at signing and forgery slots. The iO step switches between functionally equivalent descriptions of the circuit, one computing those values from PRF keys and one carrying the selected values explicitly. These are separate jobs: puncturable-PRF security hides the selected outputs given the punctured keys, while iO hides which of the two functionally equivalent circuit descriptions was obfuscated.
 
 The size bound $s''(\secp)$ is where this construction differs from Construction~\ref{constr-io}. There the proof replaces the circuit by one carrying a table of $q_s$ hardwired point-value pairs, so the honest circuit must be padded to hold $Q$ of them and the scheme depends on $Q$. Here the proof changes one signature at a time, and the temporary circuit of each step carries two hardwired points, whatever $q_s$ is. The padding is therefore a fixed polynomial and the scheme carries no query parameter.
 

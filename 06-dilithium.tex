@@ -144,7 +144,7 @@ $$
 $$
 \end{construction}
 
-\paragraph*{Discussion.} Key generation ignores $(\mat{A},\mat{T})$, and lossy keys occur only in the proof, exactly as in Section~\ref{sec-lf-kr}.
+\paragraph*{Discussion.} Key generation ignores $(\mat{A},\mat{T})$, and the real scheme uses only injective TLF keys. The lossy mode appears only in the proof, where its enumerable image lets the reduction rejection-sample signatures without the short secret. The outer hash maps the possibly structured TLF range into $\Zq^n$. As in Section~\ref{sec-lf-kr}, collision resistance excludes a constant deployed hash but is not used in the key-recovery reduction.
 
 \subsection{Main Result} \label{sec-dil-bk-thm}
 
@@ -189,7 +189,7 @@ The games mirror Theorem~\ref{thm-bk}. Game $\Gm_0$ is BK-CMA. Game $\Gm_1$ gene
 
 \section{Bounded Static-Message Unforgeability of Lyubashevsky Signatures} \label{sec-dil-static}
 
-We now instantiate the hash function of the scheme of Construction~\ref{constr-dil} with an obfuscated circuit and prove static-message unforgeability, mirroring Section~\ref{sec-io-uf}. Throughout this section, fix a polynomial $Q = Q(\secp)$; as there, the scheme is parameterized by $Q$ through circuit padding, and the theorem covers adversaries declaring at most $Q$ signing messages. Throughout this section we additionally impose the \emph{flooding condition}: $\ell(\colsA+n)/B$ is negligible, for example $B = \ell(\colsA+n)\cdot 2^{(\log\secp)^2}$. Under it, a signing attempt rejects with negligible probability, so each query is answered by its first attempt except with negligible probability, and the point the proof hardwires is fixed by the presampled nonce alone, before any hash value exists. The Discussion at the end of Section~\ref{sec-dil-thm} explains why the proof needs this.
+We now instantiate the hash function of the scheme of Construction~\ref{constr-dil} with an obfuscated circuit and prove static-message unforgeability, mirroring Section~\ref{sec-io-uf}. Throughout this section, fix a polynomial $Q = Q(\secp)$; as there, the scheme is parameterized by $Q$ through circuit padding, and the theorem covers adversaries declaring at most $Q$ signing messages. Throughout this section we additionally impose the \emph{flooding condition}: $\ell(\colsA+n)/B$ is negligible, for example $B = \ell(\colsA+n)\cdot 2^{(\log\secp)^2}$. Under it, a signing attempt rejects with negligible probability, so each query is answered by its first attempt except with negligible probability, and the point the proof hardwires is fixed by the presampled nonce alone, before any hash value exists. With these points fixed, iO hides the switch to a functionally equivalent circuit with their hash values hardwired, puncturable-PRF security replaces the selected masks by uniform values, and LWE replaces the masked inputs by uniform ones; a forgery gives circular SIS, which the bit-decomposition identity reduces to SIS. The Discussion at the end of Section~\ref{sec-dil-thm} explains why the proof needs the flooding condition.
 
 \subsection{The Construction} \label{sec-dil-constr}
 
@@ -295,7 +295,7 @@ Three further remarks, mirroring Section~\ref{sec-io-uf}. The parameter $Q$ ente
 
 \adam{All: New material, written by one hand and unread by anyone else, like Section~\ref{sec-derand} was. The five spots that most want independent checking are listed in the note after the proof.}
 
-This subsection ports the derandomization of Section~\ref{sec-derand} to the lattice scheme. The signer derives its nonces from the signing key and the message, which is how ML-DSA's deterministic mode already signs, and the hash circuit gets a trigger branch indexed by the message. The hardwired table of Theorem~\ref{thm-dil} disappears, and with it the parameter $Q$: the result is EUF-static security with no query bound, under the same assumptions and the same flooding condition.
+This subsection ports the derandomization of Section~\ref{sec-derand} to the lattice scheme. The signer derives its nonces from the signing key and the message, which is how ML-DSA's deterministic mode already signs. Repeated signing queries therefore replay the same response, so one PRF-derived trigger per message suffices. Recomputing that trigger removes the hardwired table and hence the parameter $Q$: the result is EUF-static security with no query bound, under the same assumptions and the same flooding condition.
 
 \paragraph*{The scheme.} Let $\PRF_0$ be a pseudorandom function with range $[\pm B]^{\colsA} \times [\pm B]^{n}$, applied to an injective encoding of $(m, \kappa)$ for an attempt counter $\kappa \in [\secp]$; it need not be puncturable. The scheme $\DSScheme^{\mathsf{d}}[\HF]$ is the scheme of Construction~\ref{constr-dil} with two changes. Key generation additionally samples $k_0 \getsr \PRFKg_0(\usecp)$ and stores it in the signing key. Attempt $\kappa$ of signing computes its nonces as $(\mat{y}_1, \mat{y}_2) \gets \PRFEv_0(k_0, \enc{m,\kappa})$ instead of sampling them. Verification is unchanged. Signing is deterministic, so a repeated query is answered by replaying, exactly as in Section~\ref{sec-derand}, and ML-DSA's deterministic mode runs the same counter loop.
 
