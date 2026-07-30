@@ -1,14 +1,14 @@
 \section{Basic Result: Bounded Static-Message Unforgeability of Classical Schnorr} \label{sec-io-uf}
 
-This section gives our basic result for classical Schnorr, by which we mean that the signing algorithm retains its ordinary randomized nonce and the signature format is unchanged. The proof handles signing queries by hardwiring a table of declared signatures into the circuit. Because indistinguishability obfuscation compares circuits of equal size, the honest circuit must be padded to hold that table, so the scheme is indexed by a polynomial $Q$ and the guarantee is the bounded notion $\mathrm{EUF\text{-}static}[Q]$. The construction introduces the main-branch circuit and hardwiring argument used by the stronger results that follow.
+This section gives our basic result for classical Schnorr. By classical Schnorr we mean the usual randomized signing rule and the usual two-element signature, relative to the public-key-dependent keyed-hash framework of Section~\ref{sec-schnorr}. We prove the bounded static-message notion $\mathrm{EUF\text{-}static}[Q]$: the forger declares its signing messages and forgery message before seeing the verification key, and it declares at most $Q$ signing messages. The proof handles these messages by hardwiring their hash input--output pairs into the circuit. The construction introduces the main-branch circuit and hardwiring argument used by the stronger results that follow.
 
-We prove static-message unforgeability, EUF-static, as defined in Section~\ref{sec-schnorr}. The forger declares its signing messages and forgery message before seeing the verification key. The hash function is an obfuscated circuit that computes the random-oracle simulation of~\cite{C:CFOS25}. Since the messages are fixed in advance, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-derand} builds on this construction, replacing the hardwired table by recomputed trigger points and obtaining adaptive security for a derandomized signer.
+The hash circuit implements the algebraic simulation rule from the random-oracle proof of~\cite{C:CFOS25}. Since the messages are fixed before the verification key is generated, the proof can choose the signature points and hardwire their hash values into a punctured circuit. Security follows from CDL, indistinguishability obfuscation, and puncturable PRFs. Section~\ref{sec-derand} builds on this construction, replacing the one global hardwired table by recomputed trigger points and local hybrids.
 
-Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the Discussion in Section~\ref{sec-io-thm} for what this costs.
+Throughout this section, fix a group $\GG$ of prime order $p$ with generator $g$, a conversion function $f \colon \GG \to \Zp$, and a polynomial $Q = Q(\secp)$. The scheme is parameterized by $Q$ through circuit padding, and the static theorem covers adversaries declaring at most $Q$ signing messages. We require $\mathsf{Size}_f(0) = 0$, meaning $f$ has no zeros; see the zero-free discussion after Corollary~\ref{cor-uf}.
 
 \subsection{The Construction} \label{sec-io-constr}
 
-Let $\PRF_1, \PRF_2$ be puncturable PRFs with domain $\bits^{\ellin}$ and range $\Zp$, where $\enc{\cdot} \colon \GG \times \bits^{\msglen} \to \bits^{\ellin}$ is the injective encoding from Section~\ref{sec-lf}. Let $\iO$ be an indistinguishability obfuscator.
+Fix an efficient injective encoding $\enc{\cdot} \colon \GG \times \bits^{\msglen} \to \bits^{\ellin}$. Let $\PRF_1, \PRF_2$ be puncturable PRFs with domain $\bits^{\ellin}$ and range $\Zp$, and let $\iO$ be an indistinguishability obfuscator. For the fixed polynomial $Q$, let $s(\secp,Q)$ be a common polynomial upper bound on the size of the main circuit and of the punctured, hardwired circuits used in the proof with at most $Q$ entries. We assume $\iO$ for the resulting padded circuit class.
 
 \begin{figure}[t]
 \begin{center}
@@ -30,35 +30,70 @@ Let $\PRF_1, \PRF_2$ be puncturable PRFs with domain $\bits^{\ellin}$ and range 
 \end{figure}
 
 \begin{construction} \label{constr-io}
-The keyed hash family $\HF^{\mathsf{io}}_Q = (\HFKg, \HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X \in \GG$ computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [2]$ and $\tilde{\CircC} \getsr \iO(\usecp, \CircC[X, k_1, k_2])$ for the circuit $\CircC$ in Figure~\ref{fig-circuit}, padded to size $s(\secp, Q)$, and returns $\hk \gets \tilde{\CircC}$. Algorithm $\HFEv$ on inputs $\hk = \tilde{\CircC}$ and $(R,m)$ returns $\tilde{\CircC}(R, m)$. Here $s(\secp, Q)$ is the fixed polynomial bounding the size of the circuits in the proof of Theorem~\ref{thm-uf}.
+The keyed hash family $\HF^{\mathsf{io}}_Q = (\HFKg, \HFEv)$ for $\GG$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $X \in \GG$ computes $k_i \getsr \PRFKg_i(\usecp)$ for $i \in [2]$ and $\tilde{\CircC} \getsr \iO(\usecp, \CircC[X, k_1, k_2])$ for the circuit $\CircC$ in Figure~\ref{fig-circuit}, padded to size $s(\secp, Q)$, and returns $\hk \gets \tilde{\CircC}$. Algorithm $\HFEv$ on inputs $\hk = \tilde{\CircC}$ and $(R,m)$ returns $\tilde{\CircC}(R, m)$.
 \end{construction}
 
-\paragraph*{Discussion.} The circuit computes $\big(f(R \cdot X^{a} \cdot g^{b}) + a\big) \bmod p$ with $(a,b)$ pseudorandom and specific to the input $(R,m)$. This is exactly how the reduction in the ROM proof of~\cite{C:CFOS25} answers a hash query, with fresh uniform $(a,b)$ per query replaced by PRF outputs. That choice serves two purposes. First, hash values are pseudorandom in $\Zp$ for any $f$, because $b$ makes the input to $f$ pseudorandom independent of $a$, and adding $a$ then makes the output pseudorandom. Second, a forgery is a CDL solution. Concretely, if $g^{s} = R \cdot X^{c}$ with $c = f(R X^{a} g^{b}) + a$, then multiplying both sides by $g^{b}$ gives $g^{s + b} = (R X^{a} g^{b}) \cdot X^{f(R X^{a} g^{b})}$, so $(R X^{a} g^{b},\, s+b)$ is a CDL solution for challenge $X$. The reduction generates the PRF keys itself, so it can recompute $(a,b)$ from the forgery.
-
-The padding is where the parameter $Q$ enters, and it enters nowhere else. The proof replaces the circuit by a functionally identical one that hardwires up to $Q$ point-value pairs, and indistinguishability obfuscation compares circuits of equal size only, so the honest circuit must already be padded to that size. The bound $s(\secp, Q)$ therefore grows linearly in $Q$, and so does the cost of evaluating the obfuscated circuit. Signing is stateless and unrestricted; the bound $Q$ limits only how many signatures the security proof can handle.
+\paragraph*{Discussion.} The circuit uses the algebraic hash-answering rule from the ROM proof of~\cite{C:CFOS25}, replacing its fresh random masks by PRF outputs specific to $(R,m)$. The proof idea below explains why the selected hash values can be made uniform and why a forgery gives a CDL solution. These are local properties used at the selected inputs; we do not claim that the public hash circuit is globally a random oracle or a PRF.
 
 Evaluating the hash function costs two PRF evaluations, two exponentiations, and one evaluation of $f$, plus the overhead of evaluating a padded obfuscated circuit. The construction is a feasibility result, not a practical proposal.
 
 \subsection{Main Result} \label{sec-io-thm}
 
+\paragraph*{Proof idea.}
+Suppose the adversary declares signing messages $m_1,\ldots,m_{q_s}$ and a forgery message $m^*\notin\{m_1,\ldots,m_{q_s}\}$ before seeing the verification key. Let $X=g^x$ be the public-key group element. Starting from honest signing, let $R_i$ be the nonce point for $m_i$, and let $v_i$ be the value returned by the hash circuit on $(R_i,m_i)$. Define
+$$
+T=\{\enc{R_i,m_i}:i\in[q_s]\}.
+$$
+The messages are declared in advance, and the nonce points are independent of the PRF keys, so $T$ can be fixed independently of each key that is punctured. The proof aborts if two pairs $(R_i,m_i)$ are equal. This costs at most $\binom{q_s}{2}/p$ and ensures that the values later replaced by independent uniform values occur at distinct PRF inputs.
+
+The proof first punctures both PRF keys at $T$ and hardwires the actual hash values $(R_i,m_i)\mapsto v_i$. The punctured, hardwired circuit computes exactly the same function as the original circuit, so indistinguishability obfuscation hides this change. Let $a_i$ and $b_i$ be the two PRF outputs at $\enc{R_i,m_i}$. Puncturable-PRF security lets the proof replace these outputs by independent uniform elements of $\Zp$. For uniform $a_i,b_i$, the element
+$$
+U_i=R_iX^{a_i}g^{b_i}
+$$
+is uniform and independent of $a_i$, and hence $v_i=f(U_i)+a_i\bmod p$ is uniform and independent of $R_i$. The punctured circuit contains neither $a_i$ nor $b_i$ and hardwires only $v_i$ at this input, so the masks occur nowhere else in the adversary's view. If $r'_i$ is the uniform honest nonce exponent, then the signature response $s_i=(r'_i+v_ix)\bmod p$ is uniform for fixed $v_i$.
+
+\begin{samepage}
+The proof may therefore sample $v_i,s_i\getsr\Zp$ and set
+$$
+R_i=g^{s_i}X^{-v_i}.
+$$
+The hardwired circuit returns $v_i$ on $(R_i,m_i)$, so $(R_i,s_i)$ verifies because $g^{s_i}=R_iX^{v_i}$. The signature has now been generated without the secret exponent $x$.
+\end{samepage}
+
+It remains to use the forgery. Suppose $(R^*,s^*)$ is a valid forgery on $m^*$. Since $m^*$ differs from every declared signing message and the encoding is injective, $\enc{R^*,m^*}\notin T$. The circuit therefore evaluates the two punctured PRFs on this fresh input. Let their outputs be $a^*,b^*$, and define $U^*=R^*X^{a^*}g^{b^*}$. The forgery challenge is $f(U^*)+a^*\bmod p$, so validity gives
+$$
+g^{s^*+b^*}=U^*X^{f(U^*)}.
+$$
+Thus $(U^*,s^*+b^*\bmod p)$ is a CDL solution. The condition that $f$ has no zeros ensures that the CDL game accepts it.
+
+The parameter $Q$ is needed because all $q_s$ hardwired entries occur in one circuit. To apply indistinguishability obfuscation, the original circuit must be padded in advance to hold as many as $Q$ entries. Thus the scheme depends on $Q$, even though its signing algorithm remains stateless.
+
 \begin{theorem} \label{thm-uf}
-Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$. Let $\PRF_1, \PRF_2$ be puncturable PRFs as above, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CDL[\GG,g,f]$, a distinguisher $\advD_1$ against $\iO$, and a distinguisher $\advD_2$ for the puncturable PRFs, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
-$$\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;.$$
+Let $\GG$ be a group of prime order $p$ with generator $g$, and let $f \colon \GG \to \Zp$ be efficient with $\mathsf{Size}_f(0) = 0$. Let $\PRF_1, \PRF_2$ be puncturable PRFs as above, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CDL[\GG,g,f]$, a distinguisher $\advD_{\mathsf{io}}$ against $\iO$, and distinguishers $\advD^{\mathsf{prf}}_1,\advD^{\mathsf{prf}}_2$ against $\PRF_1,\PRF_2$, respectively, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
+\begin{align*}
+\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA}
+\le{}& \AdvCDL{\GG,g,f}{\advB}
++ \AdvIO{}{\advD_{\mathsf{io}}}
++ \sum_{\ell=1}^{2}\AdvPRF{\PRF_\ell}{\advD^{\mathsf{prf}}_\ell}
++ \frac{\binom{q_s}{2}}{p} \;.
+\end{align*}
 \end{theorem}
 
 \begin{corollary} \label{cor-uf}
-Fix a polynomial $Q$. If $\CDL[\GG,g,f]$ holds, the PRFs and $\iO$ are secure, and $p$ is super-polynomial, then $\SchScheme[\GG, \HF^{\mathsf{io}}_Q]$ is $\mathrm{EUF\text{-}static}[Q]$ secure.
+Fix a polynomial $Q$. If $\CDL[\GG,g,f]$ holds, $\PRF_1,\PRF_2$ and $\iO$ are secure, and $1/p$ is negligible, then $\SchScheme[\GG, \HF^{\mathsf{io}}_Q]$ is $\mathrm{EUF\text{-}static}[Q]$ secure.
 \end{corollary}
 
-\paragraph*{Discussion.} The corollary is a statement about the family $\{\SchScheme[\GG,\HF^{\mathsf{io}}_Q]\}_Q$, one member per polynomial $Q$, and each member is secure against adversaries declaring at most $Q$ messages. It is not a statement of ordinary EUF-static security for a single scheme, and the difference is not cosmetic. Key generation pads the hash circuit to a size that accommodates $Q$ hardwired entries, so the scheme itself depends on $Q$; and no single polynomial $Q$ upper bounds the query count of every PPT adversary, since an adversary may declare $Q(\secp)+1$ messages. The signing algorithm is stateless and will sign any number of messages, but the proof covers only the first $Q$ of them. Section~\ref{sec-derand} removes the bound by derandomizing the signer, while Section~\ref{sec-adaptive} keeps a randomized signer and removes the bound by adding a salt to the signature. Removing $Q$ while keeping both the randomized signer and the unchanged signature format remains open. Bounded notions of this kind also appear in the standard-model Fiat--Shamir instantiation of Mittelbach and Venturi~\cite{DBLP:journals/tcs/MittelbachV18}.
+\paragraph*{The parameter $Q$.} The corollary is a statement about the family $\{\SchScheme[\GG,\HF^{\mathsf{io}}_Q]\}_Q$, one member per polynomial $Q$, and each member is secure against adversaries declaring at most $Q$ messages. It is not a statement of ordinary EUF-static security for a single scheme, and the difference is not cosmetic. Key generation pads the hash circuit to a size that accommodates $Q$ hardwired entries, so the scheme itself depends on $Q$; and no single polynomial $Q$ upper bounds the query count of every PPT adversary, since an adversary may declare $Q(\secp)+1$ messages. The signing algorithm is stateless and will sign any number of messages, but the theorem covers only adversaries declaring at most $Q$ messages. Section~\ref{sec-derand} removes the global table and uses a local hybrid for each query; derandomization lets repeated messages reuse one trigger. Section~\ref{sec-adaptive} instead uses salts to separate repeated randomized invocations. Removing $Q$ while keeping both the randomized signer and the unchanged signature format remains open. Bounded notions of this kind also appear in the standard-model Fiat--Shamir instantiation of Mittelbach and Venturi~\cite{DBLP:journals/tcs/MittelbachV18}.
 
-\paragraph*{Discussion.} We comment on the zero-free condition. Given a candidate conversion function $f$, define $f'(R)=1$ when $f(R)=0$ and $f'(R)=f(R)$ otherwise. Each preimage size under $f'$ increases by at most $\mathsf{Size}_f(0)$. Thus, when $\mathsf{Size}_f(0)/p$ is negligible, the small-preimage EC-GGM analysis of~\cite{C:CFOS25} also applies to $f'$. We take this zero-free function as part of the construction and place it in the obfuscated circuit. Modifying $f$ at its zeros preserves the small-preimage generic-group evidence, up to the stated change in preimage size, but we do not reduce CDL for $f'$ to CDL for $f$, and we do not claim the two assumptions are equivalent. The condition is useful because the CDL game rejects solutions $(R,z)$ with $f'(R)=0$, and a zero-free function rules out that failure.
+\paragraph*{The zero-free condition.} Given a candidate conversion function $f$, define $f'(R)=1$ when $f(R)=0$ and $f'(R)=f(R)$ otherwise. Each preimage size under $f'$ increases by at most $\mathsf{Size}_f(0)$. Thus, if $f$ satisfies the small-preimage condition used in the EC-GGM analysis of~\cite{C:CFOS25} and $\mathsf{Size}_f(0)/p$ is negligible, then $f'$ satisfies that condition as well. We take this zero-free function as part of the construction and place it in the obfuscated circuit. Modifying $f$ at its zeros preserves the small-preimage generic-group evidence, up to the stated change in preimage size, but we do not reduce CDL for $f'$ to CDL for $f$, and we do not claim the two assumptions are equivalent. The condition is useful because the CDL game rejects solutions $(R,z)$ with $f'(R)=0$, and a zero-free function rules out that failure.
 
-The theorem assumes iO, which is not falsifiable. Existing constructions derive iO from explicit falsifiable assumptions~\cite{STOC:JaiLinSah21,EC:JaiLinSah22}. Puncturable PRFs follow from one-way functions~\cite{AC:BonWat13,EC:BoyGilIsh15,CCS:KPTZ13}, which DL implies. Thus the assumption profile is CDL plus the assumptions underlying iO.
+\paragraph*{Assumptions.} The theorem assumes iO, which is not falsifiable. Existing constructions derive iO from explicit falsifiable assumptions~\cite{STOC:JaiLinSah21,EC:JaiLinSah22}. Puncturable PRFs follow from one-way functions~\cite{AC:BonWat13,EC:BoyGilIsh15,CCS:KPTZ13}. For a zero-free conversion function, a discrete-logarithm algorithm also solves CDL: after recovering $x$ from $h=g^x$, it can output $\big(g,(1+xf(g))\bmod p\big)$. Thus CDL hardness implies the DL hardness needed to obtain a one-way function, and the assumption profile is CDL plus the assumptions underlying iO.
 
 We now give the proof as a sequence of games. The circuit $\CircC'$ used from Game~$\Gm_2$ on is shown in Figure~\ref{fig-circuit-punctured}. All six games use the shared code in Figure~\ref{fig-static-games}.
 
-\begin{figure}[t]
+\FloatBarrier
+
+\begin{figure}[!ht]
 \begin{center}
 \fbox{
 \begin{minipage}{4.6in}
@@ -78,7 +113,7 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \vspace{-1ex}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!ht]
 \begin{center}
 \fbox{
 \begin{minipage}{4.85in}
@@ -99,7 +134,7 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \>\>\> If $j\le3$: $v_i\gets\bigl(f(R_iX^{a_i}g^{b_i})+a_i\bigr)\bmod p$ \\
 \>\>\> Else: $v_i\getsr\Zp$ \\
 \>\>\> $s_i\gets(r'_i+v_ix)\bmod p$ \\
-\> If $j\ge1$ and $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$: Return $0$ \\
+\> If $j\ge1$ and $(R_i,m_i)=(R_{i'},m_{i'})$ for some distinct $i,i'\in[q_s]$: Return $0$ \\
 \> $T\gets\{\enc{R_i,m_i}:i\in[q_s]\}$ \\
 \> If $j\le1$: $\widetilde C\getsr\iO(\usecp,\CircC[X,k_1,k_2])$ \\
 \> Else: \\
@@ -117,12 +152,18 @@ We now give the proof as a sequence of games. The circuit $\CircC'$ used from Ga
 \vspace{-1ex}
 \end{figure}
 
+\FloatBarrier
+
 \begin{proof}[of Theorem~\ref{thm-uf}]
-Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary declaring messages $m_1, \ldots, m_{q_s}$ with $q_s \le Q$ and forgery message $m^* \notin \{m_1,\ldots,m_{q_s}\}$. All games output 1 iff the final output of $\advA_1$ is a valid forgery on $m^*$. We state the change made in each game below.
+Let $\advA = (\advA_0, \advA_1)$ be a PPT adversary declaring messages $m_1, \ldots, m_{q_s}$ with $q_s \le Q$. We may assume that its declared forgery message satisfies $m^* \notin \{m_1,\ldots,m_{q_s}\}$, since otherwise the static-message game outputs 0. All games output 1 iff the final output of $\advA_1$ is a valid forgery on $m^*$. We state the change made in each game below.
 
-\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}$ with $\advA$: the game receives $(m_1,\ldots,m_{q_s},m^*)$ from $\advA_0$, generates $x \getsr \Zp$, $X \gets g^x$, PRF keys $k_1, k_2$, the circuit $\tilde{\CircC} \getsr \iO(\CircC[X,k_1,k_2])$, and honest signatures $\sigma_i = (R_i, s_i)$ on each $m_i$ using $x$, and runs $\advA_1$ on $(\vkey = (X, \tilde{\CircC}), (\sigma_i)_i)$.
+\heading{Game $\Gm_0$.} This is $\gameEUFSTATIC{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}$ with $\advA$. The shared code samples the signing nonces and computes the corresponding hash values before it obfuscates the circuit. In the real game these operations occur after obfuscation, but the obfuscator coins are independent and iO correctness makes the obfuscated circuit compute exactly $\CircC$. Thus this reordering does not change the joint distribution.
 
-\heading{Game $\Gm_1$ (collision abort).} The shared code already samples the independent signing randomness $r'_1,\ldots,r'_{q_s}$ before building the circuit in $\Gm_0$; this is an exact reordering of the real game. Game $\Gm_1$ differs only in that it aborts (outputs 0) if $(R_i,m_i)=(R_{i'},m_{i'})$ for some $i\ne i'$. A repeat requires $R_i=R_j$ for independent uniform $R_i,R_j$, so the abort has probability at most $q_s^2/p$. Hence $\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]\le q_s^2/p$.
+\heading{Game $\Gm_1$ (collision abort).} Game $\Gm_1$ aborts if two distinct indices $i,i'\in[q_s]$ satisfy $(R_i,m_i)=(R_{i'},m_{i'})$. This can happen only when $m_i=m_{i'}$, and it then requires the independent uniform elements $R_i,R_{i'}\in\GG$ to be equal. A union bound gives
+$$
+\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]
+\le \frac{\binom{q_s}{2}}{p}.
+$$
 
 \heading{Game $\Gm_2$ (hardwiring).} The game replaces $\tilde{\CircC}$ by an obfuscation of the circuit $\CircC'$ of Figure~\ref{fig-circuit-punctured}. Define $T := \{\enc{R_i,m_i} : i \in [q_s]\}$. For each $i\in[q_s]$, define
 $$
@@ -132,22 +173,39 @@ b_i&:=\PRFEv_2(k_2,\enc{R_i,m_i}),\\
 v_i&:=\big(f(R_iX^{a_i}g^{b_i})+a_i\big)\bmod p.
 \end{aligned}
 $$
-Circuit $\CircC'$ contains the punctured keys $k_1\{T\},k_2\{T\}$ and the hardwired triples $(R_i,m_i,v_i)_{i\in[q_s]}$. The two circuits compute the same function. On input $(R_i,m_i)$, circuit $\CircC$ outputs $v_i$, which is exactly the value that $\CircC'$ has hardwired. The abort of $\Gm_1$ makes these triples well-defined because the points are distinct. At encoded inputs outside $T$, the punctured keys agree with $k_1,k_2$ by functionality preservation of puncturing. Both circuits are padded to size $s(\secp,Q)$. Indistinguishability of $\iO(\CircC)$ and $\iO(\CircC')$ then gives a PPT adversary $\advD_1$ against $\iO$ with $\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]\le\AdvIO{}{\advD_1}$.
+Circuit $\CircC'$ contains the punctured keys $k_1\{T\},k_2\{T\}$ and the hardwired triples $(R_i,m_i,v_i)_{i\in[q_s]}$. The collision abort makes the encodings in $T$ distinct. The two circuits compute the same function. On an input $(R_i,m_i)$ in the table, circuit $\CircC$ outputs $v_i$, which is exactly the value that $\CircC'$ has hardwired. On any other input $(R,m)$, injectivity of $\enc{\cdot}$ gives $\enc{R,m}\notin T$, so functionality preservation of puncturing makes the two PRF evaluations, and hence the circuit outputs, equal. Both circuits are padded to size $s(\secp,Q)$.
+
+For completeness, the iO sampler is defined also when the collision event occurs. In that case it outputs two copies of a fixed padded circuit and records the abort in its state; the distinguisher then returns 0. Thus the sampler always gives iO two equal-size circuits computing the same function. It follows that there is a PPT distinguisher $\advD_{\mathsf{io}}$ such that
+$$
+\left|\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]\right|
+\le \AdvIO{}{\advD_{\mathsf{io}}}.
+$$
 
 \heading{Game $\Gm_3$ (uniform masks).} The values $a_i, b_i$ are drawn uniformly from $\Zp$, independently for each $i$, and each $v_i$ is recomputed as $\big(f(R_i X^{a_i} g^{b_i}) + a_i\big) \bmod p$ from these uniform values. The honest signatures still use $x$: signature $i$ is $(R_i, s_i)$ with $s_i = (r'_i + v_i x) \bmod p$, matching the hardwired value $v_i$ at $(R_i, m_i)$.
 
-We pass from $\Gm_2$ to $\Gm_3$ in two sub-hybrids. First replace $(a_i)_{i\in[q_s]}$ by independent uniform values and recompute each $v_i$. This change is bounded by the pseudorandomness of $\PRF_1$ at $T$. Then do the same for $(b_i)_{i\in[q_s]}$ and $\PRF_2$. In each sub-hybrid the reduction receives the punctured key of the relevant PRF together with the challenge values at the punctured points, which are either the true PRF outputs or independent uniform values. It builds $\CircC'$ from the punctured keys and the hardwired data, and it assembles the honest signatures using $x$. Both the punctured keys and $x$ are available to it. Writing $\AdvPRF{}{\advD_2}$ for the sum of the two advantages,
-$$\Pr[\Gm_2 \Rightarrow 1] - \Pr[\Gm_3 \Rightarrow 1] \le \AdvPRF{}{\advD_2} \;.$$
+We pass from $\Gm_2$ to $\Gm_3$ in two sub-hybrids. First replace $(a_i)_{i\in[q_s]}$ by independent uniform values and recompute each $v_i$. This change is bounded by the pseudorandomness of $\PRF_1$ at $T$. Then do the same for $(b_i)_{i\in[q_s]}$ and $\PRF_2$. In each sub-hybrid the reduction receives the punctured key of the relevant PRF together with the challenge values at the punctured inputs, which are either the true PRF outputs or independent uniform values. It builds $\CircC'$ from the punctured keys and the hardwired data, and it assembles the honest signatures using $x$.
 
-\heading{Game $\Gm_4$ (uniform hash values).} Each hardwired value $v_i$ is replaced by an independent uniform value in $\Zp$, and the values $a_i, b_i$ are no longer sampled. We claim $\Pr[\Gm_3 \Rightarrow 1] = \Pr[\Gm_4 \Rightarrow 1]$. Fix $R_i$. In $\Gm_3$ the pair $(a_i, b_i)$ is uniform on $\Zp^2$. Over the choice of $b_i$, the group element $U_i := R_i X^{a_i} g^{b_i}$ is uniform and independent of $a_i$. Then, over the choice of $a_i$, the value $v_i = \big(f(U_i) + a_i\big) \bmod p$ is uniform and independent of $R_i$ and $U_i$. Moreover, $a_i$ and $b_i$ appear nowhere else in $\Gm_3$: the keys $k_1, k_2$ in the circuit are punctured at $(R_i, m_i)$, the circuit hardwires only $v_i$, and the signature uses only $v_i$. So replacing each $v_i$ by an independent uniform value leaves the joint distribution of the adversary's view unchanged, and the equality of the two games is exact.
+We verify the selective-puncturing condition. The adversary declares the messages before key generation, and $X$ and the signing nonces that determine the $R_i$ are independent of each challenged PRF key. Thus $T$ can be sampled before the key challenged in either sub-hybrid. For the $\PRF_1$ sub-hybrid, the sampler places $x$ and the independently generated $\PRF_2$ key in its state. For the $\PRF_2$ sub-hybrid, it places $x$, the independently generated punctured $\PRF_1$ key, and the uniform values $(a_i)_i$ in its state. On a collision, the sampler outputs the fixed set $T=\emptyset$ together with an abort flag in its state, and the distinguisher returns 0 without using the PRF challenge. Hence there are PPT distinguishers $\advD^{\mathsf{prf}}_1,\advD^{\mathsf{prf}}_2$ such that
+\begin{align*}
+\left|\Pr[\Gm_2 \Rightarrow 1]-\Pr[\Gm_3 \Rightarrow 1]\right|
+\le \sum_{\ell=1}^{2}\AdvPRF{\PRF_\ell}{\advD^{\mathsf{prf}}_\ell}.
+\end{align*}
 
-This step is where the change of variables of Game~$\Gm_5$ becomes available. In $\Gm_3$ the value $v_i$ is a function of $R_i$, so $R_i$ cannot be defined in terms of $v_i$. In $\Gm_4$ the value $v_i$ is an independent uniform value, so it can be sampled before $R_i$.
+\heading{Game $\Gm_4$ (uniform hash values).} Each hardwired value $v_i$ is replaced by an independent uniform value in $\Zp$, and the values $a_i, b_i$ are no longer sampled. We claim $\Pr[\Gm_3 \Rightarrow 1] = \Pr[\Gm_4 \Rightarrow 1]$. Condition on $X$ and all the points $(R_i)_i$. In $\Gm_3$ the pairs $(a_i,b_i)$ are mutually independent and uniform on $\Zp^2$. For each $i$, over the choice of $b_i$, the group element $U_i := R_i X^{a_i}g^{b_i}$ is uniform and independent of $a_i$. It follows that $v_i=\big(f(U_i)+a_i\big)\bmod p$ is uniform and independent of $R_i$ and $U_i$. The collision abort depends only on the messages and the $R_i$, so conditioning on its complement does not change this conclusion.
+
+Moreover, $a_i$ and $b_i$ appear nowhere else in $\Gm_3$: the keys in the circuit are punctured at $\enc{R_i,m_i}$, the circuit hardwires only $v_i$, and the signature uses only $v_i$. The ideal values introduced in $\Gm_3$ are exactly uniform in $\Zp$ by the puncturable-PRF experiment of Definition~\ref{def-pprf}. Thus replacing the $(v_i)_i$ by independent uniform values leaves the full joint distribution unchanged, and the equality of the two games is exact.
+
+In $\Gm_3$, the value $v_i$ is already uniform and independent of $R_i$, but it is still represented through the auxiliary values $a_i,b_i$. Game~$\Gm_4$ discards these unused values and samples $v_i$ directly. This makes the change of variables of Game~$\Gm_5$ explicit.
 
 \heading{Game $\Gm_5$ (signing without the secret).} The game produces each honest signature without $x$, by a change of variables in the signing randomness. In $\Gm_4$, signature $i$ is $(R_i, s_i)$ with $R_i = g^{r'_i}$ for a uniform $r'_i$ and $s_i = (r'_i + v_i x) \bmod p$. In $\Gm_5$, the game instead samples $v_i \getsr \Zp$ and $s_i \getsr \Zp$ first, sets $R_i \gets g^{s_i} X^{-v_i}$, and outputs $\sigma_i = (R_i, s_i)$; the abort condition of $\Gm_1$ is evaluated on these $R_i$, and the circuit hardwires $v_i$ at $(R_i, m_i)$ as before. Forming $R_i$ this way uses $X$ but not $x$, and $x$ appears nowhere else in $\Gm_5$, so $\Gm_5$ samples $X \getsr \GG$ directly, as in Figure~\ref{fig-static-games}; the distribution of $X$ is unchanged.
 
-We claim $\Pr[\Gm_4 \Rightarrow 1] = \Pr[\Gm_5 \Rightarrow 1]$. Fix $x$ and the value $v_i$, which in both games is uniform and independent of everything else. The map $r'_i \mapsto s_i = (r'_i + v_i x) \bmod p$ is a bijection of $\Zp$, and it takes a uniform $r'_i$ to a uniform $s_i$. Under this map the signature does not change: $g^{s_i} X^{-v_i} = g^{s_i - v_i x} = g^{r'_i} = R_i$, and the second component is $s_i = r'_i + v_i x$ in both games. The circuit is built from the same hardwired data in both games, in particular from the same point $R_i$ and the same value $v_i$. So $(\vkey, \sigma_1, \ldots, \sigma_{q_s})$ has the same distribution in $\Gm_4$ and $\Gm_5$.
+We claim $\Pr[\Gm_4 \Rightarrow 1] = \Pr[\Gm_5 \Rightarrow 1]$. For this comparison only, sample $x\getsr\Zp$ and set $X=g^x$ in both games; Game~$\Gm_5$ then discards $x$. Fix $x$ and the values $(v_i)_i$. For every $i$, the map $r'_i \mapsto s_i=(r'_i+v_ix)\bmod p$ is a bijection of $\Zp$, and it takes a uniform $r'_i$ to a uniform $s_i$. Under this map the signature does not change:
+$$
+g^{s_i}X^{-v_i}=g^{s_i-v_ix}=g^{r'_i}=R_i.
+$$
+Applied independently for all $i$, the map preserves the points $(R_i)_i$, the collision event, the set $T$, the hardwired values, and the punctured circuit. Thus the full joint distributions in $\Gm_4$ and $\Gm_5$ are equal.
 
-Note that the tuple $(R_i, v_i, s_i)$ in $\Gm_5$ is a simulated Schnorr transcript in the sense of honest-verifier zero knowledge, and the hardwired entry $(R_i, m_i, v_i)$ plays the role of programming the random oracle at a point chosen before the circuit is published. This is the step that is available in the static game and not directly in the adaptive game. The trigger constructions of Sections~\ref{sec-derand} and~\ref{sec-adaptive} start from exactly this observation.
+This change of variables is the standard Schnorr transcript simulation: choose the challenge and response first, then define the nonce point so that verification holds. The hardwired entry $(R_i,m_i,v_i)$ plays the role of programming the hash at a point chosen before the circuit is published. This is the step that is available in the static game and not directly in the adaptive game. The trigger constructions of Sections~\ref{sec-derand} and~\ref{sec-adaptive} start from this observation.
 
 \heading{From $\Gm_5$ to CDL.} We build a PPT adversary $\advB$ against $\CDL[\GG,g,f]$ with
 $$\Pr[\Gm_5 \Rightarrow 1] \le \AdvCDL{\GG,g,f}{\advB} \;.$$
@@ -156,7 +214,13 @@ $$g^{s^* + b^*} = \big(R^* X^{a^*} g^{b^*}\big) \cdot h^{f(R^* X^{a^*} g^{b^*})}
 Adversary $\advB$ outputs $\big(R^* X^{a^*} g^{b^*},\, (s^* + b^*) \bmod p\big)$. Since $f$ has no zeros, this output wins the CDL game whenever the forgery is valid.
 
 \heading{Conclusion.} Collecting the bounds,
-$$\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA} \le \AdvCDL{\GG,g,f}{\advB} + \AdvIO{}{\advD_1} + \AdvPRF{}{\advD_2} + \frac{q_s^2}{p} \;,$$
+\begin{align*}
+\AdvEUFSTATICQ{\SchScheme[\GG, \HF^{\mathsf{io}}_Q]}{\advA}
+\le{}& \AdvCDL{\GG,g,f}{\advB}
++ \AdvIO{}{\advD_{\mathsf{io}}}
++ \sum_{\ell=1}^{2}\AdvPRF{\PRF_\ell}{\advD^{\mathsf{prf}}_\ell}
++ \frac{\binom{q_s}{2}}{p},
+\end{align*}
 which is the bound of the theorem; the running-time claims follow by inspection of the reductions.
 \end{proof}
 
@@ -166,8 +230,4 @@ Unlike the ROM reduction of~\cite{C:CFOS25}, the reduction above is not tight in
 
 \begin{remark} \label{rem-strong}
 The EUF-static game requires the forgery message $m^*$ to lie outside the declared signing-message list. We make no claim about producing a new signature for one of the declared signing messages.
-\end{remark}
-
-\begin{remark} \label{rem-bounded}
-The bound $Q$ enters the scheme only through the padding of the circuit. The signer is stateless and will produce any number of signatures, but the security notion proved is the bounded one, since the proof hardwires one table entry per declared message and indistinguishability obfuscation compares circuits of equal size. Sections~\ref{sec-derand} and~\ref{sec-adaptive} remove the restriction by derandomizing the signer and by adding a salt, respectively. Whether it can be removed while keeping the exact randomized, saltless scheme of this section is open.
 \end{remark}
