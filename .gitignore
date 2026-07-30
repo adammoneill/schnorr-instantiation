@@ -11,6 +11,7 @@
 *.toc
 main.pdf
 cdl-from-dl-note.pdf
+schnorr-local-hybrids.pdf
 
 # sandbox compile check (never commit)
 main_synthcheck.*

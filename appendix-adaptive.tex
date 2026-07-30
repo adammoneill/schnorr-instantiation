@@ -9,7 +9,7 @@ $$
 
 Next switch the pre-hash key to lossy mode at the same $r$. The distinguisher for this switch receives $K$, samples $x$ and all PRF keys itself, builds the obfuscated circuit, runs the game including both abort checks, and outputs the game's result. It is PPT, so the switch costs $\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}$ for a PPT distinguisher $\advD_{\mathsf{mode}}$. All subsequent games use a lossy key. In particular, in every subsequent game an execution that reaches $\Finalize$ without aborting has all digests of distinct relevant messages distinct, because $\mathsf{Bad}_{\mathsf{col}}$ output 0 otherwise.
 
-\heading{The outer games.} For $0\le i\le q_s$, Game $\Gm_i$ is given in Figure~\ref{fig-game-adaptive}. It answers the first $i$ signing queries by the trigger procedure and the rest honestly. The salts and honest nonces are sampled before key generation. Moving these independent choices earlier changes no distribution. Every game publishes the original circuit $\CircS$ of Figure~\ref{fig-circuit-salted}. Game $\Gm_0$ is the lossy game with aborts of the previous paragraph, and $\Gm_{q_s}$ answers every signing query without the secret exponent.
+\heading{The outer games.} For $0\le i\le q_s$, Game $\Gm_i$ is given in Figure~\ref{fig-game-adaptive}. It answers the first $i$ signing queries by the trigger procedure and the rest honestly. The salts and honest nonces are sampled before key generation. Moving these independent choices earlier changes no distribution. Every game publishes the original circuit $\CircS$ of Figure~\ref{fig-circuit-salted}. Game $\Gm_0$ is the lossy game with aborts of the previous paragraph, and $\Gm_{q_s}$ answers every signing query without the secret exponent. These are separate experiments, not stages of one execution in which a published circuit changes over time.
 
 \begin{figure}[t]
 \begin{center}
@@ -67,7 +67,7 @@ The two entries of $L$ are sorted by their first coordinates, and $T$ is the cor
 123\=123\=123\=\kill
 \textbf{Circuit} $C_j[X,t,L,k_1\{T\},k_2\{T\},k_3\{t\},k_4\{t\}](P,d,\salt)$: \\
 \> $t' \gets \enczero{d,\salt} \;;\; e'\gets\encone{P,d,\salt}$ \\
-\> If $(e',v_0)\in L$ for some $v_0$: Return $v_0$ \comment{two hardwired points} \\
+\> If $(e',v_0)\in L$ for some $v_0$: Return $v_0$ \comment{two hardwired input--output pairs} \\
 \> If $t'\ne t$: \\
 \>\> $c_t \gets \PRFEv_3(k_3\{t\},t') \;;\; s_t \gets \PRFEv_4(k_4\{t\},t')$ \\
 \>\> If $P=g^{s_t}X^{-c_t}$: Return $c_t$ \comment{trigger branch} \\
@@ -78,7 +78,7 @@ The two entries of $L$ are sorted by their first coordinates, and $T$ is the cor
 }
 \end{center}
 \vspace{-6pt}
-\caption{The temporary circuit $C_j$ used when changing the answer to query $j$. It is padded to the same fixed size bound $s'(\secp)$ as the published circuit.}\label{fig-circuit-query}
+\caption{The temporary circuit $C_j$ used when changing the answer to query $j$. Its two entries are hash input--output pairs, not two messages or two signatures. It is padded to the same fixed size bound $s'(\secp)$ as the published circuit.}\label{fig-circuit-query}
 \vspace{-3pt}\hrulefill
 \vspace{-1ex}
 \end{figure}
@@ -177,7 +177,7 @@ $$
 \qquad\text{and}\qquad
  (g^{s_1}X^{-c},c,s_1)
 $$
-are independent and identically distributed, conditioned on their first components being distinct. If $u$ occurred before query $j$, then query $j$ sets $\mathsf{Bad}_{\mathsf{rep}}$; if it occurs again later, that later query sets the same event. Since the final output is then fixed to 0, the game may stop as soon as the event occurs. Thus no other response uses $u$ on an execution that continues.
+are sampled independently by the same rule before conditioning. Conditioning on their first components being distinct preserves invariance of their joint distribution under exchange, although it need not preserve independence. If $u$ occurred before query $j$, then query $j$ sets $\mathsf{Bad}_{\mathsf{rep}}$; if it occurs again later, that later query sets the same event. Since the final output is then fixed to 0, the game may stop as soon as the event occurs. Thus no other response uses $u$ on an execution that continues.
 
 Before comparing $\mathsf{H}_7$ and $\mathsf{H}_8$, discard the full PRF keys, $r_j,a,b$, and the unused challenge values. Keep only $x$, the punctured keys, $t$, the canonical sets $T,L$, the prior view, and the independent coins for the other signing queries. These values suffice to continue the game: public hash evaluation uses $C_j$; trigger signing at every other pair uses $k_3\{t\},k_4\{t\}$; and honest signing uses $x$ and $C_j$.
 

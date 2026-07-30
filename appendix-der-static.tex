@@ -38,29 +38,31 @@ If $\CDL[\GG,g,f]$ holds, $\PRF_0,\ldots,\PRF_4$ and $\iO$ are secure, and $p$ i
 Two features of the static game do the work. The declared messages are fixed before key generation, so the reduction knows every slot it will need to program and guesses nothing; this is what keeps the loss polynomial. And the trigger branch recomputes programmed points instead of storing them, so no table appears in the published circuit; this is what removes $Q$.
 
 \begin{proof}[of Theorem~\ref{thm-der-static}]
-Let $\advA_0$ declare $m_1,\ldots,m_{q_s}$ and $m^*\notin\{m_1,\ldots,m_{q_s}\}$. Signing is deterministic, so a repeated declared message receives the same signature; we answer repeats by replaying and index the hybrid by the distinct declared messages, which we continue to write $m_1,\ldots,m_{q_s}$.
+Let $\advA_0$ declare a list of $q_s$ signing messages and a forgery message $m^*$ outside that list. Let $N\le q_s$ be the number of distinct signing messages, and relabel them $m_1,\ldots,m_N$ in order of first occurrence. Signing is deterministic, so every repeated position receives the signature of its first occurrence; the hybrid is indexed by these $N$ distinct messages.
 
 \heading{Game $\Gm_0$ (uniform nonces).} The game replaces each $r_i=\PRFEv_0(k_0,m_i)$ by an independent uniform $r_i\getsr\Zp$. The key $k_0$ is used nowhere else, and the messages are declared before key generation, so a single distinguisher $\advD_0$ bounds the change by $\AdvPRF{\PRF_0}{\advD_0}$. From here on the honest nonces are uniform, as in the randomized scheme.
 
-\heading{Games $\Gm_1,\ldots,\Gm_{q_s}$ (trigger signing).} For $0\le i\le q_s$, let $\Gm_i$ answer the first $i$ declared messages by the trigger procedure, returning $(W_{m_j},s_{m_j})$, and the remaining ones honestly. Every game publishes the honest circuit $\CircDer$ of Figure~\ref{fig-circuit-derand}; hardwired circuits occur only inside the reductions between adjacent games.
+\heading{Games $\Gm_1,\ldots,\Gm_N$ (trigger signing).} For $0\le i\le N$, let $\Gm_i$ answer the first $i$ distinct declared messages by the trigger procedure, returning $(W_{m_j},s_{m_j})$, and the remaining distinct messages honestly; repeated positions replay the response of their first occurrence. Every game publishes the honest circuit $\CircDer$ of Figure~\ref{fig-circuit-derand}; hardwired circuits occur only inside the reductions between adjacent games.
 
 Fix $j$ and compare $\Gm_{j-1}$ with $\Gm_j$. Both endpoints first introduce the event $\mathsf{Bad}_{\mathsf{eq}} := [R_j = W_{m_j}]$ and output $0$ when it occurs, where $R_j=g^{r_j}$ is the honest nonce point. Conditioned on the view before the change, $R_j$ is uniform and independent of $W_{m_j}$, so the two aborts cost at most $2/p$.
 
 The rest of the step is the chain of Appendix~\ref{app-adaptive}, with the slot $u=(d,\salt)$ there replaced by the message $m_j$ here, and with one simplification: the reduction is given $m_j$ by $\advA_0$ before key generation, so it does not guess. Concretely, it sets
 $$
-t=m_j,\qquad
-R=g^{r_j},\qquad
-t_R=\enc{R,m_j},\qquad
-W=g^{s_{m_j}}X^{-c_{m_j}},\qquad
-t_W=\enc{W,m_j},
+\begin{aligned}
+t&=m_j,&
+R&=g^{r_j},&
+t_R&=\enc{R,m_j},\\
+W&=g^{s_{m_j}}X^{-c_{m_j}},&
+t_W&=\enc{W,m_j}.
+\end{aligned}
 $$
-publishes an obfuscation of the analogue of the two-point circuit $C_j$ of Figure~\ref{fig-circuit-query}, with the slot input $(d,\salt)$ there replaced by the message $m$ and the salt input dropped, punctured at $T=\{t_R,t_W\}$ and at $t$, and runs the eight steps $\mathsf{H}_0$ through $\mathsf{H}_8$: replace $\CircDer$ by $C_j$ at the true values, make the $\PRF_1$ and $\PRF_2$ values on $T$ uniform, replace the main-branch hash value by a uniform value and discard the masks, change variables so the honest record is $(g^{s_0}X^{-v},v,s_0)$ for uniform $v,s_0$, make the $\PRF_3$ and $\PRF_4$ values at $t$ uniform, exchange the two records by Lemma~\ref{lem-swap}, and reverse. Each of the two directions invokes $\iO$ once and the four puncturable PRFs once, giving $\epsilon_j$, and the puncture sets are fixed by data available before key generation, so Definitions~\ref{def-pprf} and~\ref{def-io} apply with polynomial-time samplers. Hence
+publishes an obfuscation of the analogue of the two-point circuit $C_j$ of Figure~\ref{fig-circuit-query}, with the slot input $(d,\salt)$ there replaced by the message $m$ and the salt input dropped, punctured at $T=\{t_R,t_W\}$ and at $t$, and runs the eight steps $\mathsf{H}_0$ through $\mathsf{H}_8$: replace $\CircDer$ by $C_j$ at the true values, make the $\PRF_1$ and $\PRF_2$ values on $T$ uniform, replace the main-branch hash value by a uniform value and discard the masks, change variables so the honest record is $(g^{s_0}X^{-v},v,s_0)$ for uniform $v,s_0$, make the $\PRF_3$ and $\PRF_4$ values at $t$ uniform, exchange the two records by Lemma~\ref{lem-swap}, and reverse. Each of the two directions invokes $\iO$ once and the four puncturable PRFs once, giving $\epsilon_j$. The slot $m_j$ and uniform nonce point $R$ are fixed before key generation. The trigger point $W$ depends on trigger-PRF outputs, but in each puncturable-PRF reduction the challenge inputs are sampled independently of the particular PRF key being challenged; the reduction samples the other independent keys after receiving those challenge values. Thus Definitions~\ref{def-pprf} and~\ref{def-io} apply with polynomial-time samplers. Hence
 $$
 \big|\Pr[\Gm_{j-1}\Rightarrow1]-\Pr[\Gm_j\Rightarrow1]\big|
 \le \epsilon_j+\frac{2}{p} \;.
 $$
 
-In $\Gm_{q_s}$ every signature is a trigger signature, and computing $W_{m}$ and $s_{m}$ uses $X$ and the PRF keys but not $x$.
+In $\Gm_N$ every signature is a trigger signature, and computing $W_{m}$ and $s_{m}$ uses $X$ and the PRF keys but not $x$.
 
 \heading{A main-branch forgery.} Let $E_{\mathsf{main}}$ be the event that $\advA_1$ returns a valid forgery on $m^*$ whose hash value comes from the main branch. Adversary $\advB_{\mathsf{main}}$ receives a CDL challenge $h$, sets $X\gets h$, samples the four PRF keys, publishes the obfuscated circuit, and answers the declared messages by the trigger procedure. Given a valid forgery $(R^*,s^*)$ it computes $a^*,b^*$ from $k_1,k_2$ at $\enc{R^*,m^*}$ and returns
 $$
@@ -82,6 +84,5 @@ $$
 +\AdvPRF{\PRF_4}{\advD^{\mathsf{prf}}_{\mathsf{trig}}} \;.
 $$
 
-\heading{Conclusion.} A valid forgery takes one of the two branches, so collecting the terms gives the stated bound. Every reduction runs in time $t_{\advA}+\poly(\secp,q_s)$, and no factor depending on the message space or on a guess appears.
+\heading{Conclusion.} A valid forgery takes one of the two branches. Summing the $N$ adjacent-game bounds and using $N\le q_s$ gives the stated sum and the term $2q_s/p$; for notational consistency, the distinguishers for indices $j>N$ may be taken to be trivial. Every reduction runs in time $t_{\advA}+\poly(\secp,q_s)$, and no factor depending on the message space or on a guess appears.
 \end{proof}
-

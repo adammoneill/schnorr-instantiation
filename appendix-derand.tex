@@ -1,6 +1,6 @@
 \section{Proof of Theorem~\ref{thm-der-adaptive}} \label{app-derand}
 
-Throughout, $d = \dig(K,m)$ denotes the digest of $m$ under the pre-hash key $K$, and the slot of a query on $m$ is $d$. Fix a PPT adversary $\advA$ making at most $q_s$ signing queries, and write $N \le q_s$ for the number it makes in a given execution. Signing is deterministic, so a repeated query is answered by replaying the earlier answer in every game below, and the hybrid runs over the distinct queried messages.
+Throughout, $d = \dig(K,m)$ denotes the digest of $m$ under the pre-hash key $K$, and the slot of a query on $m$ is $d$. Fix a PPT adversary $\advA$ making at most $q_s$ signing queries. In a given execution, let $N\le q_s$ be the number of distinct queried messages, and write $m_j$ for the $j$-th message when it first appears, for $j\in[N]$. Signing is deterministic, so a repeated query is answered by replaying the earlier answer in every game below, and the hybrid runs over $m_1,\ldots,m_N$.
 
 \heading{From the real game to the lossy chain.} The real game is the EUF-CMA game for $\SchDScheme[\GG,\HF^{\mathsf{dio}}]$, in which the pre-hash key is generated in injective mode. We add one abort. The event $\mathsf{Bad}_{\mathsf{col}}$ occurs if two distinct messages among the signing queries and the forgery message have equal digests; when it occurs the game outputs 0. In injective mode distinct messages have distinct digests unless key sampling fails, so the abort costs at most $\nu_{\mathsf{inj}}(\secp,r)$.
 
@@ -8,11 +8,15 @@ There is no repeated-slot abort here. In Section~\ref{sec-adaptive} the slot is 
 
 Next switch the pre-hash key to lossy mode at the same $r$. The distinguisher receives $K$, samples $x$, $k_0$, and the four PRF keys itself, builds the obfuscated circuit, runs the game including the abort, and outputs its result; it is PPT, so the switch costs $\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}$. In every game from here on, an execution that reaches $\Finalize$ without aborting has distinct digests for distinct relevant messages.
 
-\heading{Uniform nonces.} Replace each honest nonce $r_m = \PRFEv_0(k_0,m)$ by an independent uniform value of $\Zp$, once and for all. The key $k_0$ appears nowhere else, so a single distinguisher bounds the change by $\AdvPRF{\PRF_0}{\advD_0}$. Honest nonce points are now uniform, as they are for a randomized signer.
+\heading{Uniform nonces.} Replace each honest nonce $r_m = \PRFEv_0(k_0,m)$ by an independent uniform value of $\Zp$, once and for all. Equivalently, before key generation presample
+$$
+r_j\getsr\Zp\qquad\text{for }j\in[q_s],
+$$
+assign $r_j$ to the $j$-th new message $m_j$ when it appears, and reuse it when that message is repeated. The key $k_0$ appears nowhere else, so a single distinguisher bounds the change by $\AdvPRF{\PRF_0}{\advD_0}$. Honest nonce points are now uniform, as they are for a randomized signer.
 
 \heading{The outer games.} For $0 \le i \le q_s$, let $\Gm_i$ answer the first $i$ distinct queried messages by the trigger procedure, returning $(W_{d}, s_{d})$ for $d$ the digest of the message, and the remaining ones honestly. Every game publishes the honest circuit of Construction~\ref{constr-der}, retyped to take the digest as its second input; hardwired circuits occur only inside the reductions between adjacent games. Game $\Gm_0$ is the lossy game with the abort, and $\Gm_{q_s}$ answers every query without the secret exponent.
 
-\heading{Changing query $j$.} Fix $j$ and restrict to executions with $N \ge j$. At each endpoint, introduce the event
+\heading{Changing distinct message $j$.} Fix $j$ and restrict to executions with $N \ge j$. At each endpoint, introduce the event
 $$
 \mathsf{Bad}_{\mathsf{eq}} := [R_j = W_{d_j}],
 \qquad
@@ -33,11 +37,11 @@ $$
 This is the only guessing in the proof, and it is where the pre-hash earns its place: without it the guessed value would be the message, at a cost of $2^{\msglen}$.
 
 \begin{lemma} \label{lem-swap}
-Let $T_0=(R_0,v_0,s_0)$ and $T_1=(R_1,v_1,s_1)$ be independent and identically distributed, with $v_b,s_b\getsr\Zp$ and $R_b=g^{s_b}X^{-v_b}$, conditioned on $R_0\ne R_1$. Let $V$ be any random variable that depends on $(T_0,T_1)$ only through the unordered set $\{(R_0,v_0),(R_1,v_1)\}$ and through data whose distribution is unchanged when $T_0$ and $T_1$ are exchanged. Then $(V,R_0,s_0)$ and $(V,R_1,s_1)$ are identically distributed.
+For $b\in\{0,1\}$, independently sample $v_b,s_b\getsr\Zp$ and set $R_b=g^{s_b}X^{-v_b}$ and $T_b=(R_b,v_b,s_b)$. Condition the joint distribution of $(T_0,T_1)$ on $R_0\ne R_1$. Let $V$ be any random variable that depends on $(T_0,T_1)$ only through the unordered set $\{(R_0,v_0),(R_1,v_1)\}$ and through data whose distribution is unchanged when $T_0$ and $T_1$ are exchanged. Then $(V,R_0,s_0)$ and $(V,R_1,s_1)$ are identically distributed.
 \end{lemma}
 
 \begin{proof}
-Sample the unordered pair $\{T_0,T_1\}$ together with an independent uniform bit $\beta$, and let $T_0,T_1$ be its two elements in the order given by $\beta$. This reproduces the stated distribution, since the two triples are independent, identically distributed, and distinct in their first components. By hypothesis $V$ is a function of the unordered pair and of swap-invariant data, so $V$ is independent of $\beta$. Hence $(V,R_\beta,s_\beta)$ and $(V,R_{1-\beta},s_{1-\beta})$ have the same distribution, which is the claim.
+Before conditioning, the joint distribution of $(T_0,T_1)$ is invariant under exchanging the two triples. The event $R_0\ne R_1$ is also invariant under that exchange, so the conditioned joint distribution remains invariant, although the two triples need no longer be independent. Equivalently, sample the unordered pair $\{T_0,T_1\}$ and use an independent uniform bit $\beta$ to choose its ordering. By hypothesis $V$ is a function of the unordered pair and of swap-invariant data, so its distribution does not depend on $\beta$. Hence $(V,R_\beta,s_\beta)$ and $(V,R_{1-\beta},s_{1-\beta})$ have the same distribution, which is the claim.
 \end{proof}
 
 \heading{The hybrid chain for query $j$.} Set

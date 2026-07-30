@@ -1,0 +1,987 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{array,booktabs,tabularx}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue]{hyperref}
+
+\newcommand{\Zp}{\mathbb{Z}_p}
+\newcommand{\bits}{\{0,1\}}
+\newcommand{\getsr}{\mathrel{\mathop{\leftarrow}\limits^{\$}}}
+\newcommand{\negl}{\mathsf{negl}}
+\newcommand{\PPT}{\mathsf{PPT}}
+\newcommand{\inj}{\mathsf{inj}}
+\newcommand{\lossy}{\mathsf{lossy}}
+\newcommand{\Eval}{\mathsf{Eval}}
+\newcommand{\KeyGen}{\mathsf{KeyGen}}
+\newcommand{\Enum}{\mathsf{Enum}}
+\newcommand{\Punc}{\mathsf{Punc}}
+\newcommand{\Obf}{\mathcal{O}}
+\newcommand{\Sign}{\mathsf{Sign}}
+\newcommand{\Verify}{\mathsf{Verify}}
+\newcommand{\Main}{\mathsf{Main}}
+\newcommand{\Trig}{\mathsf{Trigger}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{The Local Hybrid in the Salted and Derandomized\\Schnorr Instantiations}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This note explains the proof device that removes an a priori bound on the
+number of signing queries in the salted and derandomized Schnorr
+instantiations.  The proof changes one signing response at a time.  For that
+one change it temporarily publishes a circuit containing two explicit hash
+input--output pairs, exchanges an honest signature with a trigger signature,
+and then restores the original circuit.  The temporary pairs do not remain
+for the next query and therefore never accumulate.  A tunable lossy pre-hash
+has a separate role: it lets the reduction guess the digest of an adaptive
+message before the verification key is published.  Salt and derandomization
+also have a separate role: they make repeated signing queries consistent with
+the trigger simulation.  We give the salted proof first and then derive the
+derandomized adaptive and static proofs from it.
+\end{abstract}
+
+\section{The point of the argument}
+
+There are three different problems, and the construction uses a different
+mechanism for each one.
+
+The parameter \(r\) below is the upper bound on the lossy image of the
+pre-hash.
+
+\begin{enumerate}[leftmargin=2em]
+\item A proof circuit cannot grow with the number of signing queries.  A
+      \emph{local hybrid} treats one query at a time with a temporary
+      fixed-size circuit.  This removes the query bound from the scheme.
+\item An adaptive signing message is not known when the verification key is
+      generated.  A tunable lossy function maps every message to one of at
+      most \(r\) possible digests in the proof.  The reduction can therefore
+      guess the digest at cost \(r\).
+\item A trigger determines one simulated signature for each input at which
+      it is evaluated.  Salt gives repeated invocations of the same message
+      different trigger inputs.  Derandomization instead makes repeated
+      invocations replay the same signature, so they may share one trigger
+      input.
+\end{enumerate}
+
+The most important point is that there is no circuit that is gradually
+punctured while one adversary runs.  A hybrid proof compares separate
+experiments.  Each experiment publishes one fixed circuit at the start.  The
+temporary circuit used to compare two adjacent experiments exists only in
+that comparison.
+
+\section{Common setup}
+
+\subsection{Schnorr signatures}
+
+Fix a security parameter \(\lambda\).  Let \(\mathbb{G}\) be a cyclic group
+of prime order \(p\), let \(g\) be a generator, and let
+\(\Zp=\{0,\ldots,p-1\}\) denote the exponents modulo \(p\).  The signing key is
+\(x\getsr\Zp\), and the verification key contains
+\[
+  X=g^x.
+\]
+For a group element \(R\), a challenge \(c\in\Zp\), and a response
+\(s\in\Zp\), the Schnorr verification equation is
+\[
+  g^s=R X^c.
+\]
+An honest signer chooses a nonce \(\rho\in\Zp\), sets \(R=g^\rho\), obtains a
+challenge \(c\) from the hash function, and returns
+\[
+  s=\rho+cx \pmod p.
+\]
+
+\subsection{The tunable lossy pre-hash}
+
+A tunable lossy function is a triple of algorithms
+\[
+  \mathsf{L}
+  =
+  \bigl(\mathsf{L.KeyGen},\mathsf{L.Eval},\mathsf{L.Enum}\bigr).
+\]
+The algorithms have the following meanings.
+
+\begin{itemize}[leftmargin=2em]
+\item
+  \(\mathsf{L.KeyGen}(1^\lambda,r,\mu)\) takes an image parameter \(r\) and a
+  mode \(\mu\in\{\inj,\lossy\}\).  It returns a public evaluation key \(K\)
+  and private enumeration information \(\mathsf{td}\).
+\item
+  \(\mathsf{L.Eval}(K,m)\) evaluates the function on a message \(m\).
+\item
+  If \(K\) was generated in lossy mode, then
+  \(\mathsf{L.Enum}(\mathsf{td})\) returns a list containing every possible
+  output of \(\mathsf{L.Eval}(K,\cdot)\).  After duplicates are removed, the
+  list has at most \(r\) entries.
+\end{itemize}
+
+Keys generated in injective mode and lossy mode are computationally
+indistinguishable.  Except with a negligible key-generation failure
+probability, evaluation in injective mode is one-to-one.  In the real scheme
+the key is generated in injective mode.  The proof switches it to lossy mode.
+
+Fix an injective encoding of the range of \(\mathsf{L.Eval}\) as bit strings
+whose first bit is always 0.  A string whose first bit is 1 is therefore not a
+valid digest encoding.
+The \emph{digest} of a message \(m\) under key \(K\) is
+\[
+  d=\mathsf{dig}(K,m)
+  :=
+  \mathsf{encode}\bigl(\mathsf{L.Eval}(K,m)\bigr).
+\]
+The encoding is part of the definition of \(\mathsf{dig}\).  Thus
+\(\mathsf{dig}\) is an algorithm, not a new assumption.
+
+\subsection{The pseudorandom functions}
+
+The construction uses four puncturable pseudorandom functions.  For
+\(i\in\{1,2,3,4\}\), write
+\[
+  \mathsf{F}_i
+  =
+  \bigl(\mathsf{F}_i.\KeyGen,
+        \mathsf{F}_i.\Eval,
+        \mathsf{F}_i.\Punc\bigr).
+\]
+Algorithm \(\mathsf{F}_i.\KeyGen(1^\lambda)\) returns a key \(k_i\).
+Algorithm \(\mathsf{F}_i.\Eval(k_i,z)\) returns the function value at \(z\).
+For a finite set \(S\) of inputs,
+\(\mathsf{F}_i.\Punc(k_i,S)\) returns a punctured key, denoted
+\[
+  k_i\{S\}.
+\]
+This key evaluates the same function at every input outside \(S\), but hides
+the values at the inputs in \(S\).  Puncturable-PRF security lets the proof
+replace those hidden values by independent uniform values.
+
+The first two functions, \(\mathsf{F}_1\) and \(\mathsf{F}_2\), compute the
+main branch of the hash.  The last two, \(\mathsf{F}_3\) and
+\(\mathsf{F}_4\), compute one trigger challenge and response for each
+\emph{slot}.  A slot will be a digest--salt pair in the salted scheme and a
+digest or message in the derandomized schemes.  All four functions have range
+\(\Zp\).
+
+Fix two injective encoding algorithms:
+\[
+\begin{aligned}
+  E_0(u)   &:\text{ encodes a slot \(u\) for }
+              \mathsf{F}_3,\mathsf{F}_4,\\
+  E_1(P,u) &:\text{ encodes a group element \(P\) and a slot \(u\) for }
+              \mathsf{F}_1,\mathsf{F}_2.
+\end{aligned}
+\]
+The encodings only put the indicated objects into the required PRF domains.
+They have no cryptographic role beyond being injective.
+
+The derandomized signer will also use an ordinary PRF
+\[
+  \mathsf{F}_0
+  =
+  \bigl(\mathsf{F}_0.\KeyGen,\mathsf{F}_0.\Eval\bigr)
+\]
+whose range is \(\Zp\).  This PRF need not be puncturable.
+
+\subsection{Indistinguishability obfuscation}
+
+Let \(\Obf\) be an indistinguishability obfuscator.  On input a circuit \(C\),
+\(\Obf(1^\lambda,C)\) returns an obfuscated implementation of \(C\).
+Security says that if two equal-size circuits compute exactly the same
+function on every input, then their obfuscations are computationally
+indistinguishable.  Every circuit below is padded to one fixed polynomial
+size before it is obfuscated.
+
+\subsection{The common hash circuit}
+
+Fix an efficiently computable function
+\[
+  f:\mathbb{G}\longrightarrow\Zp
+\]
+such that \(f(Y)\ne 0\) for every \(Y\in\mathbb{G}\).  This is the conversion
+function used in the circular discrete-logarithm problem.
+
+For a public key \(X\), PRF keys \(k_1,\ldots,k_4\), a group element \(P\),
+and a slot \(u\), define the circuit
+\(\mathsf{C}[X,k_1,k_2,k_3,k_4]\) as follows:
+\[
+\begin{array}{ll}
+t\gets E_0(u),&
+c_{\mathrm{tr}}\gets\mathsf{F}_3.\Eval(k_3,t),\\
+&
+s_{\mathrm{tr}}\gets\mathsf{F}_4.\Eval(k_4,t),\\[2pt]
+W\gets g^{s_{\mathrm{tr}}}X^{-c_{\mathrm{tr}}}.&
+\end{array}
+\]
+If \(P=W\), the circuit returns \(c_{\mathrm{tr}}\).  Otherwise it sets
+\[
+\begin{aligned}
+ e&=E_1(P,u),\\
+ a&=\mathsf{F}_1.\Eval(k_1,e),\\
+ b&=\mathsf{F}_2.\Eval(k_2,e),
+\end{aligned}
+\]
+and returns
+\[
+  \bigl(f(PX^a g^b)+a\bigr)\bmod p.
+\]
+The first case is the trigger branch.  The second case is the main branch.
+
+The trigger branch always contains a valid Schnorr signature.  Indeed,
+\[
+  W=g^{s_{\mathrm{tr}}}X^{-c_{\mathrm{tr}}}
+  \quad\Longrightarrow\quad
+  g^{s_{\mathrm{tr}}}=W X^{c_{\mathrm{tr}}}.
+\]
+The reduction can therefore return
+\((W,s_{\mathrm{tr}})\) without knowing \(x\).
+
+The main branch converts a forgery to a circular discrete-logarithm solution.
+The circular discrete-logarithm problem gives the solver \(X\) and asks for
+\((Y,z)\) satisfying
+\[
+  g^z=Y X^{f(Y)}.
+\]
+Suppose a valid forgery \((P,s)\) receives its challenge from the main branch.
+The reduction knows the corresponding values \(a,b\), sets
+\[
+  Y=PX^a g^b,
+\]
+and returns \((Y,s+b)\).  If
+\(c=f(PX^a g^b)+a=f(Y)+a\), then
+\[
+\begin{aligned}
+  g^{s+b}
+   &=P X^c g^b\\
+   &=P X^{f(Y)+a}g^b\\
+   &=Y X^{f(Y)}.
+\end{aligned}
+\]
+Thus every valid forgery is useful: a main-branch forgery gives a circular
+discrete-logarithm solution, while a trigger-branch forgery will give an
+ordinary discrete logarithm after a separate puncturing step.
+
+\section{Salted Schnorr}
+
+\subsection{The scheme}
+
+Fix a salt length \(\ell_{\mathrm{salt}}\).  Key generation samples
+\(x\getsr\Zp\), sets \(X=g^x\), generates a tunable lossy-function key \(K\)
+in injective mode, generates \(k_1,\ldots,k_4\), and publishes \(X\), \(K\),
+and an obfuscation of the common hash circuit.
+
+To sign a message \(m\), the signer samples independently
+\[
+  \rho\getsr\Zp
+  \qquad\text{and}\qquad
+  \sigma\getsr\bits^{\ell_{\mathrm{salt}}},
+\]
+and sets
+\[
+\begin{aligned}
+  d&=\mathsf{dig}(K,m),&
+  u&=(d,\sigma),&
+  R&=g^\rho,\\
+  c&=\mathsf{C}(R,u),&
+  s&=\rho+cx\pmod p.
+\end{aligned}
+\]
+The signature is \((R,s,\sigma)\).  Verification recomputes \(d\) and \(u\),
+evaluates the published circuit to obtain \(c\), and checks
+\(g^s=RX^c\).
+
+\subsection{The outer experiments}
+
+Fix a \(\PPT\) adversary that makes at most \(q_s\) signing queries.  Let
+\(N\le q_s\) be the number of invocations made in one execution.  Number the
+invocations that occur \(1,\ldots,N\), and let \(m_j\) be the message in
+invocation \(j\).  The proof may sample \(q_s\) salts and honest nonces before key
+generation:
+\[
+  \sigma_j\getsr\bits^{\ell_{\mathrm{salt}}}
+  \qquad\text{and}\qquad
+  \rho_j\getsr\Zp
+  \qquad (j=1,\ldots,q_s).
+\]
+These values are independent coins.  Moving their sampling earlier does not
+change their distribution, and unused values are discarded.
+
+The proof also aborts on either of two events.  The first event occurs if two
+signing invocations use the same slot.  The second occurs if two distinct
+messages among the signing queries and forgery have the same digest.  In the
+real experiment, an injective key rules out the second event, except on
+key-generation failure, and the first event then requires a repeated salt.
+The proof keeps these aborts after changing the key to lossy mode.  Therefore,
+on every execution that continues, no other response uses the target slot
+of query \(j\).
+
+For \(i\in\{0,\ldots,q_s\}\), define \(G_i\) to be the complete experiment
+in which the first \(i\) signing invocations that occur receive trigger
+signatures and the remaining invocations receive honest signatures.  Every \(G_i\)
+publishes an obfuscation of the original, unpunctured circuit.  The
+experiments differ only in which signing procedure answers each invocation.
+
+The proof compares \(G_0,G_1,\ldots,G_{q_s}\).  We now give the full
+comparison between \(G_{j-1}\) and \(G_j\), restricted to executions in
+which \(N\ge j\).  When \(N<j\), the two experiments are identical.
+
+\subsection{Fixing the slot for query \texorpdfstring{\(j\)}{j}}
+
+The digest and slot used by query \(j\) are
+\[
+  d_j=\mathsf{dig}(K,m_j)
+  \qquad\text{and}\qquad
+  u_j=(d_j,\sigma_j).
+\]
+The reduction knows \(\sigma_j\) before key generation, because it sampled
+that independent coin itself.  It does not know \(m_j\), because the
+adversary chooses it after seeing the verification key.  It therefore does
+not know \(d_j\).
+
+The proof first switches \(K\) from injective mode to lossy mode.  Using the
+private information returned by lossy key generation, the reduction computes
+\[
+  D\gets\mathsf{L.Enum}(\mathsf{td}).
+\]
+It removes duplicates and pads the result with dummy strings to obtain a list
+of exactly \(r\) entries.  The dummy strings are chosen outside the digest
+encoding range.  The reduction selects a uniform list position, calls its
+entry \(\widehat d_j\), and builds the query-\(j\) comparison for
+\[
+  \widehat u_j=(\widehat d_j,\sigma_j).
+\]
+It aborts unless \(\widehat d_j=d_j\).  Except with the enumeration failure
+probability, \(d_j\) appears exactly once in the padded list, so
+\[
+  \Pr[\widehat d_j=d_j]=\frac1r.
+\]
+For the rest of this subsection, condition on a correct guess and write
+\[
+  u=u_j=\widehat u_j.
+\]
+This conditioning fixes the slot before the circuit is published.
+
+\subsection{The honest and trigger records}
+
+For the honest signature on query \(j\), define
+\[
+\begin{aligned}
+  R&=g^{\rho_j},\\
+  v&=\mathsf{C}(R,u),\\
+  s_0&=\rho_j+vx\pmod p.
+\end{aligned}
+\]
+The honest record is
+\[
+  T_0=(R,v,s_0).
+\]
+
+For the trigger signature at the same slot, define
+\[
+\begin{aligned}
+  t&=E_0(u),\\
+  c&=\mathsf{F}_3.\Eval(k_3,t),\\
+  s_1&=\mathsf{F}_4.\Eval(k_4,t),\\
+  W&=g^{s_1}X^{-c}.
+\end{aligned}
+\]
+The trigger record is
+\[
+  T_1=(W,c,s_1).
+\]
+The actual response given to the adversary omits the challenge, since the
+verifier recomputes it.  Thus the two possible responses are
+\((R,s_0,\sigma_j)\) and \((W,s_1,\sigma_j)\).
+
+The proof aborts if \(R=W\).  At either endpoint, \(R\) is uniform and
+independent of \(W\), so this event has probability \(1/p\).  The two
+endpoint aborts together cost at most \(2/p\).  From now on assume \(R\ne W\).
+
+\subsection{The temporary two-point circuit}
+
+Define the two main-branch inputs
+\[
+  e_R=E_1(R,u)
+  \qquad\text{and}\qquad
+  e_W=E_1(W,u),
+\]
+the puncture set
+\[
+  S=\{e_R,e_W\},
+\]
+and the two explicit hash input--output pairs
+\[
+  L=\{(e_R,v),(e_W,c)\}.
+\]
+The two entries of \(L\) are stored in a canonical order, for example in
+lexicographic order of their first coordinates.  The order does not record
+which entry came from the honest signature and which came from the trigger
+signature.
+
+The temporary circuit \(C_j\) contains
+\[
+  k_1\{S\},\quad k_2\{S\},\quad
+  k_3\{\{t\}\},\quad k_4\{\{t\}\},
+\]
+together with \(t\) and \(L\).  On input a group element \(P\) and a slot
+\(u'\), it proceeds as follows.
+
+\begin{enumerate}[leftmargin=2em]
+\item Compute \(e'=E_1(P,u')\).  If \((e',z)\in L\), return \(z\).
+\item Compute \(t'=E_0(u')\).  If \(t'\ne t\), use the punctured keys
+      \(k_3\{\{t\}\},k_4\{\{t\}\}\) to compute the trigger for \(u'\), and
+      return its challenge if \(P\) is its trigger point.
+\item Use \(k_1\{S\},k_2\{S\}\) to compute the main branch and return its
+      output.
+\end{enumerate}
+
+The punctured keys are never evaluated at a punctured input.  In the first
+step, the two missing complete hash outputs are supplied explicitly: \(v\)
+is the main-branch output at \(R\), while \(c\) is the trigger-branch output
+at \(W\).  The main-branch PRF outputs at \(W\) are neither supplied nor
+needed.  When \(t'=t\), the circuit skips the trigger computation.  The
+trigger point for this slot is \(W\), which the first step already handles.
+Every other point at this slot fails the trigger comparison and should take
+the main branch.
+
+\subsection{Why the two circuits compute the same function}
+
+At the true PRF values, the original circuit and \(C_j\) agree on every
+input.
+
+\begin{itemize}[leftmargin=2em]
+\item On \((R,u)\), the original circuit takes the main branch because
+      \(R\ne W\), and returns \(v\).  The temporary circuit returns the
+      explicit value \(v\).
+\item On \((W,u)\), the original circuit takes the trigger branch and returns
+      \(c\).  The temporary circuit returns the explicit value \(c\).
+\item On \((P,u)\) for \(P\notin\{R,W\}\), the original circuit fails its
+      trigger comparison and takes the main branch.  The temporary circuit
+      skips the unavailable trigger computation and takes the same main
+      branch.
+\item On every other slot, all punctured keys evaluate exactly as the
+      original keys do.
+\end{itemize}
+
+The circuits are padded to the same size.  Indistinguishability obfuscation
+therefore permits the proof to replace the published original circuit by an
+obfuscation of \(C_j\).
+
+\subsection{What each puncture accomplishes}
+
+Puncturing and explicit storage have complementary roles.  Puncturing removes
+the circuit's ability to recover a selected PRF output from the retained key.
+Explicit storage preserves the hash function at the selected complete hash
+inputs.  With the original values stored, the temporary circuit computes the
+same function.  Once the relevant keys are punctured, puncturable-PRF security
+lets the proof replace the hidden values by uniform ones.
+
+The main-branch PRFs \(\mathsf{F}_1,\mathsf{F}_2\) are punctured at
+\[
+  e_R=E_1(R,u)
+  \qquad\text{and}\qquad
+  e_W=E_1(W,u).
+\]
+At \(e_R\), the two PRF outputs are the masks \(a,b\) used to produce the
+honest challenge
+\[
+  v=f(RX^ag^b)+a\pmod p.
+\]
+Replacing \(b\) by a uniform exponent makes \(RX^ag^b\) uniform in the group
+and independent of \(a\).  Replacing \(a\) by a uniform exponent then makes
+\(v\) uniform in \(\Zp\), whatever the distribution of \(f\) on a uniform
+group element.  Thus puncturing at \(e_R\) is what lets the proof turn the
+honest record into a uniformly generated Schnorr record.
+
+The main branch is not evaluated at \(W\), because the trigger branch returns
+first.  Puncturing \(\mathsf{F}_1,\mathsf{F}_2\) at \(e_W\) is nevertheless
+important.  If only \(e_R\) were punctured, the puncture set itself would
+identify \(R\) as the honest point.  Puncturing at both \(e_R\) and \(e_W\)
+makes the retained circuit description symmetric in the two point--value
+pairs.  This is what allows the later exact exchange.  The values of the
+main-branch PRFs at \(e_W\) are hidden for symmetry, not because the original
+circuit uses them.
+
+The trigger PRFs \(\mathsf{F}_3,\mathsf{F}_4\) are punctured at the one slot
+input
+\[
+  t=E_0(u).
+\]
+Their outputs are the trigger challenge \(c\) and response \(s_1\).
+Puncturing at \(t\) lets the proof replace both by independent uniform
+values, so that
+\[
+  (W,c,s_1)=\bigl(g^{s_1}X^{-c},c,s_1\bigr)
+\]
+has the same form as the transformed honest record.  The temporary circuit
+cannot evaluate the punctured trigger keys at \(t\), so it handles
+\((W,u)\) through the explicit pair \((e_W,c)\) and skips the trigger
+computation at every other point with slot \(u\).  This preserves the
+function because \(W\) is the only point at that slot for which the trigger
+comparison succeeds.
+
+When a trigger output changes in its PRF hybrid, the proof also recomputes
+\(W\), \(e_W\), the explicit pair containing \(W\), and the main-branch
+puncture set.  This does not violate the selective puncturing requirement.
+These are separate hybrid experiments: each one publishes one circuit with
+its current values fixed at the start.  No already published circuit is
+modified while the adversary runs.
+The slot input \(t\) was fixed independently of the trigger-PRF keys.  After
+the trigger challenge value determines \(W\), the corresponding reduction
+generates the independent main-branch keys and punctures them at
+\(\{e_R,e_W\}\).  Conversely, when a main-branch PRF is challenged, the set
+\(\{e_R,e_W\}\) was produced without that PRF key.  Each puncture set is
+therefore independent of the particular key whose security is being used,
+even though not every point is fixed before every other key is generated.
+
+In short, main-branch puncturing makes the honest record uniform and removes
+its label; trigger-branch puncturing makes the trigger record uniform.  The
+proof exchanges the records only after both jobs have been done.
+
+\subsection{Making the two records symmetric}
+
+Once the punctured circuit is published, puncturable-PRF security lets the
+proof replace the selected \(\mathsf{F}_1\) and \(\mathsf{F}_2\) outputs at
+\(e_R,e_W\) by independent uniform values.  Only the values at \(e_R\) are
+used to form \(v\); both inputs are punctured and replaced so that the
+circuit description treats \(R\) and \(W\) in the same way.
+
+For fixed \(R\), if \(a,b\getsr\Zp\), then
+\[
+  U=RX^a g^b
+\]
+is uniform in \(\mathbb{G}\) and independent of \(a\).  Hence
+\[
+  v=f(U)+a\pmod p
+\]
+is uniform in \(\Zp\) and independent of \(R\).  The proof may replace \(v\)
+by a fresh uniform value exactly, without a computational assumption.
+
+Now change variables in the honest record.  Sampling
+\(\rho_j,v\getsr\Zp\), setting \(R=g^{\rho_j}\), and setting
+\(s_0=\rho_j+vx\) has exactly the same distribution as sampling
+\(s_0,v\getsr\Zp\) and setting
+\[
+  R=g^{s_0}X^{-v}.
+\]
+
+Next, puncturable-PRF security at \(t\) replaces
+\[
+  c=\mathsf{F}_3.\Eval(k_3,t)
+  \qquad\text{and}\qquad
+  s_1=\mathsf{F}_4.\Eval(k_4,t)
+\]
+by independent uniform values.  The trigger point is recomputed as
+\[
+  W=g^{s_1}X^{-c}.
+\]
+
+At this midpoint the two records are
+\[
+  T_0=(g^{s_0}X^{-v},v,s_0)
+  \qquad\text{and}\qquad
+  T_1=(g^{s_1}X^{-c},c,s_1),
+\]
+Before conditioning, \(v,s_0,c,s_1\) are independent uniform elements of
+\(\Zp\), so \(T_0\) and \(T_1\) are generated independently by the same
+rule.  The event that their first components are different is invariant under
+exchanging the two records.  Conditioning on that event therefore preserves
+invariance of their joint distribution under exchange, although the records
+need no longer be independent.
+
+Before the exchange, the proof discards the original nonce \(\rho_j\), the
+selected main-branch masks, the full PRF keys, and any unused copy of the two
+responses.  It retains \(x\), the adversary's view before query \(j\), the
+independent coins for every other signing query, the punctured keys, the
+slot, and the canonically ordered pair set.  This state is enough to continue
+the experiment.  Because of the repeated-slot abort, no other signing
+response on an execution that continues uses \(u\).
+
+The retained circuit contains the unordered set
+\[
+  \{(E_1(R,u),v),(E_1(W,u),c)\}
+\]
+and nothing that labels one entry ``honest'' and the other ``trigger.''  The
+other retained state is unchanged if the two records are exchanged.  It is
+therefore exact to return \((W,s_1,\sigma_j)\) instead of
+\((R,s_0,\sigma_j)\).
+
+\subsection{The complete query-\texorpdfstring{\(j\)}{j} comparison}
+
+The adjacent-game comparison is
+\[
+\begin{array}{c}
+G_{j-1}:
+\text{ original circuit; query \(j\) receives the honest response}\\
+\downarrow\quad \text{indistinguishability obfuscation}\\
+\text{temporary circuit \(C_j\) with two explicit hash pairs}\\
+\downarrow\quad \text{puncturable-PRF and exact distribution changes}\\
+\text{the joint distribution of the two records is invariant under exchange}\\
+\downarrow\quad \text{exchange the returned record}\\
+\text{temporary circuit \(C_j\); query \(j\) receives the trigger response}\\
+\downarrow\quad \text{reverse all preceding changes}\\
+G_j:
+\text{ original circuit; query \(j\) receives the trigger response}.
+\end{array}
+\]
+
+The response is not exchanged immediately after the iO step.  It is
+exchanged only at the symmetric midpoint, after the selected PRF values have
+been hidden and the joint distribution of the records has become symmetric.
+The
+iO steps change the circuit description; the symmetry argument changes
+which signature is returned.
+
+\subsection{Why the query bound disappears}
+
+Let \(Q\) denote the a priori signing-query bound that the earlier
+construction placed in the definition of the scheme and in its circuit
+padding.
+
+After the proof reaches \(G_j\), the temporary circuit \(C_j\) has
+disappeared.  The endpoint again publishes the original circuit.  To compare
+\(G_j\) with \(G_{j+1}\), the proof starts over and constructs a new
+temporary circuit \(C_{j+1}\) containing only the two hash pairs for query
+\(j+1\).
+
+Thus every circuit used in the proof contains at most two exceptional hash
+inputs and one exceptional trigger slot.  These values never accumulate.
+The circuit can be padded to one fixed polynomial size that does not depend
+on the adversary's number of queries.
+
+The proof still performs one adjacent-game comparison for each of the
+adversary's \(q_s\) signing queries.  Its running time and security loss
+therefore depend on \(q_s\).  This is ordinary: every polynomial-time
+adversary has some polynomial query bound.  What has disappeared is a
+parameter \(Q\) chosen when the scheme is defined and built into the circuit
+size.  One fixed scheme now handles every polynomial-time adversary.
+
+\subsection{What lossiness and salt do}
+
+The local hybrid removes \(Q\), but it requires the slot \(u_j\) to be fixed
+before the temporary circuit is published.  The reduction can presample the
+salt \(\sigma_j\) and honest nonce \(\rho_j\).  It cannot presample the
+adversary's message \(m_j\), so it guesses the digest \(d_j\).  Lossy mode
+makes that guess cost \(r\) rather than the size of the message space.
+Lossiness does not keep the circuit small; the local hybrid does.
+
+Salt handles repeated messages.  If the adversary asks for the same message
+twice, the two invocations receive independent salts.  Their slots are
+\[
+  (\mathsf{dig}(K,m),\sigma_j)
+  \qquad\text{and}\qquad
+  (\mathsf{dig}(K,m),\sigma_{j'}).
+\]
+Except with the salt-collision probability, the slots are different, so the
+two trigger signatures are pseudorandomly fresh, matching the two fresh
+honest randomized signatures.
+
+\section{Derandomized Schnorr}
+
+\subsection{The scheme and repeated messages}
+
+The derandomized signer samples a nonce-PRF key
+\[
+  k_0\getsr\mathsf{F}_0.\KeyGen(1^\lambda)
+\]
+at key generation.  On message \(m\), it computes
+\[
+  \rho_m=\mathsf{F}_0.\Eval(k_0,m)
+  \qquad\text{and}\qquad
+  R_m=g^{\rho_m}.
+\]
+In the adaptive construction it also computes
+\[
+  d_m=\mathsf{dig}(K,m)
+\]
+and uses the digest \(d_m\) as the slot.  The published hash circuit is the
+common circuit of Section~2.5 with \(u=d_m\).  The signer obtains
+\[
+  c_m=\mathsf{C}(R_m,d_m)
+  \qquad\text{and}\qquad
+  s_m=\rho_m+c_mx\pmod p,
+\]
+and returns \((R_m,s_m)\).  There is no salt in the signature.
+
+The signing algorithm is deterministic.  A repeated query on \(m\) computes
+the same nonce, point, challenge, and response.  The security game may
+therefore answer it by replaying the first signature.  The proof indexes its
+hybrid by the distinct queried messages, not by every invocation.
+
+This is exactly what the trigger simulation needs.  For the slot \(d_m\),
+the trigger PRFs determine one fixed challenge, response, and point:
+\[
+\begin{aligned}
+  c^{\mathrm{tr}}_m
+    &=\mathsf{F}_3.\Eval(k_3,E_0(d_m)),\\
+  s^{\mathrm{tr}}_m
+    &=\mathsf{F}_4.\Eval(k_4,E_0(d_m)),\\
+  W_m
+    &=g^{s^{\mathrm{tr}}_m}X^{-c^{\mathrm{tr}}_m}.
+\end{aligned}
+\]
+Returning the same trigger signature on a repeated message now matches the
+real signing behavior.
+
+\subsection{The adaptive proof}
+
+The proof first replaces the nonce-PRF outputs on the distinct queried
+messages by independent uniform values.  This follows from ordinary PRF
+security because \(k_0\) is used only for nonce derivation.  After this
+change, every honest nonce point is uniform, exactly as in the salted proof.
+
+Let \(N\le q_s\) be the number of distinct messages queried in one execution,
+and let \(m_j\) be the \(j\)-th message when it is first queried.  For
+\(i\in\{0,\ldots,q_s\}\), let \(G_i^{\mathrm{der}}\) be the experiment in
+which the first \(i\) distinct messages that occur receive trigger signatures
+and the remaining distinct messages receive honest signatures.  Repeats are
+answered by replay.  Every experiment publishes the original unpunctured
+circuit.  The comparison for index \(j\) is needed only when \(N\ge j\).
+
+Fix the \(j\)-th distinct message, call it \(m_j\), and write
+\[
+  d_j=\mathsf{dig}(K,m_j).
+\]
+The reduction switches the pre-hash key to lossy mode, enumerates its image,
+and guesses \(d_j\) before the verification key is published.  The guess
+costs \(r\).  Conditioned on a correct guess, set
+\[
+\begin{aligned}
+  u&=d_j,&
+  t&=E_0(u),&
+  \rho&=\rho_{m_j},&
+  R&=g^\rho,\\
+  c&=\mathsf{F}_3.\Eval(k_3,t),&
+  s_1&=\mathsf{F}_4.\Eval(k_4,t),&
+  W&=g^{s_1}X^{-c}.
+\end{aligned}
+\]
+Next define
+\[
+\begin{aligned}
+  e_R&=E_1(R,u),&
+  e_W&=E_1(W,u),\\
+  a&=\mathsf{F}_1.\Eval(k_1,e_R),&
+  b&=\mathsf{F}_2.\Eval(k_2,e_R),\\
+  v&=f(RX^ag^b)+a\pmod p,&
+  s_0&=\rho+vx\pmod p.
+\end{aligned}
+\]
+The temporary circuit contains the two explicit pairs
+\[
+  (e_R,v)
+  \qquad\text{and}\qquad
+  (e_W,c),
+\]
+punctures the first two PRFs at \(\{e_R,e_W\}\), and punctures the last two at
+\(t\).  This is the same two-point circuit as in the salted proof, with the
+digest \(d_j\) in place of the digest--salt pair \(u_j\).
+
+The rest of the adjacent-game comparison is unchanged:
+
+\begin{enumerate}[leftmargin=2em]
+\item exclude the event \(R=W\);
+\item use iO to publish the functionally equal two-point circuit;
+\item use puncturable-PRF security and exact changes of variables to make
+      the joint distribution of \((R,v,s_0)\) and \((W,c,s_1)\) invariant
+      under exchange;
+\item exchange which record is returned;
+\item reverse the changes and restore the original circuit.
+\end{enumerate}
+
+The temporary circuit again disappears at the end of the step.  No punctures
+or explicit pairs remain for the next distinct message.  Consequently the
+derandomized adaptive scheme has no query bound in its circuit or key.
+
+The two adaptive proofs differ only in how they handle repeated messages.
+The salted proof assigns a different slot to each invocation.  The
+derandomized proof assigns one slot to each distinct message and replays its
+signature.
+
+\subsection{The static proof}
+
+In the static security game, the adversary declares all signing messages and
+the forgery message before key generation.  The construction can omit the
+pre-hash and use the message \(m\) itself as the slot.
+
+For a declared signing message \(m_j\), the reduction already knows the slot
+\[
+  u=m_j
+\]
+before key generation.  It can also presample the uniform nonce point used
+after the nonce-PRF hybrid.  The trigger point still depends on trigger-PRF
+outputs, so it need not be fixed before every PRF key is generated.  What the
+puncturable-PRF reductions require is that their challenge inputs be sampled
+independently of the particular PRF key being challenged; the reductions
+generate the other independent keys after receiving the challenged values.
+No digest guess is needed.  The local hybrid still treats only one distinct
+message at a time, so the exceptional pairs do not accumulate and the scheme
+has no query parameter.
+
+The static proof therefore has two useful properties at once:
+
+\begin{itemize}[leftmargin=2em]
+\item It removes the a priori query bound by the same local hybrid used in the
+      adaptive proofs.
+\item It needs no tunable lossy pre-hash because every slot is known before
+      key generation.
+\end{itemize}
+
+This cleanly separates the two mechanisms.  The local hybrid is what removes
+the scheme-level parameter \(Q\).  The lossy pre-hash is what lets the same
+local hybrid be used when the messages are adaptive.
+
+The proof still begins by replacing the deterministic nonce-PRF outputs on
+the declared distinct messages by uniform nonces.  It then runs one local
+hybrid per distinct message.  Since there is no factor \(r\) from guessing,
+polynomially hard circular discrete logarithm, iO, and PRFs suffice.  The
+number of declared messages affects the polynomial reduction loss, but it is
+not a parameter of the scheme.
+
+\section{Forgery branches}
+
+After all signing responses have been changed to trigger responses, the
+reduction no longer uses the secret exponent to answer signing queries.  It
+can embed a hardness challenge in the public key and divide a forgery into
+two cases.
+
+\paragraph{Main branch.}
+If the forgery is evaluated by the main branch, the algebra in Section~2.5
+gives a circular discrete-logarithm solution.
+
+\paragraph{Trigger branch.}
+Suppose the forged point is the trigger point for its slot.  The reduction
+first fixes the forged slot; in an adaptive proof it guesses the slot, while
+in the static proof the declared forgery message determines it.  Call the
+fixed slot \(u^\star\), and set
+\[
+  t^\star=E_0(u^\star)
+  \qquad\text{and}\qquad
+  c_{\mathrm{tr}}=\mathsf{F}_3.\Eval(k_3,t^\star).
+\]
+It punctures only the trigger-response PRF \(\mathsf{F}_4\) at \(t^\star\)
+and uses iO to publish a functionally equal circuit carrying
+\[
+  Z=g^{\mathsf{F}_4.\Eval(k_4,t^\star)}
+\]
+explicitly.  At the guessed slot this circuit uses the trigger point
+\(ZX^{-c_{\mathrm{tr}}}\); at every other slot it uses the original trigger
+code.  With the true value of \(Z\), this computes the original function.
+
+Puncturable-PRF security now replaces the hidden exponent at \(t^\star\) by
+a uniform value, making \(Z\) uniform in \(\mathbb{G}\).  Only then does the
+reduction set \(Z\) to an ordinary discrete-logarithm challenge \(Y=g^y\).
+The trigger point becomes
+\[
+  W=Y X^{-c_{\mathrm{tr}}}.
+\]
+If the adversary returns a valid trigger-branch forgery with response \(s^*\),
+then
+\[
+  g^{s^*}=W X^{c_{\mathrm{tr}}}=Y,
+\]
+so \(s^*=y\pmod p\) solves the discrete-logarithm challenge.
+
+The challenge PRF \(\mathsf{F}_3\) is not punctured in this forgery
+reduction.  Its output \(c_{\mathrm{tr}}\) remains known and is used to form
+\(YX^{-c_{\mathrm{tr}}}\).  The discrete logarithm is embedded in the
+response side of the trigger, which is why \(\mathsf{F}_4\) is the punctured
+PRF here.  This is different from the signing swap, where both trigger PRFs
+are punctured so that both \(c\) and \(s_1\) become uniform.
+
+The cost of selecting the forged slot depends on the variant.
+
+\begin{itemize}[leftmargin=2em]
+\item In salted adaptive Schnorr, the forged slot contains both an adaptive
+      digest and a salt chosen by the forger.  Guessing it costs
+      \(r\cdot 2^{\ell_{\mathrm{salt}}}\).
+\item In derandomized adaptive Schnorr, the forged slot is only the adaptive
+      digest.  Guessing it costs \(r\).
+\item In derandomized static Schnorr, the forgery message was declared before
+      key generation.  Its slot is known, so there is no guessing cost.
+\end{itemize}
+
+\section{Digest collisions}
+
+The real scheme uses an injective pre-hash key.  Except with the stated
+key-generation failure probability, two distinct messages have different
+digests.  Thus the pre-hash does not turn a signature on one message into a
+signature on another.
+
+The proof changes the key to lossy mode, where collisions must exist if the
+message space is larger than the image.  The proof aborts if the adversary
+finds two distinct relevant messages with the same digest.  This abort is
+safe: an efficient algorithm that finds such a pair distinguishes lossy mode
+from injective mode, since the pair cannot exist for a correctly generated
+injective key.  No separate collision-resistant hash is being added.  The
+needed collision guarantee follows from injectivity in the real mode and
+indistinguishability of the two modes.
+
+\section{Comparison}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.17\textwidth}
+                              YYYY@{}}
+\toprule
+Result
+& Signing
+& Trigger slot
+& Repeated message
+& Why the proof knows the slot\\
+\midrule
+Salted adaptive
+& Fresh random nonce and salt
+& Digest and salt
+& New slot, except on a salt collision
+& Presample the salt and guess the digest from a lossy image of size \(r\)\\
+\addlinespace
+Derandomized adaptive
+& Nonce PRF
+& Digest
+& Replay the same signature
+& Guess the digest from a lossy image of size \(r\)\\
+\addlinespace
+Derandomized static
+& Nonce PRF
+& Message
+& Replay the same signature
+& All signing and forgery messages are declared before key generation\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+All three results use the same local two-point hybrid, so none has a
+scheme-level signing-query bound.  The adaptive results use a lossy pre-hash
+because the message is chosen after the verification key is published.  The
+static result does not.  Salted signing preserves fresh randomized signatures
+but adds a salt to the signature.  Derandomized signing preserves the
+ordinary two-element Schnorr signature format but makes repeat queries
+replay.
+
+\section{Takeaway}
+
+The proof is easiest to remember as a division of labor.
+
+\begin{itemize}[leftmargin=2em]
+\item The \textbf{temporary two-point circuit} changes one signing response
+      without storing all signing responses.  This removes \(Q\).
+\item The \textbf{tunable lossy pre-hash} turns one unknown adaptive message
+      into one guess among \(r\) possible digests.  This handles adaptivity.
+\item The \textbf{salt} gives each randomized signing invocation a new slot.
+\item The \textbf{nonce PRF} makes a repeated message replay one signature,
+      so one slot per distinct message is enough.
+\end{itemize}
+
+At the beginning and end of every adjacent-game comparison, the published
+circuit is the original fixed-size circuit.  The proof never carries the
+punctures for query \(j\) into the comparison for query \(j+1\).  That is the
+precise sense in which the hybrid is local, and it is the reason the scheme
+does not need to know an adversary's signing-query bound in advance.
+
+\end{document}

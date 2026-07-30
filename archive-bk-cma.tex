@@ -1,3 +1,51 @@
+% Archived BK-CMA material. This file is intentionally not input by main.tex.
+% It preserves the Schnorr and lattice key-recovery results for possible later use.
+% It assumes the notation and generic tunable-lossy-function definition of main.tex.
+
+\subsection*{Archived preliminaries}
+
+For a signature scheme $\SigScheme=(\SigKeys,\SigSign,\SigVf)$, the key-recovery game gives the adversary the verification key and an adaptive signing oracle, and the adversary wins by returning the signing key:
+\begin{center}
+\fbox{
+\begin{minipage}{2.8in}
+\ExperimentHeader{Game $\gameBKCMA{\SigScheme}$}
+
+\begin{oracle}{$\Initialize$}
+\item $(\vkey,\skey) \getsr \SigKeys$
+\item Return $\vkey$
+\end{oracle}
+\ExptSepSpace
+\begin{oracleC}{$\SignOracle(m)$}{$m \in \MsgSp$}
+\item $\sigma\getsr\SigSign(\skey,m)$
+\item Return $\sigma$
+\end{oracleC}
+\ExptSepSpace
+\begin{oracle}{$\Finalize(\skey')$}
+\item Return $(\skey'=\skey)$
+\end{oracle}
+\end{minipage}
+}
+\end{center}
+The BK-CMA advantage of $\advA$ is
+$$
+\AdvBKCMA{\SigScheme}{\advA}
+:=
+\Pr\big[\gameBKCMA{\SigScheme}(\advA)\Rightarrow1\big].
+$$
+For Schnorr signatures we identify $\skey$ with the secret exponent $x$.
+
+We say that the injective mode of a tunable lossy function is \emph{universal} if, for every $r,r'\in[M]$, the marginal distributions of $K$ in
+$$
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})
+\qquad\text{and}\qquad
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r',\mathsf{inj})
+$$
+are identical.
+
+A \emph{strongly efficiently enumerable ELF} is the special case with a universal injective mode in which, for every polynomial time bound $t$ and inverse polynomial $\epsilon$, there is a polynomial $q$ such that every adversary of time at most $t(\secp)$ has $\AdvTLF{\TLF,r}{\advA}\le\epsilon(\secp)$ for every $r\ge q(\secp)$. For polynomial $r$, the functions $\nu_{\mathsf{inj}}(\secp,r)$ and $\nu_{\mathsf{enum}}(\secp,r)$ are negligible, and $\tau(\secp,r)$ is polynomial in $\secp$ and $r$.
+
+For an ELF with domain size $M$, the injective generator runs Zhandry's key generator $\ELFKg$ on $(M,M)$ and the lossy generator with bound $r$ runs it on $(M,r)$. Zhandry constructs such an ELF from exponential DDH, or more generally from a constant-$k$ exponential $k$-linear assumption~\cite{C:Zhandry16}. The construction first builds a bounded-adversary lossy function and then iterates it at several auxiliary security levels. The enumeration and security properties above follow from Theorem~3.9, Lemma~3.6, and Corollary~3.15 of the full version~\cite{EPRINT:Zhandry16}.
+
 \section{Key-Recovery Security of Schnorr Signatures} \label{sec-lf-kr}
 
 We instantiate the hash function with a tunable lossy function in injective mode, followed by a collision-resistant outer hash into $\Zp$. The outer hash supplies the scalar challenge required by Schnorr and, when the injective-mode failure probability is negligible, makes the deployed composite collision resistant. Its collision resistance is not used in the key-recovery reduction. The main theorem is concrete and holds for every image bound $r$. A strongly efficiently enumerable ELF gives the asymptotic corollary: the reduction runs in polynomial time, so ordinary DL hardness suffices in the Schnorr group.
@@ -200,3 +248,67 @@ $$
 This estimate illustrates the tradeoff: increasing $q'$ also makes enumeration more expensive. We do not claim the displayed expression as a full concrete-security proposition. The ELF cascade instead uses ordinary DL in the Schnorr group and exponential DDH in its auxiliary groups.
 
 Paillier and Vergnaud~\cite{AC:PaiVer05} prove BK-CMA security for Schnorr with any hash function under OMDL. Their result covers \emph{any} hash function, while ours covers a particular keyed family. Our group assumption is ordinary DL. The hash construction additionally uses exponential DDH for the ELF and collision resistance for the separate hash property of Proposition~\ref{prop-lf-cr}; the BK-CMA reduction does not use the latter. OMDL is interactive; all of our assumptions are non-interactive.
+
+\section{Key-Recovery Security of Lyubashevsky Signatures}
+
+The lattice result uses the following search version of LWE. The advantage of $\advA$ against search $\LWE_{q,n,m',t,B}$ is
+$$
+\AdvSLWE{q,n,m',t,B}{\advA}
+:=
+\Pr\big[\mat{A}\mat{V}_1' + \mat{V}_2' = \mat{T} \,\land\, \mat{V}_1' \in [\pm B]^{m'\times t} \,\land\, \mat{V}_2' \in [\pm B]^{n\times t}\big] \;,
+$$
+where $\mat{A} \getsr \Zq^{n\times m'}$, $\mat{V}_1 \getsr [\pm B]^{m'\times t}$, $\mat{V}_2 \getsr [\pm B]^{n\times t}$, $\mat{T} \gets \mat{A}\mat{V}_1+\mat{V}_2$, and $(\mat{V}_1',\mat{V}_2') \getsr \advA(\mat{A},\mat{T})$. The winner returns any consistent short pair, not necessarily the planted one.
+
+\subsection{The Construction} \label{sec-dil-bk}
+
+The hash family composes the tunable lossy function with an outer hash into $\Zq^n$ and then applies $\Fq_q$ to reach the challenge space. Let $\TLF$ be a tunable lossy function with domain $\bits^{\ellin}$, where $\ellin \ge nk + \msglen$ so that pairs $(\mat{w},m)$ embed by an injective encoding $\enc{\cdot}'' \colon \Zq^n \times \bits^{\msglen} \to \bits^{\ellin}$, and let $(\CRHFKg,\CRHFEv)$ be a collision-resistant keyed family from $\Ygrave$ to $\Zq^n$, as in Section~\ref{sec-lf-constr} but with range $\Zq^n$.
+
+\begin{construction} \label{constr-dil-tlf}
+Fix an image parameter $r\in[M]$. The keyed hash family $\HF^{\mathsf{ltlf}}_r=(\HFKg,\HFEv)$ for $\Zq^n$ and message space $\bits^{\msglen}$ is defined as follows. Algorithm $\HFKg$ on input $(\mat{A},\mat{T})$ computes $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$ and $k'\getsr\CRHFKg(\usecp)$ and returns $\hk=(K,k')$; we write $k'$ because $k$ is the modulus exponent in this part. Algorithm $\HFEv$ on inputs $\hk$ and $(\mat{w},m)$ returns
+$$
+\Fq_q\!\left(\CRHFEv\bigl(k',\TLFEv(K,\enc{\mat{w},m}'')\bigr)\right) \;.
+$$
+\end{construction}
+
+\paragraph*{Discussion.} Key generation ignores $(\mat{A},\mat{T})$, and the real scheme uses only injective TLF keys. The lossy mode appears only in the proof, where its enumerable image lets the reduction rejection-sample signatures without the short secret. The outer hash maps the possibly structured TLF range into $\Zq^n$. As in Section~\ref{sec-lf-kr}, collision resistance excludes a constant deployed hash but is not used in the key-recovery reduction.
+
+\subsection{Main Result} \label{sec-dil-bk-thm}
+
+The following lemma is the lattice analogue of Lemma~\ref{lem-sim}, and it is exact. It contains the reason rejection sampling and lossy simulation compose: the secret is recoverable from an accepted response, so accepted attempts correspond one-to-one with the pairs the simulator samples. We write $\mat{y} = (\mat{y}_1, \mat{y}_2)$, $\mat{z} = (\mat{z}_1, \mat{z}_2)$, and $\mat{S}c := (\mat{S}_1c, \mat{S}_2c)$, so that $\mat{z} = \mat{y} + \mat{S}c$ componentwise.
+
+\begin{lemma} \label{lem-dil-sim}
+Fix $\mat{A}$, short $\mat{S}_1,\mat{S}_2$ with entries in $[\pm1]$, $\mat{T}=\mat{A}\mat{S}_1+\mat{S}_2$, a function $H \colon \Zq^n \times \bits^{\msglen} \to \chal_q$, a message $m$, and a finite set $C \subseteq \bits^{\ell}$ with $\Image(H) \subseteq C$. Call a pair $(c,\mat{z})$ with $\mat{z}=(\mat{z}_1,\mat{z}_2)$ \emph{good} if
+$$
+\|\mat{z}_1\|_\infty \le \Bclip,
+\qquad
+\|\mat{z}_2\|_\infty \le \Bclip,
+\qquad
+H\big(\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c,\ m\big)=c \;.
+$$
+Consider the honest attempt: $\mat{y} \getsr [\pm B]^{\colsA+n}$, $c \gets H(\mat{A}\mat{y}_1+\mat{y}_2, m)$, $\mat{z}_i \gets \mat{y}_i+\mat{S}_ic$, accepted if both norms are at most $\Bclip$. Consider the simulated attempt: $c \getsr C$, $\mat{z}$ uniform on the clipped boxes, accepted if $(c,\mat{z})$ is good. Then the map $\mat{y} \mapsto (c,\mat{z})$ is a bijection from accepted honest attempts to good pairs, and both attempts, conditioned on acceptance, output a uniformly distributed good pair.
+\end{lemma}
+
+\begin{proof}
+The honest attempt lands in the good set: acceptance bounds the norms, and $\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c = \mat{A}\mat{y}_1+\mat{y}_2 + (\mat{A}\mat{S}_1+\mat{S}_2)c - \mat{T}c = \mat{A}\mat{y}_1+\mat{y}_2$, so the good-pair condition is the definition of $c$. The map is injective because $\mat{y} = \mat{z}-\mat{S}c$ recovers the attempt. It is surjective: given a good pair, set $\mat{y} \gets \mat{z}-\mat{S}c$; then $\|\mat{y}_i\|_\infty \le \Bclip + \ell \le B$, so $\mat{y}$ is in the attempt space, the commitment $\mat{A}\mat{y}_1+\mat{y}_2$ equals $\mat{A}\mat{z}_1+\mat{z}_2-\mat{T}c$ by the same computation, the good-pair condition makes the attempt's challenge equal $c$, and the attempt is accepted with response $\mat{z}$. Each accepted attempt arises from exactly one uniformly chosen $\mat{y}$, so the honest conditional distribution is uniform on good pairs. The simulated attempt is uniform on $C \times$ the clipped boxes, and its acceptance event is exactly the good set, because every good pair has $c \in \Image(H) \subseteq C$; conditioning gives the uniform distribution on the same set.
+\end{proof}
+
+\paragraph*{Discussion.} Two counting facts make the simulation efficient, and both are independent of $H$. First, every $\mat{y}$ with $\|\mat{y}_i\|_\infty \le \Bclip-\ell$ is accepted regardless of the challenge, since the shift $\mat{S}_ic$ moves it by at most $\ell$; hence the honest attempt accepts with probability at least $\big(\tfrac{2(\Bclip-\ell)+1}{2B+1}\big)^{\colsA+n} \ge 1/2$ under $B \ge 4\ell(\colsA+n)$, and the number of good pairs is at least half the number of clipped responses. Second, therefore, the simulated attempt accepts with probability at least $1/(2|C|)$, so $2\secp|C|$ trials fail with probability at most $e^{-\secp}$.
+
+\begin{theorem} \label{thm-dil-bk}
+Let $\advA$ be an adversary against BK-CMA of $\DSScheme[\HF^{\mathsf{ltlf}}_r]$ that runs in time $t_{\advA}$ and makes at most $q_s$ signing queries. For every $r\in[M]$, there are a distinguisher $\advD$ and an algorithm $\advB$ such that
+$$
+\AdvBKCMA{\DSScheme[\HF^{\mathsf{ltlf}}_r]}{\advA}
+\le
+\AdvTLF{\TLF,r}{\advD}
++\AdvSLWE{q,n,\colsA,\ell,1}{\advB}
++\nu_{\mathsf{enum}}(\secp,r)
++q_s\big(e^{-\secp}+2^{-\secp}\big) \;.
+$$
+Adversary $\advD$ runs in time $t_{\advA}+q_s\poly(\secp)$, and $\advB$ runs in time $t_{\advA}+\tau(\secp,r)+(q_s+1)\secp\, r\poly(\secp)$.
+\end{theorem}
+
+\begin{proof}
+The games mirror Theorem~\ref{thm-bk}. Game $\Gm_0$ is BK-CMA. Game $\Gm_1$ generates the TLF key in lossy mode at the same $r$; the distinguisher $\advD$ samples $\mat{A},\mat{S}_1,\mat{S}_2$ and the outer-hash key itself, signs honestly, and outputs 1 iff $\advA$ returns the signing key, so the switch costs $\AdvTLF{\TLF,r}{\advD}$. Game $\Gm_2$ computes $S\getsr\TLFEnum(\mathsl{td})$ and $C\gets\{\Fq_q(\CRHFEv(k',y)):y\in S\}$ once, and answers each signing query by up to $2\secp|C|$ simulated attempts of Lemma~\ref{lem-dil-sim}, returning $\bot$ if all fail. In lossy mode every hash value lies in $C$, except with probability $\nu_{\mathsf{enum}}(\secp,r)$, so the lemma applies: conditioned on producing an output, each query is answered with exactly the distribution of $\Gm_1$. The output distributions differ only through the two failure events, honest signing exhausting $\secp$ attempts and simulation exhausting $2\secp|C|$ trials, which the counting facts above bound by $2^{-\secp}$ and $e^{-\secp}$ per query. Finally, algorithm $\advB$ receives a search-LWE challenge $(\mat{A},\mat{T})$ with $\ell$ columns at box $1$, which has exactly the distribution of the public key, samples the lossy hash key itself, answers signing queries as in $\Gm_2$ without any secret, and forwards the matrix pair from $\advA$'s output key. If $\advA$ wins BK-CMA, that pair is the planted $(\mat{S}_1,\mat{S}_2)$, which is a valid search-LWE solution. The reduction in fact needs less. It succeeds whenever $\advA$ outputs any pair $(\mat{S}_1',\mat{S}_2')$ of matrices with entries in $[\pm1]$ satisfying $\mat{A}\mat{S}_1'+\mat{S}_2' = \mat{T}$, whether or not it equals the planted one. Theorem~\ref{thm-dil-bk} therefore also holds for the stronger notion in which the adversary wins by producing any such pair, which is the more natural notion here, since the key is not determined by the public key. Hence $\Pr[\Gm_2\Rightarrow1]\le\AdvSLWE{q,n,\colsA,\ell,1}{\advB}$, and the running-time claims follow by inspection.
+\end{proof}
+
+\paragraph*{Discussion.} The interpretation matches Section~\ref{sec-lf-kr}: with this hash family, the signing oracle gives no help toward key recovery beyond the public key itself, at the price of assuming search LWE hard for time $r \cdot \mathrm{poly}$. The theorem is generic in the tunable lossy function. A lattice-based instantiation would make every ingredient lattice-based. The candidate is the LWE-based construction of Peikert and Waters at a fixed quasi-polynomial image bound, with a rounded output; Section~\ref{sec-conclusion} sketches the candidate argument for enumerability and a universal injective mode, and records what remains to verify. If that argument is formalized, the theorem will assume search LWE against quasi-polynomial time. No obfuscation occurs anywhere in this section, and the reductions are straight-line, without rewinding, so we expect the result to hold against quantum adversaries that make classical signing queries. \adam{Ojaswi/Carter: Two items: (i) verify the counting-fact constants and the $2\secp|C|$ trial bound against the write-up of Theorem~\ref{thm-bk}; (ii) the BK-CMA win condition of Figure~\ref{fig-eufcma} is exact key equality, which is a special case of the search-LWE solution condition, so the last reduction step is sound as stated, but consider whether to strengthen the theorem to the relaxed win condition (any consistent short key), which the same proof gives.}
