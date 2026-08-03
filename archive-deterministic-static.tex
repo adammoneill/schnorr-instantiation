@@ -1,3 +1,6 @@
+% Archived on 2026-07-31 when the active paper was shortened to retain only
+% the adaptive Deterministic Schnorr result. This file is intentionally not
+% input by main.tex and preserves the former static theorem as a tax file.
 \section{Static-Message Unforgeability of the Derandomized Scheme} \label{app-der-static}
 
 This appendix states and proves the polynomial-assumption result announced in Section~\ref{sec-derand}. The scheme is that of Construction~\ref{constr-der}, with or without the pre-hash; we write it without, since the pre-hash plays no role when no guessing is needed.
@@ -33,7 +36,7 @@ $$
 If $\CDL[\GG,g,f]$ holds, $\PRF_0,\ldots,\PRF_4$ and $\iO$ are secure, and $p$ is super-polynomial, then $\SchDScheme[\GG,\HF^{\mathsf{der}}]$ is EUF-static secure against every PPT adversary.
 \end{corollary}
 
-\paragraph*{Discussion.} Corollary~\ref{cor-der-static} is ordinary static security of one fixed scheme against every PPT adversary, with no query parameter anywhere and with every assumption polynomially hard. Compared with Corollary~\ref{cor-uf} it removes the bound $Q$, and compared with Theorem~\ref{thm-adaptive} it keeps the signature format of Schnorr. What it does not do is make the queries adaptive; Section~\ref{sec-derand-adaptive} treats that.
+\paragraph*{Discussion.} Corollary~\ref{cor-der-static} is ordinary static security of one fixed scheme against every PPT adversary, with no query parameter anywhere and with every assumption polynomially hard. Compared with Corollary~\ref{cor-uf} it removes the bound $Q$. Compared with Corollary~\ref{cor-der-adaptive}, it uses only polynomially hard assumptions but does not make the queries adaptive.
 
 Two features of the static game do the work. The declared messages are fixed before key generation, so the reduction knows every slot it will need to program and guesses nothing; this is what keeps the loss polynomial. And the trigger branch recomputes programmed points instead of storing them, so no table appears in the published circuit; this is what removes $Q$.
 
@@ -46,7 +49,7 @@ Let $\advA_0$ declare a list of $q_s$ signing messages and a forgery message $m^
 
 Fix $j$ and compare $\Gm_{j-1}$ with $\Gm_j$. Both endpoints first introduce the event $\mathsf{Bad}_{\mathsf{eq}} := [R_j = W_{m_j}]$ and output $0$ when it occurs, where $R_j=g^{r_j}$ is the honest nonce point. Conditioned on the view before the change, $R_j$ is uniform and independent of $W_{m_j}$, so the two aborts cost at most $2/p$.
 
-The rest of the step is the chain of Appendix~\ref{app-adaptive}, with the slot $u=(d,\salt)$ there replaced by the message $m_j$ here, and with one simplification: the reduction is given $m_j$ by $\advA_0$ before key generation, so it does not guess. Concretely, it sets
+The rest of the step is the direct specialization of the local chain in Appendix~\ref{app-derand}. There is one simplification: the reduction is given $m_j$ by $\advA_0$ before key generation, so it does not guess. Concretely, it sets
 $$
 \begin{aligned}
 t&=m_j,&
@@ -56,7 +59,7 @@ W&=g^{s_{m_j}}X^{-c_{m_j}},&
 t_W&=\enc{W,m_j}.
 \end{aligned}
 $$
-publishes an obfuscation of the analogue of the two-point circuit $C_j$ of Figure~\ref{fig-circuit-query}, with the slot input $(d,\salt)$ there replaced by the message $m$ and the salt input dropped, punctured at $T=\{t_R,t_W\}$ and at $t$, and runs the eight steps $\mathsf{H}_0$ through $\mathsf{H}_8$: replace $\CircDer$ by $C_j$ at the true values, make the $\PRF_1$ and $\PRF_2$ values on $T$ uniform, replace the main-branch hash value by a uniform value and discard the masks, change variables so the honest record is $(g^{s_0}X^{-v},v,s_0)$ for uniform $v,s_0$, make the $\PRF_3$ and $\PRF_4$ values at $t$ uniform, exchange the two records by Lemma~\ref{lem-swap}, and reverse. Each of the two directions invokes $\iO$ once and the four puncturable PRFs once, giving $\epsilon_j$. The slot $m_j$ and uniform nonce point $R$ are fixed before key generation. The trigger point $W$ depends on trigger-PRF outputs, but in each puncturable-PRF reduction the challenge inputs are sampled independently of the particular PRF key being challenged; the reduction samples the other independent keys after receiving those challenge values. Thus Definitions~\ref{def-pprf} and~\ref{def-io} apply with polynomial-time samplers. Hence
+Let $v$ be the main-branch hash value at $(R,m_j)$. The reduction publishes the temporary two-point circuit from that chain, retyped so that its slot is the message. The circuit carries the two hash input--output pairs $\{(t_R,v),(t_W,c_{m_j})\}$, punctures $k_1,k_2$ at $T=\{t_R,t_W\}$, and punctures $k_3,k_4$ at $t$. It then runs the same exchange: make the $\PRF_1$ and $\PRF_2$ values on $T$ uniform, replace $v$ by a uniform value and discard the masks, change variables so the honest record is $(g^{s_0}X^{-v},v,s_0)$ for uniform $v,s_0$, make the $\PRF_3$ and $\PRF_4$ values at $t$ uniform, exchange the two records by Lemma~\ref{lem-swap}, and reverse. Each of the two directions invokes $\iO$ once and the four puncturable PRFs once, giving $\epsilon_j$. The slot $m_j$ and uniform nonce point $R$ are fixed before key generation. The trigger point $W$ depends on trigger-PRF outputs, but in each puncturable-PRF reduction the challenge inputs are sampled independently of the particular PRF key being challenged; the reduction samples the other independent keys after receiving those challenge values. Thus Definitions~\ref{def-pprf} and~\ref{def-io} apply with polynomial-time samplers. Hence
 $$
 \big|\Pr[\Gm_{j-1}\Rightarrow1]-\Pr[\Gm_j\Rightarrow1]\big|
 \le \epsilon_j+\frac{2}{p} \;.
@@ -70,9 +73,9 @@ $$
 $$
 which wins the CDL game by the computation of Section~\ref{sec-io-constr}, using that $f$ has no zeros. Hence $\Pr[E_{\mathsf{main}}]\le\AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}}$.
 
-\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and its hash value comes from the trigger branch, so that $R^*=W_{m^*}$. Here the static setting removes the guessing of Appendix~\ref{app-adaptive}: the forgery message $m^*$ is declared by $\advA_0$ before key generation, so the reduction knows the slot it must program.
+\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and its hash value comes from the trigger branch, so that $R^*=W_{m^*}$. Here the static setting removes the guessing used in Appendix~\ref{app-derand}: the forgery message $m^*$ is declared by $\advA_0$ before key generation, so the reduction knows the slot it must program.
 
-Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$, samples $x\getsr\Zp$ and sets $X\gets g^x$, punctures $k_4$ at $m^*$, and publishes an obfuscation of the analogue of the circuit $C_{\mathsf{forg}}$ of Figure~\ref{fig-circuit-trigger-forgery}, with the slot input retyped to the message in the same way, with $\widehat t=m^*$ and $Z=Y$. With $Z=g^{\widehat s}$ for $\widehat s=\PRFEv_4(k_4,m^*)$ this circuit computes the same function as $\CircDer$, so $\iO$ justifies the switch, and puncturable-PRF security at $m^*$ replaces $\widehat s$ by a uniform value, after which $Z=Y$ has the right distribution. Signing uses the punctured key and never needs slot $m^*$, since $m^*$ is not among the declared messages. If the forgery takes the trigger branch at $m^*$ then
+Adversary $\advB_{\mathsf{trig}}$ receives a DL challenge $Y$, samples $x\getsr\Zp$ and sets $X\gets g^x$, and punctures $k_4$ at $m^*$. It publishes the trigger-forgery circuit used in Appendix~\ref{app-derand}, retyped so that the slot is the message. On input $(P,m^*)$, this circuit sets $c_{m^*}=\PRFEv_3(k_3,m^*)$, returns $c_{m^*}$ if $P=Z X^{-c_{m^*}}$, and otherwise runs the main branch of $\CircDer$; on slots different from $m^*$ it runs $\CircDer$ using the punctured key. With $Z=g^{\widehat s}$ for $\widehat s=\PRFEv_4(k_4,m^*)$ this circuit computes the same function as $\CircDer$, so $\iO$ justifies the switch. Puncturable-PRF security at $m^*$ replaces $\widehat s$ by a uniform value, after which $Z=Y$ has the right distribution. Signing uses the punctured key and never needs slot $m^*$, since $m^*$ is not among the declared messages. If the forgery takes the trigger branch at $m^*$ then
 $$
 g^{s^*}=\big(YX^{-c_{m^*}}\big)X^{c_{m^*}}=Y,
 $$

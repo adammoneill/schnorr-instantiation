@@ -1,0 +1,252 @@
+\section{Proof of Theorem~\ref{thm-der-adaptive}} \label{app-derand}
+
+\begin{proof}[of Theorem~\ref{thm-der-adaptive}]
+Throughout, $d=\dig(K,m)$ denotes the digest of a message $m$ under the TLF key $K$. Fix the PPT adversary $\advA$ of the theorem. It makes at most $q_s$ signing queries. In one execution, let $N\le q_s$ be the number of distinct queried messages and let $m_j$ be the $j$-th message when it first appears, for $j\in[N]$. Signing is deterministic, so every game below answers a repeated query by replaying the earlier response. The hybrid therefore runs over the new messages $m_1,\ldots,m_N$, not over repeated invocations.
+
+\heading{From the real game to the lossy experiment.} The real game uses $\HF^{\mathsf{det}}_r$, whose TLF key is generated in injective mode. We add an abort event $\mathsf{Bad}_{\mathsf{col}}$. It occurs if two distinct messages among the signing queries and the forgery message have the same digest, in which case the game outputs 0. Except on the TLF injectivity-failure event, the injectivity of the padding, the TLF, and the digest encoding makes this event impossible. The abort therefore costs at most $\nu_{\mathsf{inj}}(\secp,r)$.
+
+There is no separate abort for digest reuse. After the collision abort, two queries with the same digest have the same message, and the deterministic signer replays its earlier signature.
+
+We next change the TLF key to lossy mode at the same image parameter $r$. The lossy experiment privately retains the enumeration information $\mathsl{td}$, although the scheme's key-generation algorithm discards it. The mode distinguisher itself receives only $K$, as required by Definition~\ref{def-lf}. It samples the secret exponent, the nonce-PRF key, and the four circuit-PRF keys, builds the rest of the verification key, and runs the game including the collision abort. The endpoint of this hop does not yet use $\mathsl{td}$, so adding it as hidden state drawn together with $K$ does not change the experiment seen by the adversary. Each later reduction that needs enumeration samples its own lossy pair $(K,\mathsl{td})$. The mode distinguisher does not enumerate the image and is PPT, and this change costs $\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}$. In all subsequent games, any execution that reaches finalization without aborting has different digests for different relevant messages.
+
+\heading{Uniform nonces.} Replace the function $m\mapsto\PRFEv_0(k_0,m)$ by a random function from the message space to $\Zp$. Equivalently, sample independent values
+$$
+\rho_j\getsr\Zp\qquad\text{for }j\in[q_s]
+$$
+before the verification key is published, assign $\rho_j$ to the $j$-th new message when it appears, and reuse that value if the message is repeated. The key $k_0$ appears nowhere else, so one PRF distinguisher bounds the change by $\AdvPRF{\PRF_0}{\advD_0}$. Each honest point $R_j=g^{\rho_j}$ is now uniform in $\GG$ when its message first appears.
+
+\heading{The outer games.} For $0\le i\le q_s$, game $\Hm_i$ gives trigger signatures to the first $\min\{i,N\}$ new messages and honest signatures to the remaining new messages. For a message with digest $d$, define
+$$
+t_d=\enczero{d},
+\qquad
+c_d=\PRFEv_3(k_3,t_d),
+\qquad
+s_d=\PRFEv_4(k_4,t_d),
+\qquad
+W_d=g^{s_d}X^{-c_d}.
+$$
+Its trigger signature is $(W_d,s_d)$. Every outer game publishes the original circuit of Construction~\ref{constr-dio}; hardwired circuits occur only in the intermediate experiments used to compare adjacent games. Game $\Hm_0$ is the lossy experiment with the two preceding changes, and $\Hm_{q_s}$ answers every signing query without the secret exponent.
+
+\heading{Changing the $j$-th new message.} Fix $j\in[q_s]$. The games $\Hm_{j-1}$ and $\Hm_j$ are identical on executions with $N<j$, so consider executions that reach the $j$-th new message. Let $\Hm'_{j-1}$ and $\Hm'_j$ be the corresponding games with the additional abort event
+$$
+\mathsf{Bad}_{\mathsf{eq}}=[R_j=W_{d_j}],
+\qquad
+d_j=\dig(K,m_j),
+\qquad
+R_j=g^{\rho_j},
+$$
+and output 0 when it occurs. Conditioned on the view immediately before $m_j$ first appears, $R_j$ is uniform and independent of $W_{d_j}$. Hence
+$$
+\left|\Pr[\Hm_\gamma\Rightarrow1]-\Pr[\Hm'_\gamma\Rightarrow1]\right|\le\frac1p
+\qquad\text{for }\gamma\in\{j-1,j\}.
+$$
+Every intermediate experiment recomputes the event from its current values. A reduction never conditions its sampler on the complement of the event. If $\mathsf{Bad}_{\mathsf{eq}}$ occurs in an iO reduction, the sampler gives the iO challenger two copies of the same fixed padded circuit and retains an abort flag, ensuring that the two challenge circuits are functionally equal on every sample.
+
+\heading{Guessing the digest.} At the start of this local comparison, the reduction has sampled a lossy pair $(K,\mathsl{td})$ but has not yet published the obfuscated circuit. It computes $S\getsr\TLFEnum(\mathsl{td})$, removes duplicate elements, applies the digest encoding to the remaining elements, and pads the resulting list to length exactly $r$ by repeating a fixed string whose first bit is 1. Since every genuine digest begins with 0, a genuine digest occurs in this list either once or not at all. Call the padded list $L_S$. The reduction samples $\widehat\imath\getsr[r]$, sets $\widehat d=L_S[\widehat\imath]$, and uses $\widehat d$ when it constructs the intermediate circuits. It outputs 0 unless $\widehat d=d_j$.
+
+To account for this guess, augment either aborted endpoint game by sampling the unused index $\widehat\imath$. Let $E_\gamma$ be the event that $N\ge j$ and $\Hm'_\gamma$ outputs 1, for $\gamma\in\{j-1,j\}$. The circuit in an endpoint game is independent of $\widehat\imath$. If $d_j$ occurs in $L_S$, the conditional probability that $\widehat d=d_j$ is exactly $1/r$; if it does not occur, this probability is zero. Global enumeration correctness implies that a genuine digest is absent only with probability at most $\nu_{\mathsf{enum}}(\secp,r)$. Consequently,
+$$
+0\le
+\Pr[E_\gamma]-r\Pr[E_\gamma\land \widehat d=d_j]
+\le \nu_{\mathsf{enum}}(\secp,r).
+$$
+The intermediate games compare the two guessed events, not the endpoint games themselves. If their difference is at most $\epsilon_j$, the triangle inequality gives
+$$
+\bigl|\Pr[E_{j-1}]-\Pr[E_j]\bigr|
+\le r\epsilon_j+2\nu_{\mathsf{enum}}(\secp,r).
+$$
+Including the two endpoint aborts, we obtain
+$$
+\left|\Pr[\Hm_{j-1}\Rightarrow1]-\Pr[\Hm_j\Rightarrow1]\right|
+\le r\epsilon_j+2\nu_{\mathsf{enum}}(\secp,r)+\frac2p.
+$$
+This is the only guess in this signing-hybrid comparison. The trigger-forgery reduction below makes a separate guess of the forgery digest.
+
+\begin{lemma} \label{lem-swap}
+For each $\gamma\in\{0,1\}$, independently sample
+$$
+c_\gamma,s_\gamma\getsr\Zp,
+\qquad
+R_\gamma=g^{s_\gamma}X^{-c_\gamma},
+\qquad
+\mathsf{Rec}_\gamma=(R_\gamma,c_\gamma,s_\gamma).
+$$
+Condition on $R_0\ne R_1$. Let $V$ be any random variable such that the joint distributions
+$$
+(V,\mathsf{Rec}_0,\mathsf{Rec}_1)
+\qquad\text{and}\qquad
+(V,\mathsf{Rec}_1,\mathsf{Rec}_0)
+$$
+are identical. Then $(V,R_0,s_0)$ and $(V,R_1,s_1)$ are identically distributed.
+\end{lemma}
+
+\begin{proof}
+The conclusion follows by taking the corresponding marginals of the two identical joint distributions. The conditioning event is symmetric in the two records, so it does not disturb the asserted exchange invariance.
+\end{proof}
+
+\heading{The local hybrid.} Work in the guessed experiment and write
+$$
+\begin{gathered}
+t_d=\enczero{\widehat d},
+\qquad R_0=g^{\rho_j},
+\qquad e_0=\encone{R_0,\widehat d},\\
+c_1=\PRFEv_3(k_3,t_d),
+\qquad s_1=\PRFEv_4(k_4,t_d),
+\qquad R_1=g^{s_1}X^{-c_1},
+\qquad e_1=\encone{R_1,\widehat d}.
+\end{gathered}
+$$
+At the honest point, let
+$$
+\begin{aligned}
+a&=\PRFEv_1(k_1,e_0),
+&b&=\PRFEv_2(k_2,e_0),\\
+c_0&=\bigl(f(R_0X^ag^b)+a\bigr)\bmod p,
+&s_0&=(\rho_j+c_0x)\bmod p.
+\end{aligned}
+$$
+The two candidate signature records are
+$$
+\mathsf{Rec}_0=(R_0,c_0,s_0)
+\qquad\text{and}\qquad
+\mathsf{Rec}_1=(R_1,c_1,s_1).
+$$
+The event $\mathsf{Bad}_{\mathsf{eq}}$ is precisely $[R_0=R_1]$, so outside the abort the encoded inputs $e_0$ and $e_1$ are different.
+
+We spell out the temporary circuit used in the iO step. Let
+$$
+\begin{aligned}
+T_{\mathsf{main}}&=\{e_0,e_1\},
+&T_{\mathsf{trig}}&=\{t_d\},\\
+P&=\{((R_0,\widehat d),c_0),((R_1,\widehat d),c_1)\}.
+\end{aligned}
+$$
+where the sets and table are stored in canonical order. The circuit contains $k_1\{T_{\mathsf{main}}\},k_2\{T_{\mathsf{main}}\}$, the keys $k_3\{T_{\mathsf{trig}}\},k_4\{T_{\mathsf{trig}}\}$, and the two-entry table $P$. On input $(R',d')$, it first returns the table value if $(R',d')$ occurs in $P$. If $d'=\widehat d$ but the pair is not in $P$, it skips the unavailable trigger computation and runs the main branch with the punctured main keys. If $d'\ne\widehat d$, it runs the original trigger and main branches with the punctured keys. Injectivity of the encodings ensures that every evaluation in the last two cases is away from the relevant puncture set.
+
+This circuit computes exactly the same function as the original one. On $(R_1,\widehat d)$ the table returns the trigger value $c_1$. On $(R_0,\widehat d)$ it returns the main value $c_0$, and $R_0\ne R_1$ ensures that the original trigger test fails. Every other point with digest $\widehat d$ also fails the original trigger test and reaches the main branch, while functionality preservation of puncturing handles every other digest. Thus iO permits the first circuit change.
+
+Given the punctured main keys, puncturable-PRF security replaces the two $\PRF_1$ outputs on $T_{\mathsf{main}}$ by uniform values and then does the same for $\PRF_2$. Only the values at $e_0$ are used to form $c_0$; the challenge values at $e_1$ are discarded before the exchange. Once $a$ and $b$ at $e_0$ are uniform, the element $R_0X^ag^b$ is uniform and independent of $a$ and $R_0$, and hence $c_0=f(R_0X^ag^b)+a\bmod p$ is uniform and independent of $R_0$. We may therefore sample $c_0,s_0$ uniformly and set $R_0=g^{s_0}X^{-c_0}$, which is an exact change of variables. Next, puncturable-PRF security at the single input $t_d$ makes $c_1$ and then $s_1$ uniform. The trigger record may now be generated by sampling $c_1,s_1$ uniformly and setting $R_1=g^{s_1}X^{-c_1}$.
+
+All PRF challenge inputs have the independence required by Definition~\ref{def-pprf}. For a main-branch PRF, the set $T_{\mathsf{main}}$ is determined from the presampled honest point, the digest guess, and the independent trigger keys, not from the main-branch key being challenged. For a trigger PRF, the sampler always outputs the singleton $T_{\mathsf{trig}}$, which is fixed before that trigger key is sampled. After receiving the challenged trigger output, the distinguisher forms $R_1$ and returns 0 if $\mathsf{Bad}_{\mathsf{eq}}$ occurs; otherwise it samples and punctures the independent main-branch keys. The same reasoning applies in the reverse direction. None of these samplers is conditioned on a correct digest guess, since the distinguisher simply outputs 0 when the guess is wrong. In a main-branch hybrid the equality event is already determined before the challenged main key is sampled, so the sampler may pass an abort flag and the distinguisher may again return 0 without using the challenge.
+
+At this central experiment, the two records are independent uniform valid Schnorr records conditioned on their points being different. Let $V$ contain the verification key, the adversary's state immediately before the response to the $j$-th new message, and the reduction's retained state other than the selected response. The joint distribution $(V,\mathsf{Rec}_0,\mathsf{Rec}_1)$ is invariant under exchanging the two records. In particular, the temporary circuit contains the canonical unordered table $P$; the punctured main keys depend on the records only through the unordered set $T_{\mathsf{main}}$, rather than being independent of it; and the punctured trigger keys and all discarded challenge values leave no asymmetric copy of either response. The auxiliary values used only to generate the selected records are discarded before the exchange. Reaching the $j$-th new message, guessing its digest correctly, the standing collision abort, and the event $R_0\ne R_1$ are also exchange-invariant. Lemma~\ref{lem-swap} therefore permits the response and its cached replay state to be changed from $(R_0,s_0)$ to $(R_1,s_1)$. The rest of the adaptive interaction is identical postprocessing of these identically distributed inputs.
+
+Finally, reverse the trigger-PRF, main-branch, and iO changes. Each direction uses iO once and each of the four puncturable PRFs once. The difference between the guessed games is at most
+$$
+\epsilon_j
+=
+\sum_{\beta\in\{0,1\}}
+\left(
+\AdvIO{\iO}{\advD^{\mathsf{io}}_{j,\beta}}
++\sum_{\ell=1}^{4}\AdvPPRF{\PRF_\ell}{\advD^{\mathsf{pprf}}_{j,\beta,\ell}}
+\right).
+$$
+The reduction never evaluates a trigger key at its punctured input. A repeated query for $m_j$ replays the cached response. If a different message with digest $\widehat d$ appears after $m_j$, the standing collision abort applies and the reduction outputs 0 before trying to sign it. The same is safe when such a message appears before $m_j$: if the later digest guess is correct, the collision abort will apply, while if the guess is wrong, the guessed experiment will output 0 in any case. Thus an early abort cannot remove a winning execution of the guessed experiment.
+
+Summing the adjacent comparisons gives
+$$
+\bigl|\Pr[\Hm_0\Rightarrow1]-\Pr[\Hm_{q_s}\Rightarrow1]\bigr|
+\le
+r\sum_{j=1}^{q_s}\epsilon_j
++2q_s\nu_{\mathsf{enum}}(\secp,r)
++\frac{2q_s}{p}.
+$$
+
+\heading{A main-branch forgery.} Let $E_{\mathsf{main}}$ be the event that the forgery is valid and the circuit uses its main branch. Adversary $\advB_{\mathsf{main}}$ receives a CDL challenge $h$, sets $X\gets h$, and runs $\Hm_{q_s}$ with the same collision abort. It samples a lossy TLF key and the four circuit-PRF keys, publishes the obfuscated circuit, and answers every signing query with its trigger signature. It does not need the secret exponent. Given a valid forgery $(R^*,s^*)$ on $m^*$, it computes
+$$
+\begin{aligned}
+d^*&\gets\dig(K,m^*),
+&a^*&\gets\PRFEv_1(k_1,\encone{R^*,d^*}),\\
+b^*&\gets\PRFEv_2(k_2,\encone{R^*,d^*}),
+&U^*&\gets R^*X^{a^*}g^{b^*},\\
+c^*&\gets\bigl(f(U^*)+a^*\bigr)\bmod p,
+&z^*&\gets(s^*+b^*)\bmod p.
+\end{aligned}
+$$
+Because the forgery uses the main branch, the circuit returns $c^*$ on $(R^*,d^*)$. Validity therefore gives
+$$
+g^{z^*}=U^*X^{f(U^*)}.
+$$
+Adversary $\advB_{\mathsf{main}}$ outputs $(U^*,z^*)$. Since $f$ has no zeros, the CDL game accepts this output whenever the forgery is valid. Therefore
+$$
+\Pr[E_{\mathsf{main}}]
+\le \AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}}.
+$$
+
+\heading{A trigger-branch forgery.} Let $E_{\mathsf{trig}}$ be the event that the forgery is valid and uses the trigger branch, and write $d^*=\dig(K,m^*)$. Augment the unmodified game $\Hm_{q_s}$ with an independent list index, construct $L_S$ as above, and let $\widehat d$ be the selected entry. The published circuit at this endpoint does not depend on the guess. The same enumeration argument used for a signing step gives
+$$
+0\le
+\Pr[E_{\mathsf{trig}}]
+-r\Pr[E_{\mathsf{trig}}\land\widehat d=d^*]
+\le\nu_{\mathsf{enum}}(\secp,r).
+$$
+It is important that this relation is recorded before the circuit is changed to depend on $\widehat d$.
+
+Only after recording it do we set $\widehat t_d=\enczero{\widehat d}$ and $\widehat T=\{\widehat t_d\}$, and puncture $k_4$ at $\widehat T$. Consider a circuit that, for digest $\widehat d$, computes $c=\PRFEv_3(k_3,\widehat t_d)$ and compares the input point against $ZX^{-c}$, while for every other digest it uses $k_4\{\widehat T\}$ in the original circuit. If the comparison fails at digest $\widehat d$, the circuit runs the unchanged main branch. Taking
+$$
+Z=g^{\PRFEv_4(k_4,\widehat t_d)}
+$$
+makes this circuit functionally equal to the honest one on every input, so iO permits the change. Puncturable-PRF security then replaces the exponent defining $Z$ by a uniform value. At that point $Z$ is uniform in $\GG$ and may be replaced exactly by a DL challenge $Y$.
+
+Operationally, the resulting DL adversary receives $h$, sets $Y\gets h$, samples $x\getsr\Zp$ and $X\gets g^x$, and samples a lossy pair $(K,\mathsl{td})$. It enumerates the image, chooses $\widehat d$ as above, and samples $k_1,k_2,k_3$. It also samples a full key $k_4$, punctures it at $\widehat T$, and discards the full key. The adversary publishes the circuit containing $Y$ and the punctured key. It aborts immediately if a signing query has digest $\widehat d$; every other signing query is answered from the trigger keys, evaluating the punctured $k_4$ key away from $\widehat t_d$. On the event $E_{\mathsf{trig}}\land[\widehat d=d^*]$, such an abort cannot occur. A signing message with digest $d^*$ would either be $m^*$, contradicting freshness, or a different message with the same digest, contradicting the collision abort. If the forgery uses the trigger at the guessed digest, validity gives
+$$
+g^{s^*}=(YX^{-c})X^c=Y,
+$$
+so the adversary returns $s^*$ as the discrete logarithm of $Y$. It follows that
+$$
+\Pr[E_{\mathsf{trig}}]
+\le
+r\left(
+\AdvDL{\GG,g}{\advB_{\mathsf{trig}}}
++\AdvIO{\iO}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++\AdvPPRF{\PRF_4}{\advD^{\mathsf{pprf}}_{\mathsf{trig}}}
+\right)
++\nu_{\mathsf{enum}}(\secp,r).
+$$
+
+\heading{Conclusion.} Every valid forgery uses one of the two branches. Combining the preceding bounds yields
+$$
+\begin{aligned}
+&\AdvEUFCMA{\SchDScheme[\GG,\HF^{\mathsf{det}}_r]}{\advA}\\
+&\quad\le
+\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
++\AdvPRF{\PRF_0}{\advD_0}
++\AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}}\\
+&\qquad+r\left(
+\AdvDL{\GG,g}{\advB_{\mathsf{trig}}}
++\AdvIO{\iO}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++\AdvPPRF{\PRF_4}{\advD^{\mathsf{pprf}}_{\mathsf{trig}}}
+\right)\\
+&\qquad+r\sum_{j=1}^{q_s}\epsilon_j
++\nu_{\mathsf{inj}}(\secp,r)
++(2q_s+1)\nu_{\mathsf{enum}}(\secp,r)
++\frac{2q_s}{p},
+\end{aligned}
+$$
+which is the theorem's bound. The mode-switch and nonce-PRF reductions do not enumerate the lossy image. Every other reduction runs in time at most
+$$
+t_{\advA}+\tau(\secp,r)+\poly(\secp,r,q_s).
+$$
+\end{proof}
+
+\begin{proof}[of Corollary~\ref{cor-der-adaptive}]
+Under the hypotheses of the corollary, every CDL, iO, and puncturable-PRF advantage in the theorem is at most $\eps$. Lemma~\ref{lem-dl-cdl} shows that the same is true of the DL advantage and that $1/p\le\eps$. Each $\epsilon_j$ contains two iO advantages and eight puncturable-PRF advantages, and is therefore at most $10\eps$.
+
+Since $r$ is super-polynomial and $q_s$ is polynomial, $q_s\le r$ for all sufficiently large $\secp$. The theorem's bound is at most
+$$
+\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
++\AdvPRF{\PRF_0}{\advD_0}
++\bigl(1+5r+10r^2\bigr)\eps
++\nu_{\mathsf{inj}}(\secp,r)
++(2q_s+1)\nu_{\mathsf{enum}}(\secp,r).
+$$
+The first two terms are negligible because their reductions are PPT. The third is at most $16r^2\eps$, which is negligible by hypothesis, and the remaining terms are negligible at the chosen $r$.
+\end{proof}
+
+\begin{proof}[of Corollary~\ref{cor-der-adaptive-strong}]
+Suppose for contradiction that a fixed PPT adversary $\advA$ has non-negligible advantage. Choose an inverse-polynomial function $\eta$ such that this advantage is at least $4\eta$ for infinitely many security parameters. The running time of the TLF mode distinguisher is polynomial and does not include enumeration. By strong efficient enumerability, there is a polynomial $q$ such that its TLF advantage is at most $\eta$ whenever $r\ge q(\secp)$. Set $r(\secp)=\lceil q(\secp)\rceil$. Since $M\ge2^\secp$, this choice lies in $[M]$ for all sufficiently large $\secp$.
+
+Universality of the injective mode makes the marginal distribution of $K$, and hence the complete honest hash family, independent of this choice of $r$. Thus $r$ is a proof parameter and does not change the scheme attacked by $\advA$. It is polynomially bounded, so $\tau(\secp,r)$ is polynomial and the injectivity and enumeration failure probabilities are negligible. Every reduction in Theorem~\ref{thm-der-adaptive} is therefore PPT. Lemma~\ref{lem-dl-cdl} shows that PPT hardness of zero-free CDL also gives PPT hardness of DL and makes $1/p$ negligible.
+
+It remains only to account for the polynomial family of local hybrids. Return to the signed telescoping game chain rather than applying security term by term to the displayed sum of advantages. For each primitive, use the standard aggregate hybrid reduction that chooses the outer-game index and one of the constant number of transitions invoking that primitive uniformly, and orients its challenge according to that transition. If the total computational change across all local hybrids were non-negligible, one of these constant many uniform PPT sampler--distinguisher pairs would have non-negligible advantage. Hence the complete local-hybrid contribution is negligible under ordinary PPT iO and puncturable-PRF security. All other coefficients are polynomial for the chosen $r$, so the complete game argument bounds the advantage by $\eta+\negl(\secp)$, contradicting the assumed advantage on infinitely many security parameters.
+\end{proof}

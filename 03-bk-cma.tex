@@ -1,0 +1,449 @@
+\section{Key-Recovery Security of Classical Schnorr} \label{sec-lf-kr}
+
+Our first result concerns key recovery rather than unforgeability. It shows that
+an adaptive signing oracle gives no additional help in recovering the Schnorr
+secret key for a particular standard-model hash family. The proof uses a lossy
+mode with an efficiently enumerable image to simulate signatures without the
+secret key. The real scheme uses the injective mode, which is indistinguishable
+from the lossy mode. We later explain why this technique stops at key recovery:
+if the small image used by the simulator were publicly enumerable in the real
+scheme, the same simulation would be a forgery attack.
+
+\subsection{Key Recovery under Chosen-Message Attack}
+
+For a signature scheme $\SigScheme=(\SigKeys,\SigSign,\SigVf)$, the key-recovery
+game gives the adversary the verification key and an adaptive signing oracle,
+and the adversary wins by returning the signing key:
+\begin{center}
+\fbox{
+\begin{minipage}{2.8in}
+\ExperimentHeader{Game $\gameBKCMA{\SigScheme}$}
+
+\begin{oracle}{$\Initialize$}
+\item $(\vkey,\skey) \getsr \SigKeys$
+\item Return $\vkey$
+\end{oracle}
+\ExptSepSpace
+\begin{oracleC}{$\SignOracle(m)$}{$m \in \MsgSp$}
+\item $\sigma\getsr\SigSign(\skey,m)$
+\item Return $\sigma$
+\end{oracleC}
+\ExptSepSpace
+\begin{oracle}{$\Finalize(\skey')$}
+\item Return $(\skey'=\skey)$
+\end{oracle}
+\end{minipage}
+}
+\end{center}
+The BK-CMA advantage of $\advA$ is
+$$
+\AdvBKCMA{\SigScheme}{\advA}
+:=
+\Pr\big[\gameBKCMA{\SigScheme}(\advA)\Rightarrow1\big].
+$$
+For Schnorr signatures the signing key is $(x,\hk)$, and $\hk$ is included in
+the public verification key. Hence an adversary that returns $x$ can return
+$(x,\hk)$. In the other direction, when an adversary returns $(x',\hk')$, output
+$x'$ if $\hk'=\hk$ and output $\bot$ otherwise. This transformed adversary
+recovers $x$ exactly when the original adversary returns the full signing key.
+Thus the two formulations have the same advantage. We use the
+exponent-recovery formulation below.
+
+\subsection{The Hash Family} \label{sec-lf-constr}
+
+Let $\GG$ be a cyclic group of prime order $p$ with generator $g$. Let $\TLF$ be
+a tunable lossy function with algorithms $\TLFKg,\TLFEv,\TLFEnum$. Its domain is
+$\bits^{\ellin}$ and its range is $\Ygrave$. Recall from Section~\ref{sec-lf}
+that $M=2^{\ellin}$, and fix an injective encoding
+$$
+\enc{\cdot}\colon\GG\times\bits^{\msglen}\longrightarrow\bits^{\ellin}.
+$$
+
+Schnorr requires its challenge to lie in $\Zp$, whereas the range $\Ygrave$ of
+the injective mode must be large enough to contain an injective image of all
+pairs $(R,m)$. We therefore use an efficient keyed output-map family
+$$
+\mathsf{Map}=(\mathsf{MapKg},\mathsf{MapEv}).
+$$
+Algorithm $\mathsf{MapKg}$ on input $\usecp$ outputs a key $k$, and the
+deterministic algorithm $\mathsf{MapEv}$ on inputs $k$ and $y\in\Ygrave$ outputs
+an element of $\Zp$. No security property of $\mathsf{Map}$ is required for the
+key-recovery result.
+
+\begin{construction} \label{constr-lf}
+Fix an image parameter $r\in[M]$. The keyed hash family
+$\HF^{\mathsf{tlf}}_r=(\HFKg,\HFEv)$ is defined as follows. Algorithm $\HFKg$ on
+input $X\in\GG$ computes
+$$
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})
+\qquad\text{and}\qquad
+k\getsr\mathsf{MapKg}(\usecp),
+$$
+and returns $\hk=(K,k)$. Algorithm $\HFEv$ on inputs $\hk=(K,k)$ and
+$(R,m)\in\GG\times\bits^{\msglen}$ returns
+$$
+\mathsf{MapEv}\bigl(k,\TLFEv(K,\enc{R,m})\bigr).
+$$
+\end{construction}
+
+Key generation ignores $X$, and lossy keys are used only in the proof. The
+output map has a syntactic role in the construction: it maps the possibly
+structured range $\Ygrave$ to the scalar challenge required by Schnorr. This
+compression cannot in general be absorbed into the TLF while retaining the
+injectivity required by Definition~\ref{def-lf}. Indeed, the encoding domain
+contains $p2^{\msglen}$ pairs, while $\Zp$ contains only $p$ elements. Thus it is
+the inner TLF generated in injective mode that is injective, except with probability
+$\nu_{\mathsf{inj}}(\secp,r)$. The final composite hash is not claimed to be
+injective.
+
+\subsection{Exact Rejection Sampling} \label{sec-bk-sampling}
+
+The proof rests on the following elementary fact. It is independent of lossy
+functions and applies to any fixed Schnorr challenge function whose values, for
+the message being signed, lie in a known finite set.
+
+\begin{lemma}[Exact Schnorr rejection sampling] \label{lem-sim}
+Fix $x\in\Zp$ and $X=g^x$. Let
+$H\colon\GG\times\bits^{\msglen}\to\Zp$ be a function, let
+$m\in\bits^{\msglen}$, and let $C\subseteq\Zp$ be a nonempty finite set such
+that
+$$
+\{H(R,m):R\in\GG\}\subseteq C.
+$$
+Consider one trial that samples $c\getsr C$ and $s\getsr\Zp$, sets
+$R\gets g^sX^{-c}$, and accepts exactly when $H(R,m)=c$. The trial accepts with
+probability $1/|C|$. Conditioned on acceptance, $(R,s)$ has exactly the
+distribution of an honest Schnorr signature on $m$. Consequently, for every
+integer $N\ge1$, $N$ independent trials all fail with probability at most
+$e^{-N/|C|}$; in particular, $\secp|C|$ trials all fail with probability at
+most $e^{-\secp}$.
+\end{lemma}
+
+\begin{proof}
+Call $(c,s)\in C\times\Zp$ good if
+$$
+H\bigl(g^sX^{-c},m\bigr)=c.
+$$
+For each $R\in\GG$, let $\rho_R\in\Zp$ be the unique scalar such that
+$R=g^{\rho_R}$,
+and define
+$$
+c_R:=H(R,m)
+\qquad\text{and}\qquad
+s_R:=\rho_R+c_Rx\pmod p.
+$$
+The covering condition gives $c_R\in C$, and
+$g^{s_R}X^{-c_R}=R$. Thus $(c_R,s_R)$ is good. Conversely, if $(c,s)$ is good
+and $R=g^sX^{-c}$, then $c=c_R$ and the same equation gives $s=s_R$. Hence the
+good pairs are exactly
+$$
+\{(c_R,s_R):R\in\GG\},
+$$
+and the map $(c,s)\mapsto g^sX^{-c}$ is a bijection from the good pairs to
+$\GG$.
+
+There are therefore exactly $p$ good pairs among the $|C|p$ equally likely
+pairs in $C\times\Zp$, so one trial accepts with probability $1/|C|$.
+Conditioned on acceptance, the good pair is uniform, and the bijection makes
+$R$ uniform in $\GG$. For this $R$, the response is
+$s=\rho_R+H(R,m)x\bmod p$, exactly as in honest Schnorr signing. Finally,
+$(1-1/|C|)^N\le e^{-N/|C|}$.
+\end{proof}
+
+\subsection{Main Result} \label{sec-lf-thm}
+
+\paragraph*{Proof idea.}
+Fix the image parameter $r$. We first switch the inner function from its
+injective mode to its indistinguishable lossy mode. The reduction enumerates a
+set covering the lossy image and applies the output map to obtain a set
+$C\subseteq\Zp$ covering all possible Schnorr challenges. It then answers every
+adaptive signing query using Lemma~\ref{lem-sim}. The answers have exactly the
+honest distribution, apart from the stated enumeration and truncation failure
+probabilities, and no signing query uses $x$. A key-recovery adversary can
+therefore be run on a DL challenge.
+
+\begin{theorem} \label{thm-bk}
+Let $\advA$ be a PPT adversary against BK-CMA of
+$\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]$ that runs in time $t_{\advA}$ and makes
+at most $q_s$ signing queries. For every $r\in[M]$, there are a distinguisher
+$\advD$ and a DL algorithm $\advB$ such that
+$$
+\AdvBKCMA{\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]}{\advA}
+\le
+\AdvTLF{\TLF,r}{\advD}
++\AdvDL{\GG,g}{\advB}
++\nu_{\mathsf{enum}}(\secp,r)
++q_s e^{-\secp}.
+$$
+Adversary $\advD$ runs in time $t_{\advA}+q_s\poly(\secp)$, and $\advB$ runs
+in time
+$$
+t_{\advA}+\tau(\secp,r)+(q_s+1)\secp r\poly(\secp).
+$$
+\end{theorem}
+
+The quantitative reduction uses mode indistinguishability and enumeration of
+the lossy image, together with DL in $\GG$. It does not use injectivity of the
+injective mode or any security property of the output map. The construction
+nevertheless generates its TLF key in injective mode; injectivity itself is
+not used in the reduction. The theorem holds for every efficient output map.
+
+The games are in Figure~\ref{fig-bk-games}. In the figure, write
+$$
+H(R,m)=\mathsf{MapEv}\bigl(k,\TLFEv(K,\enc{R,m})\bigr).
+$$
+Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function
+to lossy mode at the same value $r$. Game $\Gm_2$ uses the enumeration
+information retained by the reduction to enumerate the lossy image once, and
+replaces honest signing by rejection sampling. If $C$ is empty, which can occur
+only within the enumeration-failure event, the oracle returns $\bot$.
+
+\FloatBarrier
+\begin{figure}[t]
+\twoCols{0.42}{0.50}{
+\ExperimentHeader{Game $\mathsf{G}[\mathsf{mode},b]$}
+
+\begin{oracle}{$\Initialize$}
+\item $x\getsr\Zp\;;\;X\gets g^x$
+\item $k\getsr\mathsf{MapKg}(\usecp)$
+\item $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{mode})$
+\item If $b=1$:
+\item \quad $S\getsr\TLFEnum(\mathsl{td})$
+\item \quad $C\gets\{\mathsf{MapEv}(k,y):y\in S\}$
+\item $\hk\gets(K,k)$; Return $(X,\hk)$
+\end{oracle}
+\ExptSepSpace
+\begin{oracle}{$\Finalize(x')$}
+\item Return $(x'=x)$
+\end{oracle}
+}
+{
+\begin{oracle}{$\SignOracle(m)$}
+\item If $b=0$:
+\item \quad $\rho\getsr\Zp\;;\;R\gets g^{\rho}$
+\item \quad $c\gets H(R,m)\;;\;s\gets(\rho+cx)\bmod p$
+\item \quad Return $(R,s)$
+\item If $C=\emptyset$: Return $\bot$
+\item Repeat $\secp|C|$ times:
+\item \quad $s\getsr\Zp\;;\;c\getsr C$
+\item \quad $R\gets g^sX^{-c}$
+\item \quad If $H(R,m)=c$: Return $(R,s)$
+\item Return $\bot$
+\end{oracle}
+}
+\vspace{-12pt}
+\caption{Games for the proof of Theorem~\ref{thm-bk}. We set
+$\Gm_0=\mathsf{G}[\mathsf{inj},0]$,
+$\Gm_1=\mathsf{G}[\mathsf{lossy},0]$, and
+$\Gm_2=\mathsf{G}[\mathsf{lossy},1]$.}\label{fig-bk-games}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+\FloatBarrier
+
+\begin{proof}[of Theorem~\ref{thm-bk}]
+\heading{From $\Gm_0$ to $\Gm_1$.}
+The distinguisher $\advD$, on input $K$, samples $x\getsr\Zp$ and
+$k\getsr\mathsf{MapKg}(\usecp)$. It sets $\hk=(K,k)$, runs $\advA$ on $(g^x,\hk)$, answers
+signing queries honestly, and returns 1 exactly when $\advA$ outputs $x$. The
+two input distributions for $\advD$ give games $\Gm_0$ and $\Gm_1$. The
+enumeration information generated together with $K$ is hidden and unused in
+both games, so $\advD$ needs only the public key supplied by the TLF game. Hence
+$$
+|\Pr[\Gm_0\Rightarrow1]-\Pr[\Gm_1\Rightarrow1]|
+\le\AdvTLF{\TLF,r}{\advD}.
+$$
+
+\heading{From $\Gm_1$ to $\Gm_2$.}
+Next condition on successful enumeration in $\Gm_2$. The simulator computes
+$S\getsr\TLFEnum(\mathsl{td})$ and then
+$C=\{\mathsf{MapEv}(k,y):y\in S\}$. For every message $m$,
+$$
+\{H(R,m):R\in\GG\}\subseteq C,
+$$
+because the enumerated set covers the image of $\TLFEv(K,\cdot)$ on its entire
+domain. Lemma~\ref{lem-sim} therefore says that each signing query has exactly
+the distribution in $\Gm_1$ unless its rejection loop fails. Hence
+$$
+|\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]|
+\le\nu_{\mathsf{enum}}(\secp,r)+q_se^{-\secp}.
+$$
+
+\heading{From $\Gm_2$ to DL.}
+Finally, algorithm $\advB$, on input a DL challenge $h$, sets $X\gets h$ and samples
+$$
+(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})
+\qquad\text{and}\qquad
+k\getsr\mathsf{MapKg}(\usecp),
+$$
+sets $\hk=(K,k)$, and runs $\advA$ on $(X,\hk)$. Since $\advB$ generated the lossy key, it retains
+$\mathsl{td}$ and can compute the set $C$ used by $\Gm_2$. It answers signing
+queries as in $\Gm_2$ and returns the value output by $\advA$. This perfectly
+simulates $\Gm_2$, so
+$$
+\Pr[\Gm_2\Rightarrow1]=\AdvDL{\GG,g}{\advB}.
+$$
+The lossy image is enumerated once. Constructing $C$ takes
+$\tau(\secp,r)+r\poly(\secp)$ time, and each signing query uses at most
+$\secp r$ trials. This gives the claimed running times and completes the proof.
+\end{proof}
+
+\subsection{Why Lossiness Stops at Key Recovery}
+
+The rejection-sampling loop uses only the verification key once a covering set
+for the relevant challenge values is known. It therefore becomes a forgery
+attack whenever such a small set is publicly computable. The following
+proposition makes this precise and does not depend on how the hash function is
+built.
+
+\begin{proposition} \label{prop-lossy-forge}
+Let $\HF=(\HFKg,\HFEv)$ be a keyed hash family for $\GG$. Suppose there is an
+algorithm $\mathsf{Cover}$ that, on input a public verification key
+$(X,\hk)$ in the support of Schnorr key generation, runs in time $\tau$ and
+returns a message $m^*\in\bits^{\msglen}$ and a nonempty set
+$C\subseteq\Zp$ such that $|C|\le r$ and
+$$
+C\supseteq\{\HFEv(\hk,(R,m^*)):R\in\GG\}.
+$$
+Then there is an adversary that runs in time
+$\tau+\secp r\poly(\secp)$, makes no signing queries, and wins the EUF-CMA game
+against $\SchScheme[\GG,\HF]$ with probability at least $1-e^{-\secp}$.
+\end{proposition}
+
+\begin{proof}
+On input $(X,\hk)$, the adversary runs
+$(m^*,C)\gets\mathsf{Cover}(X,\hk)$. It then repeats the rejection-sampling loop
+of Figure~\ref{fig-bk-games} on $m^*$, using the public function
+$H(R,m)=\HFEv(\hk,(R,m))$ and the set $C$. Lemma~\ref{lem-sim} says that each
+trial succeeds with probability $1/|C|$. Thus all $\secp|C|$ trials fail with
+probability at most $e^{-\secp}$. Any output is a valid signature on $m^*$, and
+the adversary made no signing query.
+\end{proof}
+
+The qualification ``publicly computable'' is essential: the proposition needs
+an efficient way to obtain a covering set, not merely an information-theoretic
+bound on the image. The abstract TLF definition allows the reduction to retain
+auxiliary enumeration information generated together with the lossy key. The
+DDH- and LWE-based constructions of Propositions~\ref{prop-tlf-ddh}
+and~\ref{prop-tlf-lwe} both use such information. The deployed key is instead
+generated in injective mode, and the corresponding small cover is unavailable
+to the public-cover attack above.
+
+\paragraph*{Why not deploy the lossy mode?}
+One could do so. More generally, the proof works directly for any fixed
+challenge function for which a polynomial-size covering set can be efficiently
+computed: the mode switch is then unnecessary, and the rejection sampler
+reduces key recovery directly to DL. A constant challenge function is the
+extreme example. It can still be BK-CMA secure, because seeing valid signatures
+need not reveal $x$, but it is trivially forgeable: if its value is $c$, choose
+$s\getsr\Zp$ and return $(g^sX^{-c},s)$ on any message.
+
+This observation is why a deliberately small-image real hash says little about
+the behavior of Schnorr with a practical challenge hash. Such a hash is intended
+to spread its outputs throughout the challenge space, not to have a publicly
+computable polynomial- or quasi-polynomial-size cover.
+
+The point of Construction~\ref{constr-lf} is narrower. Its deployed inner
+function is generated in the injective mode, while only the indistinguishable
+lossy mode used in the proof has the small enumerable image. The composite
+still has the usual Schnorr domain and range: it takes $(R,m)$ and returns a
+scalar in $\Zp$. The
+theorem permits any efficient output map, including degenerate choices, and
+therefore proves key recovery only. It does not prove that SHA-3 has a lossy
+mode, or that plain SHA-3 satisfies the theorem. It shows instead that the
+small-image simulation need not be a visible property of the deployed inner
+function. Lossiness alone cannot establish unforgeability, which is why the
+results that follow use different tools.
+
+\subsection{Assumption Tradeoffs}
+
+Theorem~\ref{thm-bk} gives the tradeoff directly in terms of the TLF. For any
+chosen $r=r(\secp)$, the mode distinguisher runs in time
+$t_{\advA}+q_s\poly(\secp)$ and never enumerates the lossy image. The DL
+algorithm instead runs in time
+$$
+t_{\advA}+\tau(\secp,r)+(q_s+1)\secp r\poly(\secp).
+$$
+Thus the TLF switch need only be secure against polynomial-time distinguishers,
+even when the enumeration and the resulting DL reduction are
+superpolynomial.
+
+\begin{corollary}[Fixed-image tradeoff] \label{cor-bk-fixed}
+Fix any efficiently represented image bound $r=r(\secp)$. Suppose every PPT
+distinguisher has negligible TLF advantage at $r$, the enumeration failure
+$\nu_{\mathsf{enum}}(\secp,r)$ is negligible, and, for every polynomial $P$,
+every algorithm running for at most
+$$
+\tau(\secp,r)+rP(\secp)
+$$
+time has negligible DL advantage in $\GG$. Then
+$\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]$ is BK-CMA secure for every efficient
+output-map family $\mathsf{Map}$.
+\end{corollary}
+
+\begin{proof}
+Apply Theorem~\ref{thm-bk}. Its TLF distinguisher is PPT, while its DL
+algorithm falls within the assumed running time after absorbing the
+adversary's polynomial running time. The TLF advantage, DL advantage, and
+enumeration-failure probability are negligible, as is $q_se^{-\secp}$ for
+polynomial $q_s$.
+\end{proof}
+
+In particular, if $\tau(\secp,r)\le r\poly(\secp)$ and
+$r=2^{\secp^\theta}$ for a constant $0<\theta<1$, the DL side requires hardness
+against $2^{O(\secp^\theta)}$-time algorithms, while the TLF distinguisher
+remains polynomial time. A quasi-polynomial $r$ gives the analogous
+quasi-polynomial DL requirement. Propositions~\ref{prop-tlf-ddh}
+and~\ref{prop-tlf-lwe} give DDH- and LWE-based ways to realize the TLF profile
+at the chosen value of $r$. Under the formal definition of subexponential
+security in Section~\ref{sec-prelims}, DL security with any exponent
+$\delta_{\mathsf{DL}}>\theta$ absorbs the constant hidden in the displayed
+$O(\secp^\theta)$ running time.
+
+There is a stronger endpoint in which the DL reduction remains polynomial.
+For a TLF satisfying Definition~\ref{def-tlf-strong}, the injective-key
+distribution does not depend on the image parameter. Since the output-map key
+is also sampled independently of $r$, the distribution of
+$\HF^{\mathsf{tlf}}_r$ is the same for every $r$; we write
+$\HF^{\mathsf{tlf}}$ for this family.
+
+\begin{corollary} \label{cor-bk}
+Suppose $\TLF$ is strongly efficiently enumerable and DL is hard against
+PPT algorithms in $\GG$. Then
+$\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure for every efficient
+output-map family $\mathsf{Map}$.
+\end{corollary}
+
+\begin{proof}
+Suppose a PPT adversary $\advA$ has nonnegligible BK-CMA advantage. Fix an
+inverse polynomial $\epsilon$ such that this advantage is at least $4\epsilon$
+for infinitely many security parameters. The distinguisher $\advD$ of
+Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives
+$K$ and never uses the image bound. Let $q$ be the polynomial given by
+Definition~\ref{def-tlf-strong} for a polynomial time bound on $\advD$ and for
+$\epsilon$, and set
+$r(\secp)=\lceil q(\secp)\rceil$. Since $q$ is polynomial and
+$M\ge2^\secp$, we have $r(\secp)\le M$ for all sufficiently large $\secp$.
+Then
+$\AdvTLF{\TLF,r}{\advD}\le\epsilon$. The injective-mode distribution does not
+depend on this choice of $r$, so the left side of the theorem is still the
+advantage against the honest scheme.
+
+For this fixed polynomial $r$, algorithm $\advB$ is PPT. Its DL advantage is
+negligible. The enumeration-failure term is also negligible.
+The remaining term $q_se^{-\secp}$ is negligible as well. For all sufficiently
+large parameters the right side is less than $4\epsilon$, a contradiction.
+\end{proof}
+
+\paragraph*{Instantiation and comparison.}
+By Proposition~\ref{prop-tlf-ddh}, Corollary~\ref{cor-bk} assumes ordinary DL
+in the Schnorr group and exponential DDH, or constant-$k$ exponential
+$k$-linear, in auxiliary groups. The cascade is what permits the proof to
+choose a polynomial image bound after fixing the attack; the fixed-image
+Corollary~\ref{cor-bk-fixed} does not require that stronger quantifier order.
+
+Paillier and Vergnaud~\cite{AC:PaiVer05} prove BK-CMA security for Schnorr with
+any hash function under OMDL. Their result covers any hash function, while ours
+covers a particular keyed family. Our group assumption is ordinary DL, and the
+DDH-cascade instantiation uses exponential DDH for the TLF. OMDL is
+interactive; the assumptions used by our BK-CMA reduction are non-interactive.

@@ -1,0 +1,24 @@
+% Archived on 2026-07-31 when the active paper was shortened to retain only
+% the adaptive Deterministic Schnorr result. This file is intentionally not
+% input by main.tex and preserves the former public-randomness corollary.
+
+\begin{corollary}[Public-randomness wrapper] \label{cor-randomized-wrapper}
+Fix a polynomial $\ell_\rho=\ell_\rho(\secp)$. Instantiate the scheme of Corollary~\ref{cor-der-adaptive} on extended messages
+$$
+(m,\rho)\in\bits^{\msglen}\times\bits^{\ell_\rho},
+$$
+with the tunable lossy function applied to an encoding of the full pair. Define a scheme for messages $m\in\bits^{\msglen}$ as follows. To sign $m$, sample $\rho\getsr\bits^{\ell_\rho}$, sign the extended message $(m,\rho)$ with the deterministic scheme, and return $(R,s,\rho)$. To verify $(R,s,\rho)$ on $m$, verify $(R,s)$ on the extended message $(m,\rho)$. This scheme is adaptively EUF-CMA secure under the hypotheses of Corollary~\ref{cor-der-adaptive}.
+
+The same conclusion holds if the nonce used after sampling $\rho$ is instead sampled uniformly and independently from $\Zp$ on every invocation, provided $\PRF_0$ is secure and $\ell_\rho=\omega(\log\secp)$. More precisely, for every adversary making at most $q_s$ signing queries, the absolute difference between its advantages against the two schemes is at most
+$$
+\AdvPRF{\PRF_0}{\advD_\rho}
++\frac{q_s(q_s-1)}{2^{\ell_\rho+1}}
+$$
+for a PPT PRF distinguisher $\advD_\rho$.
+\end{corollary}
+
+\begin{proof}
+An adversary against the wrapper gives an adversary against the deterministic scheme on extended messages. On a signing query $m$, it samples $\rho$, requests a signature on $(m,\rho)$, and returns that signature together with $\rho$. If the wrapper adversary forges on a fresh base message $m^*$, then $(m^*,\rho^*)$ was not submitted to the signing oracle, so the same output is a valid extended-message forgery.
+
+For the second claim, replace $\PRF_0$ by a random function on extended messages. Unless the same pair $(m,\rho)$ occurs in two signing queries, its outputs are independent uniform elements of $\Zp$, exactly as when a fresh nonce is sampled on every invocation. For each pair of queries, repetition of the extended message requires both repetition of the base message and equality of two independent values of $\rho$, and hence has probability at most $2^{-\ell_\rho}$. A union bound gives the displayed collision term. The PRF switch gives the other term.
+\end{proof}

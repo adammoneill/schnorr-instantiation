@@ -2,11 +2,11 @@
 
 \adam{Ojaswi, Carter, Xinyu, Alex: This section merges the instantiability program with the circular-SIS working draft. The scheme below is the uncompressed warmup scheme of that draft with rejection sampling added, over a sufficiently large prime $q$ with the prefix-one decomposition challenge set. Open items for the group are flagged inline.}
 
-This part of the paper instantiates the hash function in a lattice-based Fiat--Shamir signature scheme. It gives bounded static-message unforgeability for a randomized signer in Section~\ref{sec-dil-static}, and static-message unforgeability without a query bound for a derandomized signer in Section~\ref{sec-dil-derand}. The scheme is a Fiat--Shamir signature with aborts in the sense of Lyubashevsky~\cite{AC:Lyubashevsky09,EC:Lyubashevsky12}, the paradigm that Dilithium~\cite{Dilithium} instantiates and that motivates this part.
+This part of the paper instantiates the hash function in a lattice-based Fiat--Shamir signature scheme. It gives bounded static-message unforgeability for a randomized signer in Section~\ref{sec-dil-static}, and static-message unforgeability without a query bound for a deterministic signer in Section~\ref{sec-dil-derand}. The scheme is a Fiat--Shamir signature with aborts in the sense of Lyubashevsky~\cite{AC:Lyubashevsky09,EC:Lyubashevsky12}, the paradigm that Dilithium~\cite{Dilithium} instantiates and that motivates this part.
 
-What transfers from this part to Dilithium proper is the instantiation technique, not the theorem statements. To make the difference precise we state at the outset what our scheme shares with Dilithium and what it does not. Shared: the Fiat--Shamir-with-aborts structure, an LWE-format public key, a masked commitment, and a response that verification checks to be short. Not shared: we work with plain matrices over $\Zq$ rather than over the ring $\Z_q[X]/(X^n+1)$, so there is no module structure, which is where Dilithium's efficiency comes from; our challenges are prefix-one binary decompositions rather than the sparse set $B_\tau$; our modulus is any sufficiently large prime rather than Dilithium's fixed NTT-friendly one; the base signer is randomized, while the no-query-bound result uses its derandomized variant; ML-DSA instead specifies a deterministic mode and a hedged default; and we use neither compression of the commitment nor a hint vector. Section~\ref{sec-conclusion} records each of these differences as an open problem. The static result (Theorem~\ref{thm-dil}) mirrors Section~\ref{sec-io-uf}. The hash function is an obfuscated circuit computing a masked conversion function, a forgery becomes a solution to the circular problem, and signing queries are handled by hardwiring. Two things change. First, the circular problem is $\CSIS$ with bit decomposition as the conversion function, and by Lemma~\ref{lem-csis-sis} this is not a new assumption; the reduction lands on plain SIS. Second, lattice verification and simulation include a low-norm slack term, which changes the exact steps of the Schnorr proof into steps with LWE and rejection-sampling accounting.
+What transfers from this part to Dilithium proper is the instantiation technique, not the theorem statements. To make the difference precise we state at the outset what our scheme shares with Dilithium and what it does not. Shared: the Fiat--Shamir-with-aborts structure, an LWE-format public key, a masked commitment, and a response that verification checks to be short. Not shared: we work with plain matrices over $\Zq$ rather than over the ring $\Z_q[X]/(X^n+1)$, so there is no module structure, which is where Dilithium's efficiency comes from; our challenges are prefix-one binary decompositions rather than the sparse set $B_\tau$; our modulus is any sufficiently large prime rather than Dilithium's fixed NTT-friendly one; the base signer is randomized, while the no-query-bound result uses its deterministic variant; ML-DSA specifies a deterministic mode and a hedged default; and we use neither compression of the commitment nor a hint vector. Section~\ref{sec-conclusion} records each of these differences as an open problem. The static result (Theorem~\ref{thm-dil}) mirrors Section~\ref{sec-io-uf}. The hash function is an obfuscated circuit computing a masked conversion function, a forgery becomes a solution to the circular problem, and signing queries are handled by hardwiring. Two things change. First, the circular problem is $\CSIS$ with bit decomposition as the conversion function, and by Lemma~\ref{lem-csis-sis} this is not a new assumption; the reduction lands on plain SIS. Second, lattice verification and simulation include a low-norm slack term, which changes the exact steps of the Schnorr proof into steps with LWE and rejection-sampling accounting.
 
-A standard-model proof also changes what must be modeled. Analyses in idealized models must treat quantum oracle access~\cite{EC:KilLyuSch18}, whereas an instantiated hash is a concrete circuit. This does not by itself make our results post-quantum. Both static constructions use iO, and we do not claim a post-quantum instantiation. The derandomized adaptive port remains future work; the outlook at the end of Section~\ref{sec-dil-static} records the plan.
+A standard-model proof also changes what must be modeled. Analyses in idealized models must treat quantum oracle access~\cite{EC:KilLyuSch18}, whereas an instantiated hash is a concrete circuit. This does not by itself make our results post-quantum. Both static constructions use iO, and we do not claim a post-quantum instantiation. The adaptive deterministic port remains future work; the outlook at the end of Section~\ref{sec-dil-static} records the plan.
 
 Throughout, $q$ is a prime, $k = \lceil \log_2 q\rceil$, and $\ell = 1 + nk$. The challenge space is $\chal_q$ and the conversion function is $\Fq_q$, both defined in Section~\ref{sec-lattice}; $\Fq_q$ is a bijection from $\Zq^n$ onto $\chal_q$, every challenge has infinity norm $1$, and no challenge is zero. Fix dimensions $n, \colsA$ and a mask bound $B$, and set the response bound $\Bclip := B - \ell$. We require $B \ge 4\ell(\colsA+n)$, which bounds the rejection probability of each signing attempt by $1/2$, and $q \ge B^2$, which keeps the modulus above every norm in the proofs. Both static results additionally require the flooding condition of Section~\ref{sec-dil-static}, which requires $B$, and hence $q$, to be super-polynomial; quasi-polynomial suffices. \adam{Carter: Under flooding, choose a prime with $\log q = \Theta((\log\secp)^2)$. Here $k = \lceil\log_2 q\rceil$; we do not set $q=2^k$. The final SIS norm is $B+\Bclip < 2B \le 2\sqrt{q}$. Concrete sizes need a real parameter table.}
 
@@ -167,13 +167,13 @@ which is a $\CSIS$ solution $(\mat{z}_1{+}\mat{v}_1,\ \mat{z}_2{+}\mat{v}_2,\ \m
 \subsection{Main Result} \label{sec-dil-thm}
 
 \begin{theorem} \label{thm-dil}
-Let $q$ be prime, let $\chal_q$ and $\Fq_q$ be as in Section~\ref{sec-lattice} with $\ell = 1+nk$, and let $f = \Fq_q$. Let $\PRF_1$ and $\PRF_2$ be puncturable PRFs with the domains and ranges of Section~\ref{sec-dil-constr}, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CSIS$, a distinguisher $\advD_{\mathsf{io}}$ against $\iO$, distinguishers $\advD^{\mathsf{prf}}_1, \advD^{\mathsf{prf}}_2$ for the PRFs, and distinguishers $\advD_1, \advD_2$ against decision LWE, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
+Let $q$ be prime, let $\chal_q$ and $\Fq_q$ be as in Section~\ref{sec-lattice} with $\ell = 1+nk$, and let $f = \Fq_q$. Let $\PRF_1$ and $\PRF_2$ be puncturable PRFs with the domains and ranges of Section~\ref{sec-dil-constr}, and let $\iO$ be an indistinguishability obfuscator. Let $\advA = (\advA_0, \advA_1)$ be an adversary that runs in time $t_{\advA}$ and declares $q_s \le Q$ signing messages. There are an adversary $\advB$ against $\CSIS$, a distinguisher $\advD_{\mathsf{io}}$ against $\iO$, distinguishers $\advD^{\mathsf{pprf}}_1, \advD^{\mathsf{pprf}}_2$ for the puncturable PRFs, and distinguishers $\advD_1, \advD_2$ against decision LWE, each running in time $t_{\advA} + \poly(\secp, Q)$, such that
 $$
 \begin{aligned}
 \AdvEUFSTATICQ{\DSScheme[\HF^{\mathsf{lio}}_Q]}{\advA}
 \le\ &\AdvCSIS{\Fq_q,\chal_q,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB}
-+ \AdvIO{}{\advD_{\mathsf{io}}} \\
-&+ \sum_{i=1}^{2}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_i}
++ \AdvIO{\iO}{\advD_{\mathsf{io}}} \\
+&+ \sum_{i=1}^{2}\AdvPPRF{\PRF_i}{\advD^{\mathsf{pprf}}_i}
 + \AdvLWE{q,n,\colsA,q_s,B}{\advD_1}
 + \AdvLWE{q,n,\colsA,\ell,1}{\advD_2} \\
 &+ q_s \cdot \frac{4\ell(\colsA+n)}{2B+1}
@@ -203,7 +203,7 @@ The proof follows the game chain of Theorem~\ref{thm-uf}, and we describe each g
 
 \heading{Game $\Gm_5$ (uniform hash values).} For each $i$, the hardwired value is $c_i = \Fq_q(\mat{w}_i + \mat{A}\mat{v}_{1,i} + \mat{v}_{2,i})$ with $(\mat{v}_{1,i}, \mat{v}_{2,i})$ uniform on boxes and used nowhere else. First replace the $q_s$ masked points $\mat{w}_i + \mat{A}\mat{v}_{1,i} + \mat{v}_{2,i}$ by independent uniform elements of $\Zq^n$; this is decision LWE with matrix $\mat{A}$, $q_s$ secret--noise pairs, and box $B$, at a cost of $\AdvLWE{q,n,\colsA,q_s,B}{\advD_1}$. Then $c_i = \Fq_q(\text{uniform})$ is uniform on $\chal_q$, exactly, because $\Fq_q$ is a bijection onto $\chal_q$; discard the masks. This is the analogue of the exact step of Game~$\Gm_4$ of Theorem~\ref{thm-uf}, with the exactness split into one LWE hop and one exact bijection step. The masked points are shifted by the $\mat{w}_i$, which are independent of the masks, so the shift preserves the LWE reduction.
 
-\heading{Game $\Gm_6$ (signing without the secret).} For each $i$, the record is now produced as follows. With probability $1-\rho$, where $\rho = \big(\tfrac{2\Bclip+1}{2B+1}\big)^{\colsA+n}$ is the fixed-challenge acceptance probability of Section~\ref{sec-dil-scheme}, trigger the rejection abort of $\Gm_1$. Otherwise sample $c_i \getsr \chal_q$ and $\mat{z}_i$ uniform on $[\pm\Bclip]^{\colsA} \times [\pm\Bclip]^{n}$, set $\mat{w}_i \gets \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$, hardwire $(\mat{w}_i, m_i) \mapsto c_i$, and return $(c_i, \mat{z}_i)$; the collision abort of $\Gm_2$ is evaluated on these re-derived $\mat{w}_i$. This has the same distribution as $\Gm_5$, exactly. In $\Gm_5$ the value $c_i$ is uniform and independent of $\mat{y}_i$, so the first attempt rejects with probability exactly $1-\rho$, independent of the secret and the challenge, and, conditioned on acceptance, $\mat{z}_i = \mat{y}_i + \mat{S}_ic_i$ is uniform on the clipped box and independent of $\mat{S}_ic_i$, by the rejection-sampling exactness of Section~\ref{sec-dil-scheme}; the point $\mat{w}_i$ is then determined by the identity $\mat{w}_i = \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$. This is the analogue of the change of variables of Game~$\Gm_5$ of Theorem~\ref{thm-uf}; there the identity is $R_i = g^{s_i}X^{-v_i}$, here it is the verification equation. The secrets $\mat{S}_1, \mat{S}_2$ are no longer used in signing.
+\heading{Game $\Gm_6$ (signing without the secret).} For each $i$, the record is now produced as follows. With probability $1-\rho$, where $\rho = \big(\tfrac{2\Bclip+1}{2B+1}\big)^{\colsA+n}$ is the fixed-challenge acceptance probability of Section~\ref{sec-dil-scheme}, trigger the rejection abort of $\Gm_1$. Otherwise sample $c_i \getsr \chal_q$ and $\mat{z}_i$ uniform on $[\pm\Bclip]^{\colsA} \times [\pm\Bclip]^{n}$, set $\mat{w}_i \gets \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$, hardwire $(\mat{w}_i, m_i) \mapsto c_i$, and return $(c_i, \mat{z}_i)$; the collision abort of $\Gm_2$ is evaluated on these re-derived $\mat{w}_i$. This has the same distribution as $\Gm_5$, exactly. In $\Gm_5$ the value $c_i$ is uniform and independent of $\mat{y}_i$, so the first attempt rejects with probability exactly $1-\rho$, independent of the secret and the challenge, and, conditioned on acceptance, $\mat{z}_i = \mat{y}_i + \mat{S}_ic_i$ is uniform on the clipped box and independent of $\mat{S}_ic_i$, by the rejection-sampling exactness of Section~\ref{sec-dil-scheme}; the point $\mat{w}_i$ is then determined by the identity $\mat{w}_i = \mat{A}\mat{z}_{i,1} + \mat{z}_{i,2} - \mat{T}c_i$. This is the analogue of the change of variables of Game~$\Gm_5$ of Theorem~\ref{thm-uf}; there the identity is $R_i = g^{s_i}X^{-c_i}$, here it is the verification equation. The secrets $\mat{S}_1, \mat{S}_2$ are no longer used in signing.
 
 \heading{Game $\Gm_7$ (uniform public key).} Replace $\mat{T} = \mat{A}\mat{S}_1 + \mat{S}_2$ by uniform $\mat{T} \getsr \Zq^{n\times\ell}$. Signing no longer uses the secrets, so this is decision LWE with $\ell$ secret--noise columns at box $1$, at a cost of $\AdvLWE{q,n,\colsA,\ell,1}{\advD_2}$.
 
@@ -214,8 +214,8 @@ $$
 \begin{aligned}
 \AdvEUFSTATICQ{\DSScheme[\HF^{\mathsf{lio}}_Q]}{\advA}
 \le\ &\AdvCSIS{\Fq_q,\chal_q,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB}
-+ \AdvIO{}{\advD_{\mathsf{io}}} \\
-&+ \sum_{i=1}^{2}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_i}
++ \AdvIO{\iO}{\advD_{\mathsf{io}}} \\
+&+ \sum_{i=1}^{2}\AdvPPRF{\PRF_i}{\advD^{\mathsf{pprf}}_i}
 + \AdvLWE{q,n,\colsA,q_s,B}{\advD_1}
 + \AdvLWE{q,n,\colsA,\ell,1}{\advD_2} \\
 &+ q_s \cdot \frac{4\ell(\colsA+n)}{2B+1}
@@ -229,11 +229,11 @@ where the single iO term is the hardwiring switch of $\Gm_3$; the later hops cha
 
 Three further remarks, mirroring Section~\ref{sec-io-uf}. The parameter $Q$ enters only through the padding bound $s_{\mathrm{D}}(\secp, Q)$, and signing is stateless and unrestricted. The reduction is non-black-box in the hash function, using the PRF keys to recompute the masks of the forgery, which is how the result relates to the impossibility landscape for Fiat--Shamir in the standard model. The construction is a feasibility result; evaluating an obfuscated circuit per hash call is not a practical proposal.
 
-\subsection{Removing the Query Bound: the Derandomized Scheme} \label{sec-dil-derand}
+\subsection{Removing the Query Bound: the Deterministic Scheme} \label{sec-dil-derand}
 
 \adam{All: New material, written by one hand and unread by anyone else, like Section~\ref{sec-derand} was. The five spots that most want independent checking are listed in the note after the proof.}
 
-This subsection ports the derandomization of Section~\ref{sec-derand} to the lattice scheme. The signer derives its nonces from the signing key and the message, which is how ML-DSA's deterministic mode already signs. Repeated signing queries therefore replay the same response, so one PRF-derived trigger per message suffices. Recomputing that trigger removes the hardwired table and hence the parameter $Q$: the result is EUF-static security with no query bound, under the same assumptions and the same flooding condition.
+This subsection ports the deterministic-signing technique of Section~\ref{sec-derand} to the lattice scheme. The signer derives its nonces from the signing key and the message, which is how ML-DSA's deterministic mode already signs. Repeated signing queries therefore replay the same response, so one PRF-derived trigger per message suffices. Recomputing that trigger removes the hardwired table and hence the parameter $Q$: the result is EUF-static security with no query bound, under the same assumptions and the same flooding condition.
 
 \paragraph*{The scheme.} Let $\PRF_0$ be a pseudorandom function with range $[\pm B]^{\colsA} \times [\pm B]^{n}$, applied to an injective encoding of $(m, \kappa)$ for an attempt counter $\kappa \in [\secp]$; it need not be puncturable. The scheme $\DSScheme^{\mathsf{d}}[\HF]$ is the scheme of Construction~\ref{constr-dil} with two changes. Key generation additionally samples $k_0 \getsr \PRFKg_0(\usecp)$ and stores it in the signing key. Attempt $\kappa$ of signing computes its nonces as $(\mat{y}_1, \mat{y}_2) \gets \PRFEv_0(k_0, \enc{m,\kappa})$ instead of sampling them. Verification is unchanged. Signing is deterministic, so a repeated query is answered by replaying, exactly as in Section~\ref{sec-derand}, and ML-DSA's deterministic mode runs the same counter loop.
 
@@ -254,8 +254,8 @@ $$
 :=
 \sum_{\beta\in\{0,1\}}
 \Big(
-\AdvIO{}{\advD^{\mathsf{io}}_{j,\beta}}
-+\sum_{i=1}^{4}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_{j,\beta,i}}
+\AdvIO{\iO}{\advD^{\mathsf{io}}_{j,\beta}}
++\sum_{i=1}^{4}\AdvPPRF{\PRF_i}{\advD^{\mathsf{pprf}}_{j,\beta,i}}
 +\AdvLWE{q,n,\colsA,1,B}{\advD^{\mathsf{lwe}}_{j,\beta}}
 \Big)
 +\frac{2}{(2B+1)^{n}} \, ,
@@ -269,15 +269,15 @@ $$
 + \sum_{j=1}^{q_s}\epsilon_j
 + \AdvLWE{q,n,\colsA,\ell,1}{\advD_{\mathsf{key}}} \\
 &+ \AdvCSIS{\Fq_q,\chal_q,q,n,\colsA,\ell,\Bclip+B,\Bclip+B}{\advB_{\mathsf{main}}} \\
-&+ \AdvIO{}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
-+ \sum_{i=3}^{4}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_{\mathsf{trig},i}}
+&+ \AdvIO{\iO}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++ \sum_{i=3}^{4}\AdvPPRF{\PRF_i}{\advD^{\mathsf{pprf}}_{\mathsf{trig},i}}
 + \AdvLWE{q,n,\colsA,1,\Bclip}{\advD^{\mathsf{lwe}}_{\mathsf{trig}}} \\
 &+ \alpha_{q,n}^{-1}\,\AdvSIS{q,n,\colsA+n+1,\Bclip}{\advB_{\mathsf{trig}}} \;.
 \end{aligned}
 $$
 \end{theorem}
 
-\paragraph*{Discussion.} Every assumption is polynomially hard and the scheme has no query parameter; the flooding condition still requires a quasi-polynomial modulus, as in Corollary~\ref{cor-dil-sis}. The two mechanisms are those of Theorem~\ref{thm-der-static}. The declared messages and honest points are known before key generation, so no slot is guessed. The trigger points still depend on trigger-PRF outputs; what the proof uses is that each puncture set is sampled independently of the particular PRF key being challenged. The trigger branch recomputes programmed points instead of storing them, so the published circuit has fixed size. Compared with Theorem~\ref{thm-der-static}, the lattice setting adds one LWE hop per direction of each per-query step, where Schnorr's output mask is exact, and the trigger-forgery case lands on SIS through an LWE hop rather than on DL.
+\paragraph*{Discussion.} Every assumption is polynomially hard and the scheme has no query parameter; the flooding condition still requires a quasi-polynomial modulus, as in Corollary~\ref{cor-dil-sis}. The two mechanisms parallel the local hybrid of Theorem~\ref{thm-der-adaptive}. The declared messages and honest points are known before key generation, so no slot is guessed and no TLF digest layer is needed. The trigger points still depend on trigger-PRF outputs; what the proof uses is that each puncture set is sampled independently of the particular PRF key being challenged. The trigger branch recomputes programmed points instead of storing them, so the published circuit has fixed size. Compared with the Schnorr local hybrid, the lattice setting adds one LWE hop per direction of each per-message step, where Schnorr's output mask is exact, and the trigger-forgery case lands on SIS through an LWE hop rather than on DL.
 
 \begin{proof}
 Let $\advA_0$ declare a list of $q_s$ signing messages and a forgery message $m^*$ outside that list. Let $N\le q_s$ be the number of distinct signing messages, and relabel them $m_1,\ldots,m_N$ in order of first occurrence. Repeated positions are answered by replaying, and the hybrid runs over these $N$ distinct messages.
@@ -290,7 +290,12 @@ Let $\advA_0$ declare a list of $q_s$ signing messages and a forgery message $m^
 
 Fix $j$ and compare $\Gm_{2,j-1}$ with $\Gm_{2,j}$. Both endpoints add the event $\mathsf{Bad}_{\mathsf{eq}} := [\mat{w}_j = \mat{W}_{m_j}]$, with output 0 when it occurs; conditioned on everything else, $\mat{y}_{j,2}$ gives $\mat{w}_j$ min-entropy $n\log(2B+1)$ at any fixed target, so the two aborts cost at most $2(2B+1)^{-n}$. Each intermediate game recomputes the event from its current values.
 
-The chain is that of Appendix~\ref{app-der-static}, with the lattice substitutions. Replace the honest circuit by the two-point circuit that hardwires $\{(\enc{\mat{w}_j, m_j}''', c_j), (\enc{\mat{W}_{m_j}, m_j}''', c_t(m_j))\}$ and punctures $k_1, k_2$ at the two points and $k_3, k_4$ at $m_j$. The circuits compute the same function: the trigger comparison at slot $m_j$ succeeds only at $\mat{W}_{m_j}$, which $\mathsf{Bad}_{\mathsf{eq}}$ separates from $\mat{w}_j$, and puncturing preserves functionality elsewhere. Thus iO bounds the change.
+The chain specializes the local two-record hybrid of Appendix~\ref{app-derand} to a slot known before key generation, with the lattice substitutions. Replace the honest circuit by the two-point circuit that hardwires
+$$
+\bigl\{(\enc{\mat{w}_j, m_j}''', c_j),
+(\enc{\mat{W}_{m_j}, m_j}''', c_t(m_j))\bigr\}
+$$
+and punctures $k_1, k_2$ at the two points and $k_3, k_4$ at $m_j$. The circuits compute the same function: the trigger comparison at slot $m_j$ succeeds only at $\mat{W}_{m_j}$, which $\mathsf{Bad}_{\mathsf{eq}}$ separates from $\mat{w}_j$, and puncturing preserves functionality elsewhere. Thus iO bounds the change.
 
 The slot $m_j$ and the honest point $\mat{w}_j$ are fixed by the declared message and presampled nonce. The trigger point $\mat{W}_{m_j}$ depends on the trigger-PRF outputs. For a main-branch PRF reduction, however, the two-point puncture set is sampled using the independent trigger keys and is therefore independent of the particular main-branch key being challenged. For a trigger-PRF reduction, the challenged output at the fixed slot $m_j$ determines $\mat{W}_{m_j}$; the reduction then samples the independent main-branch keys and punctures them at the resulting two points. Thus each puncture set is independent of the particular PRF key whose security is invoked, although not every point is fixed before every other key is generated.
 
@@ -314,8 +319,8 @@ $$
 $$
 \begin{aligned}
 \Pr[E_{\mathsf{trig}}] \le{}&
-\AdvIO{}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
-+ \sum_{i=3}^{4}\AdvPRF{\PRF_i}{\advD^{\mathsf{prf}}_{\mathsf{trig},i}}\\
+\AdvIO{\iO}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++ \sum_{i=3}^{4}\AdvPPRF{\PRF_i}{\advD^{\mathsf{pprf}}_{\mathsf{trig},i}}\\
 &+ \AdvLWE{q,n,\colsA,1,\Bclip}{\advD^{\mathsf{lwe}}_{\mathsf{trig}}}\\
 &+ \alpha_{q,n}^{-1}\,\AdvSIS{q,n,\colsA+n+1,\Bclip}{\advB_{\mathsf{trig}}} \;.
 \end{aligned}
@@ -346,10 +351,18 @@ So over $B_\tau$ the circular assumption stands on its own. This position is not
 
 \paragraph*{Modules and compression.} Over $R_q = \Z_q[X]/(X^{256}+1)$ the template becomes cMSIS, with the matrices over $R_q$ and shortness read coefficientwise. Decomposition challenges do not transfer well to this setting. The lifted gadget argument is sound, with the invertibility constant of Lemma~\ref{lem-csis-sis} recomputed over $R_q$, but ring multiplication makes the response bounds scale with the $\ell_1$ norm of the challenge counted over every coefficient of every ring entry. A decomposition challenge has $\mathrm{rank}\cdot\lceil\log_2 q\rceil$ ring entries of $256$ coefficients each, more than twenty thousand nonzero coefficients at ML-DSA dimensions, against $\nu = \tau \le 60$ for $B_\tau$. The parameter advantage that motivates modules is spent entirely on the challenge, so we do not pursue provable cMSIS over decomposition challenges in the module setting. The module case that matters is $B_\tau$ under assumed cMSIS with a concrete conversion function, and there the obstruction above is unchanged by the module structure. Compression of the commitment is a separate gap that no choice of conversion function affects: Dilithium computes the challenge from $\mathsf{HighBits}(\mat{w})$ and verification reconstructs it through a hint vector, so the extraction identity holds only up to a rounding term, and our proofs use the exact identity. Section~\ref{sec-conclusion} records both.
 
-\paragraph*{Outlook: the adaptive port.} Section~\ref{sec-dil-derand} completes the static half of the derandomized port. What remains from Part~I is the adaptive result, and we record the plan.
+\paragraph*{Outlook: the adaptive port.} Section~\ref{sec-dil-derand} completes the static half of the deterministic-signing port. What remains from Part~I is the adaptive result, and we record the plan.
 
-There is a candidate pre-hash. The proof guesses the digest of a query from the enumerated lossy image, and the enumeration only has to run in time polynomial in $\secp$ and $r$. At quasi-polynomial $r$ the Peikert--Waters construction with a rounded output is a candidate tunable lossy function under subexponentially hard LWE; Section~\ref{sec-conclusion} sketches the construction and records what remains to verify. If formalized, it would make all assumptions in the adaptive port except iO post-quantum. Instantiated instead with the DDH-based ELF cascade, the port would still give, to our knowledge, the first standard-model adaptive result for a lattice Fiat--Shamir scheme, under classical assumptions. Such a theorem would model ML-DSA's deterministic signing mode. It would not yet cover ML-DSA itself, because module structure, $B_\tau$, compression, and hints remain untreated; the hedged default mode also stays open.
+Under the matrix-LWE profile of Proposition~\ref{prop-tlf-lwe}, its LWE-based
+TLF supplies the required message-digest layer, while the DDH cascade of
+Proposition~\ref{prop-tlf-ddh} gives the alternative polynomial-image profile
+under classical assumptions. Constructing the TLF is therefore not the
+remaining obstacle to an adaptive lattice result. Such a theorem would still
+require the lattice-specific proof steps below, and it
+would not yet cover ML-DSA itself because module structure, $B_\tau$,
+compression, and hints remain untreated; the hedged default mode also stays
+open.
 
 The guessing combinatorics do not touch the algebra and should transfer from Appendix~\ref{app-derand}. The lattice-specific work does not follow from Part~I. A proof would have to establish the trigger response distribution in the clipped box, its exchange with an honest rejection-sampled response, the treatment of rejected attempts, the interaction of the digest guessing with the flooding condition or a replacement for it, the LWE hops at the guessed trigger points, and circuit equivalence on malformed inputs. We state this as a program, not as a theorem whose proof is routine. The trigger comparison $R = g^{s_t}X^{-c_t}$ becomes $\mat{w} = \mat{A}\mat{z}_{t,1} + \mat{z}_{t,2} - \mat{T}c_t$ with the PRF-derived response sampled in the clipped box, as in Section~\ref{sec-dil-derand}.
 
-\adam{All: Remaining items are compression and hints; a concrete conversion function and evidence for cSIS/cMSIS over $B_\tau$; the module lift for $B_\tau$; and the derandomized adaptive port. Suggested split: Ojaswi+Carter on parameters, Xinyu on $B_\tau$, and Alex+Adam on the adaptive port and module lift.}
+\adam{All: Remaining items are compression and hints; a concrete conversion function and evidence for cSIS/cMSIS over $B_\tau$; the module lift for $B_\tau$; and the adaptive deterministic port. Suggested split: Ojaswi+Carter on parameters, Xinyu on $B_\tau$, and Alex+Adam on the adaptive port and module lift.}

@@ -1,0 +1,165 @@
+\section{Adaptive Unforgeability of Deterministic Schnorr} \label{sec-derand}
+
+This section builds on the basic classical Schnorr construction of Section~\ref{sec-io-uf} and gives our main unforgeability result. The hash is again an obfuscated circuit whose main branch implements the algebraic simulation of~\cite{C:CFOS25}, so that a forgery on this branch gives a circular discrete-logarithm solution. A second, trigger branch lets the reduction answer signing queries without knowing the secret exponent.
+
+The signer is deterministic. Its nonce is a pseudorandom function of the signing key and message, as in EdDSA~\cite{eddsa}. The signature still consists of the usual pair $(R,s)$ and verification still checks the Schnorr equation; as in all of our instantiations, the verification key also contains a public hash key. Determinism matters to the proof because the trigger branch defines one signature for each message. A repeated query receives that same signature in both the real scheme and the reduction, rather than a fresh signature in one experiment and a repeated signature in the other.
+
+The proof changes one distinct signing message at a time. During this change it temporarily punctures four PRFs and writes two hash input--output pairs into the circuit, one for the honest signature and one for the trigger signature. The temporary circuit disappears at the end of the change, so these exceptional inputs do not accumulate with the number of signing queries. The remaining difficulty is that an adaptive message is not known when the verification key is published. Applying a TLF to the message lets the reduction guess its digest from an enumerable lossy image. Thus the local hybrid removes the query bound, while lossiness handles adaptivity.
+
+\subsection{The Scheme} \label{sec-derand-scheme}
+
+Let $\PRF_0$ be a pseudorandom function with domain $\bits^{\msglen}$ and range $\Zp$. It need not be puncturable.
+
+\begin{construction} \label{constr-derand}
+Let $\HF$ be a keyed hash family for $\GG$ and message space $\bits^{\msglen}$. The \emph{Deterministic Schnorr signature scheme} is
+$$
+\SchDScheme[\GG,\HF] = (\SchKeys,\SchSign,\SchVf) \, .
+$$
+Algorithm $\SchKeys$ samples $x\getsr\Zp$ and $k_0\getsr\PRFKg_0(\usecp)$, sets $X\gets g^x$, samples $\hk\getsr\HFKg(X)$, and returns
+$$
+\vkey=(X,\hk)
+\qquad\text{and}\qquad
+\skey=(x,k_0,\hk).
+$$
+On input $\skey,m$, algorithm $\SchSign$ computes
+$$
+\begin{aligned}
+\rho_m &\gets \PRFEv_0(k_0,m),
+& R &\gets g^{\rho_m},
+& c &\gets \HFEv(\hk,(R,m)),\\
+s &\gets (\rho_m+cx)\bmod p
+\end{aligned}
+$$
+and returns $(R,s)$. Algorithm $\SchVf$ is the Schnorr verification algorithm of Section~\ref{sec-schnorr}: on input $(X,\hk),m,(R,s)$, it computes $c\gets\HFEv(\hk,(R,m))$ and returns $\bigl(g^s=RX^c\bigr)$.
+\end{construction}
+
+Signing is deterministic, so a repeated message always receives the same signature. The security games may therefore answer a repeated query by replaying the earlier response, and the signing hybrid runs over the distinct queried messages. This is the signing rule specified by Ed25519 and Ed448, where the nonce is derived from secret-key material and the message~\cite{eddsa,RFC8032}. We write the derivation as the separate PRF $\PRF_0$ because the proof treats nonce generation and the public challenge hash separately. The theorem does not cover the hedged signing rule of BIP~340~\cite{add:BIP340}, which incorporates fresh auxiliary randomness without adding that randomness to the signature.
+
+For a stateless deterministic signature scheme, full EUF-CMA security follows generically from adaptive security when each message is queried at most once: a reduction caches the first answer and replays it on every repeated query. This observation does not make our adaptive theorem a consequence of the basic result in Section~\ref{sec-io-uf}. That result is static and $Q$-bounded, so all signing messages are fixed before key generation and their programmed values occupy one global table. Restricting an adaptive adversary to one query per message removes repetitions, but it neither reveals its future distinct messages nor gives one scheme-level bound $Q$ that accommodates every PPT adversary. The new content here is security for this adaptive sequence of distinct messages. Determinism then lets the proof extend that treatment to arbitrary query sequences by replaying repetitions.
+
+\subsection{The Hash Construction} \label{sec-derand-constr}
+
+Fix a cyclic group $\GG$ of prime order $p$ with generator $g$ and an efficient conversion function $f\colon\GG\to\Zp$ with $\mathsf{Size}_f(0)=0$. Let $\TLF=(\TLFKg,\TLFEv,\TLFEnum)$ be a tunable lossy function as in Definition~\ref{def-lf}, with domain $\bits^{\ellin}$ and range $\Ygrave$, and fix its image parameter $r$. We require $\msglen\le\ellin$, fix an injective padding map $\mathsf{pad}\colon\bits^{\msglen}\to\bits^{\ellin}$, and fix an injective encoding $\enc{\cdot}_d\colon\Ygrave\to\bits^{\ell_d}$ whose first bit is always 0. For a TLF key $K$, define the digest
+$$
+\dig(K,m):=\enc{\TLFEv(K,\mathsf{pad}(m))}_d \, .
+$$
+The first-bit convention is used only in the proof, where an enumerated image is padded to exactly $r$ entries with a string that cannot be a digest.
+
+For polynomial lengths $\ell^{\mathsf d}_0$ and $\ell^{\mathsf d}_1$, fix injective encodings
+$$
+\enczero{\cdot}\colon\bits^{\ell_d}\to\bits^{\ell^{\mathsf d}_0}
+\qquad\text{and}\qquad
+\encone{\cdot}\colon\GG\times\bits^{\ell_d}\to\bits^{\ell^{\mathsf d}_1}.
+$$
+Let $\PRF_1,\PRF_2$ be puncturable PRFs with domain $\bits^{\ell^{\mathsf d}_1}$ and range $\Zp$, let $\PRF_3,\PRF_4$ be puncturable PRFs with domain $\bits^{\ell^{\mathsf d}_0}$ and range $\Zp$, and let $\iO$ be an indistinguishability obfuscator for the padded circuits below. The first two PRFs compute the main branch of the hash, while the last two compute the trigger associated with a digest.
+
+\begin{figure}[t]
+\begin{center}
+\fbox{
+\begin{minipage}{4.75in}
+\begin{tabbing}
+123\=123\=123\=\kill
+\textbf{Circuit} $\CircDet^{\mathsf{dig}}[X,k_1,k_2,k_3,k_4](R,d)$: \\
+\> $t_d\gets\enczero{d}\;;\quad c_d\gets\PRFEv_3(k_3,t_d)\;;\quad s_d\gets\PRFEv_4(k_4,t_d)$ \\
+\> If $R=g^{s_d}X^{-c_d}$: Return $c_d$ \comment{trigger branch} \\
+\> $e\gets\encone{R,d}\;;\quad a\gets\PRFEv_1(k_1,e)\;;\quad b\gets\PRFEv_2(k_2,e)$ \\
+\> Return $\bigl(f(RX^ag^b)+a\bigr)\bmod p$ \comment{main branch}
+\end{tabbing}
+\end{minipage}
+}
+\end{center}
+\vspace{-6pt}
+\caption{The circuit used by $\HF^{\mathsf{det}}_r$. Hash evaluation first computes $d=\dig(K,m)$ and then runs this circuit on $(R,d)$. The circuit is padded to a fixed polynomial size that does not depend on a signing-query bound.}\label{fig-circuit-deterministic}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
+\begin{construction} \label{constr-dio}
+The keyed hash family $\HF^{\mathsf{det}}_r=(\HFKg,\HFEv)$ is defined as follows. On input $X\in\GG$, algorithm $\HFKg$ computes $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$ and discards $\mathsl{td}$, samples $k_\ell\getsr\PRFKg_\ell(\usecp)$ for $\ell\in[4]$, and obfuscates the circuit in Figure~\ref{fig-circuit-deterministic}. The circuit is padded to a fixed polynomial size independent of any signing-query count. The algorithm returns $\hk=(K,\widetilde{\CircDet}^{\mathsf{dig}})$, where $\widetilde{\CircDet}^{\mathsf{dig}}$ is the obfuscated circuit. On input $\hk$ and $(R,m)$, algorithm $\HFEv$ computes $d\gets\dig(K,m)$ and returns $\widetilde{\CircDet}^{\mathsf{dig}}(R,d)$.
+\end{construction}
+
+\subsection{Main Result} \label{sec-derand-adaptive}
+
+\paragraph*{Proof idea.} We next explain the two branches and the punctures used in the proof. Fix a digest $d$ and write
+$$
+t_d=\enczero{d},
+\qquad
+c_d=\PRFEv_3(k_3,t_d),
+\qquad
+s_d=\PRFEv_4(k_4,t_d),
+\qquad
+W_d=g^{s_d}X^{-c_d}.
+$$
+The trigger branch returns $c_d$ on input $(W_d,d)$, and hence $(W_d,s_d)$ satisfies $g^{s_d}=W_dX^{c_d}$. This gives the reduction a valid signature without the secret exponent. After the proof replaces the nonce PRF by a random function, the honest signing point for each new message is uniform in $\GG$ and equals $W_d$ with probability $1/p$.
+
+The main branch computes $c=f(RX^ag^b)+a\bmod p$ from two masks $a,b$. Uniform $b$ makes $RX^ag^b$ uniform and independent of $a$, after which adding uniform $a$ makes $c$ uniform. The same expression turns a valid main-branch forgery into a CDL solution. Indeed, if $g^s=RX^c$, then
+$$
+g^{s+b}=(RX^ag^b)X^{f(RX^ag^b)}.
+$$
+Thus $(RX^ag^b,s+b)$ solves CDL, and the condition $\mathsf{Size}_f(0)=0$ ensures that the CDL game accepts the solution.
+
+Now consider one new signing message with digest $d$. Let $R_0$ be its honest point, let $c_0$ be the main-branch hash value at $(R_0,d)$, and write $(R_1,c_1,s_1)=(W_d,c_d,s_d)$ for the trigger record. Define
+$$
+T_{\mathsf{main}}=\{\encone{R_0,d},\encone{R_1,d}\}
+\qquad\text{and}\qquad
+T_{\mathsf{trig}}=\{\enczero{d}\}.
+$$
+The proof punctures $\PRF_1$ and $\PRF_2$ at $T_{\mathsf{main}}$. The punctures at the honest point hide the two masks that determine $c_0$, allowing the proof to make this challenge uniform. The main branch is not evaluated at $R_1$, but puncturing there as well makes the puncture set symmetric in the two points and does not reveal which one came from honest signing. The proof punctures $\PRF_3$ and $\PRF_4$ at $T_{\mathsf{trig}}$. These punctures hide $c_1$ and $s_1$, allowing the trigger record to become uniform as well.
+
+The temporary circuit explicitly contains the two hash pairs $((R_0,d),c_0)$ and $((R_1,d),c_1)$, so the punctured circuit still computes the same function. Indistinguishability obfuscation hides the change between the two functionally equal descriptions, while puncturable-PRF security hides the selected outputs given the corresponding punctured keys. Once the honest and trigger records are both uniform valid Schnorr records, their joint distribution is unchanged when they are exchanged. Reversing the hybrids then replaces the honest response by the trigger response.
+
+This treatment is local to one new message. To compare two consecutive games, the proof publishes a temporary circuit containing only the two pairs for the message being changed and then returns to the original circuit. A later comparison starts again with a new temporary circuit, so neither the punctures nor the hardwired values accumulate. The scheme therefore has no query parameter. The one value that must be fixed before the temporary circuit is published is the adaptive digest $d$. In the proof the TLF key is switched to lossy mode, its image is enumerated, and $d$ is guessed from a list of at most $r$ values. This is the only role of lossiness in the signing hybrid.
+
+\begin{theorem} \label{thm-der-adaptive}
+Let $\GG$ be a cyclic group of prime order $p$ with generator $g$, and let $f\colon\GG\to\Zp$ be efficient with $\mathsf{Size}_f(0)=0$. Let the TLF, PRFs, and obfuscator be as above, and let $\advA$ be a PPT EUF-CMA adversary against $\SchDScheme[\GG,\HF^{\mathsf{det}}_r]$ that runs in time $t_{\advA}$ and makes at most $q_s$ signing queries. There are reductions $\advD_{\mathsf{mode}}$ against the TLF, $\advD_0$ against $\PRF_0$, $\advB_{\mathsf{main}}$ and $\advB_{\mathsf{trig}}$ against CDL and DL, $\advD^{\mathsf{io}}_{\mathsf{trig}}$ and $\advD^{\mathsf{pprf}}_{\mathsf{trig}}$ against iO and $\PRF_4$, and, for $j\in[q_s]$ and $\beta\in\{0,1\}$, reductions $\advD^{\mathsf{io}}_{j,\beta}$ and $\advD^{\mathsf{pprf}}_{j,\beta,\ell}$ against iO and $\PRF_\ell$ for $\ell\in[4]$. The first two reductions run in time $t_{\advA}+\poly(\secp,q_s)$ and do not enumerate the lossy image. Every other reduction runs in time
+$$
+t_{\advA}+\tau(\secp,r)+\poly(\secp,r,q_s).
+$$
+Writing
+$$
+\epsilon_j
+:=
+\sum_{\beta\in\{0,1\}}
+\left(
+\AdvIO{\iO}{\advD^{\mathsf{io}}_{j,\beta}}
++\sum_{\ell=1}^{4}\AdvPPRF{\PRF_\ell}{\advD^{\mathsf{pprf}}_{j,\beta,\ell}}
+\right),
+$$
+we have
+$$
+\begin{aligned}
+&\AdvEUFCMA{\SchDScheme[\GG,\HF^{\mathsf{det}}_r]}{\advA}\\
+&\quad\le
+\AdvTLF{\TLF,r}{\advD_{\mathsf{mode}}}
++\AdvPRF{\PRF_0}{\advD_0}
++\AdvCDL{\GG,g,f}{\advB_{\mathsf{main}}}\\
+&\qquad+r\left(
+\AdvDL{\GG,g}{\advB_{\mathsf{trig}}}
++\AdvIO{\iO}{\advD^{\mathsf{io}}_{\mathsf{trig}}}
++\AdvPPRF{\PRF_4}{\advD^{\mathsf{pprf}}_{\mathsf{trig}}}
+\right)\\
+&\qquad+r\sum_{j=1}^{q_s}\epsilon_j
++\nu_{\mathsf{inj}}(\secp,r)
++(2q_s+1)\nu_{\mathsf{enum}}(\secp,r)
++\frac{2q_s}{p} \, .
+\end{aligned}
+$$
+\end{theorem}
+
+\begin{corollary}[Fixed-image tradeoff] \label{cor-der-adaptive}
+Fix an efficiently computable image bound $r=r(\secp)\in[M]$. Suppose every PPT distinguisher has negligible TLF advantage at $r$ and negligible $\PRF_0$ advantage, the enumeration time $\tau(\secp,r)$ is polynomial in $\secp$ and $r$, and $r$ is super-polynomial with $\nu_{\mathsf{inj}}(\secp,r)$ and $\nu_{\mathsf{enum}}(\secp,r)$ negligible. Suppose also that there is a function $\eps=\eps(\secp)$ such that every reduction running in time polynomial in $\secp$ and $r$ has advantage at most $\eps$ against $\CDL[\GG,g,f]$, $\iO$, and each puncturable PRF $\PRF_1,\ldots,\PRF_4$, where the iO and puncturable-PRF time bounds include the sampler and distinguisher together, and that $r^2\eps$ is negligible. Then $\SchDScheme[\GG,\HF^{\mathsf{det}}_r]$ is adaptively EUF-CMA secure. For example, $r=2^{(\log\secp)^2}$ and the quantitative bound $\eps=2^{-(\log\secp)^3}$ satisfy the last condition, so this quasi-polynomial security profile suffices.
+\end{corollary}
+
+The TLF hypothesis is stated at the chosen value of $r$. Propositions~\ref{prop-tlf-ddh} and~\ref{prop-tlf-lwe} translate it into the corresponding DDH or matrix-LWE parameter profile without changing the proof.
+
+When the TLF is strongly efficiently enumerable, its injective-key distribution is universal. The circuit and every other component of the honest hash key are independent of $r$, so the distribution of $\HF^{\mathsf{det}}_r$ is then the same for every $r$; we write $\HF^{\mathsf{det}}$ for this family.
+
+\begin{corollary}[Strong-TLF endpoint] \label{cor-der-adaptive-strong}
+Let the TLF satisfy Definition~\ref{def-tlf-strong}, and suppose $\CDL[\GG,g,f]$ is hard for PPT adversaries. Suppose also that $\PRF_0$ is a secure PRF, $\PRF_1,\ldots,\PRF_4$ are secure puncturable PRFs, and $\iO$ is secure for the padded circuit class above. Then $\SchDScheme[\GG,\HF^{\mathsf{det}}]$ is adaptively EUF-CMA secure.
+\end{corollary}
+
+The strong-TLF endpoint needs only ordinary polynomial hardness of CDL, iO, and the PRFs. The DDH cascade of Proposition~\ref{prop-tlf-ddh} supplies the stronger TLF quantifier under its stated auxiliary-group assumption. The proof of both corollaries is given at the end of Appendix~\ref{app-derand}.
+
+The full proof is in Appendix~\ref{app-derand}. It first changes the TLF key from injective to lossy mode and replaces the nonce PRF by a random function. It then defines games $\Hm_i$ in which the first $i$ distinct messages receive trigger signatures and the remaining messages receive honest signatures. In the comparison of $\Hm_{j-1}$ and $\Hm_j$, the reduction guesses the digest of the $j$-th new message, uses the two-point circuit described above, exchanges the honest and trigger records, and reverses the changes. The trigger-forgery case makes a separate guess of the forgery digest and embeds a DL challenge in its trigger point. A main-branch forgery gives CDL directly.
+
+The theorem gives adaptive EUF-CMA security without a query bound in the scheme. Its signature format and verification equation are those of Schnorr, but the nonce derivation is deterministic and the verification key contains the public hash key. Each digest guess loses a factor $r$, which is why the corollary uses the stated quasi-polynomial advantage profile. Removing these guesses, for example by selecting the adaptive digest to program without naming it before the circuit is published, remains open.
