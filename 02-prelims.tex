@@ -328,7 +328,9 @@ DDH~\cite[Theorem~3.14 and Corollary~3.15]{EPRINT:Zhandry16}.
 \end{proposition}
 
 \begin{proof}
-Consider the one-level construction of Figure~\ref{fig-tlf-ddh}. A uniform
+The argument is Zhandry's~\cite{EPRINT:Zhandry16}; we give it for
+self-containment. Consider the one-level construction of
+Figure~\ref{fig-tlf-ddh}. A uniform
 matrix in $\Z_{p_\mu}^{n\times m}$ has full column rank except with probability
 at most $1/M$, and evaluation is injective whenever the exponent matrix has full
 column rank, so $\nu_{\mathsf{inj}}(\secp,r)\le1/M$. In lossy mode the exponent
@@ -546,13 +548,13 @@ $$
 \end{proposition}
 
 \begin{proof}
-Injectivity, the boundary test, and mode indistinguishability are those of the
-length-parameterized lossy function of Waters and
-Zhandry~\cite{C:WatZha24}, whose parameter conditions we imposed above. We
-recall each in one step and give the enumeration claim, which is what changes
-here, in full.
+The injectivity, boundary-test, and mode-indistinguishability arguments are those
+of the length-parameterized lossy function of Waters and
+Zhandry~\cite{C:WatZha24}, whose parameter conditions we imposed above. We give
+them here for self-containment and mark each one below. The enumeration argument
+is the one that is new, and we give it in full.
 
-\heading{Injectivity.} Fix an injective key and write
+\heading{Injectivity (argument from~\cite{C:WatZha24}).} Fix an injective key and write
 $y=\mathsf{Round}_t(A_ix)=A_ix+e$ over centered representatives, so
 $\|e\|_\infty\le q_{\mathsf L}/t+1$. Since $S_iA_i=0\bmod q_{\mathsf L}$, the
 centered representative of $S_iy$ is $S_ie$, of norm at most
@@ -573,7 +575,7 @@ has at most $Nq_{\mathsf L}^{\kappa}\le r$ elements and is produced in
 $r\poly(\secp)$ time. This is the step the retained $U_i$ are for: the image
 bound alone would give the size of the image without giving its elements.
 
-\heading{Fallback outputs.} These are the outputs the enumerated set does not
+\heading{Fallback outputs (argument from~\cite{C:WatZha24}).} These are the outputs the enumerated set does not
 cover, and the boundary test makes them rare. For fixed nonzero $x$, the vector
 $V_ix$ is uniform in $\Z_{q_{\mathsf L}}^{\kappa}$ and nonzero except with
 probability $q_{\mathsf L}^{-\kappa}$, and conditioned on that, $U_iV_ix+E_ix$
@@ -585,7 +587,7 @@ probability at most $2^{-N}$, and a union bound over the $2^{\ell}$ inputs gives
 $2^{\ell}2^{-N}=2^{-\secp}$. Outside that event the enumerated set covers the
 image, so $\nu_{\mathsf{enum}}(\secp,r)\le2^{-\secp}$.
 
-\heading{Modes and universality.} Replace the trapdoor matrices by uniform ones,
+\heading{Modes and universality (hybrids from~\cite{C:WatZha24,C:AKPW13}).} Replace the trapdoor matrices by uniform ones,
 then replace them one at a time by $U_iV_i+E_i$ using matrix LWE, reduced to LWE
 by a column hybrid at a factor $\ell$, and finally replace the unbounded
 Gaussian by its bounded version. This gives the stated bound. The injective key
@@ -593,11 +595,10 @@ is $N$ independently trapdoor-generated matrices, a distribution containing
 neither $r$ nor $\kappa(r)$, so the injective mode is universal.
 \end{proof}
 
-\adam{All: whoever has Waters--Zhandry open should check whether the
-injectivity, boundary-test, and hybrid steps can be cited outright rather than
-repeated, and fix the theorem numbers. I kept them because I could not verify
-the exact statements, so the proof is longer than it needs to be. The
-enumeration step is ours and stays.}
+\adam{All: whoever has Waters--Zhandry open should confirm the three
+attributions above are placed correctly, and add statement numbers if they are
+clean enough to point at. I could not verify the exact statements, so the
+attributions are to the paper rather than to numbered results.}
 
 \adam{All: the observation that the lossy-generation information may expose
 an enumerable cover is Xinyu's. The proposition above makes that observation
