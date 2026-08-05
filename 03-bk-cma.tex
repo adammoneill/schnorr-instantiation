@@ -52,49 +52,34 @@ exponent-recovery formulation below.
 \subsection{The Hash Family} \label{sec-lf-constr}
 
 Let $\GG$ be a cyclic group of prime order $p$ with generator $g$. Let $\TLF$ be
-a tunable lossy function with algorithms $\TLFKg,\TLFEv,\TLFEnum$. Its domain is
-$\bits^{\ellin}$ and its range is $\Ygrave$. Recall from Section~\ref{sec-lf}
-that $M=2^{\ellin}$, and fix an injective encoding
+any tunable lossy function in the sense of Definition~\ref{def-lf}, with
+algorithms $\TLFKg,\TLFEv,\TLFEnum$ and domain $\bits^{\ellin}$. Recall from
+Section~\ref{sec-lf} that $M=2^{\ellin}$, and fix an injective encoding
 $$
 \enc{\cdot}\colon\GG\times\bits^{\msglen}\longrightarrow\bits^{\ellin}.
 $$
-
-Schnorr requires its challenge to lie in $\Zp$, whereas the range $\Ygrave$ of
-the injective mode must be large enough to contain an injective image of all
-pairs $(R,m)$. We therefore use an efficient keyed output-map family
-$$
-\mathsf{Map}=(\mathsf{MapKg},\mathsf{MapEv}).
-$$
-Algorithm $\mathsf{MapKg}$ on input $\usecp$ outputs a key $k$, and the
-deterministic algorithm $\mathsf{MapEv}$ on inputs $k$ and $y\in\Ygrave$ outputs
-an element of $\Zp$. No security property of $\mathsf{Map}$ is required for the
-key-recovery result.
+A Schnorr challenge is an element of $\Zp$. Values of $\TLFEv$ have
+polynomial-size descriptions, which we read as integers, so we obtain a
+challenge by reducing modulo $p$.
 
 \begin{construction} \label{constr-lf}
 Fix an image parameter $r\in[M]$. The keyed hash family
 $\HF^{\mathsf{tlf}}_r=(\HFKg,\HFEv)$ is defined as follows. Algorithm $\HFKg$ on
-input $X\in\GG$ computes
-$$
-(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})
-\qquad\text{and}\qquad
-k\getsr\mathsf{MapKg}(\usecp),
-$$
-and returns $\hk=(K,k)$. Algorithm $\HFEv$ on inputs $\hk=(K,k)$ and
+input $X\in\GG$ computes $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$ and
+returns $\hk=K$. Algorithm $\HFEv$ on inputs $K$ and
 $(R,m)\in\GG\times\bits^{\msglen}$ returns
 $$
-\mathsf{MapEv}\bigl(k,\TLFEv(K,\enc{R,m})\bigr).
+\TLFEv\bigl(K,\enc{R,m}\bigr)\bmod p .
 $$
 \end{construction}
 
 Key generation ignores $X$, and lossy keys are used only in the proof. The
-output map has a syntactic role in the construction: it maps the possibly
-structured range $\Ygrave$ to the scalar challenge required by Schnorr. This
-compression cannot in general be absorbed into the TLF while retaining the
-injectivity required by Definition~\ref{def-lf}. Indeed, the encoding domain
-contains $p2^{\msglen}$ pairs, while $\Zp$ contains only $p$ elements. Thus it is
-the inner TLF generated in injective mode that is injective, except with probability
-$\nu_{\mathsf{inj}}(\secp,r)$. The final composite hash is not claimed to be
-injective.
+theorem below places no condition on $\TLF$ beyond Definition~\ref{def-lf}: no
+regularity, no balance, and no condition on how the challenge values are
+distributed. Reducing modulo $p$ likewise needs no justification in the proof.
+It is also harmless for the deployed mode, since reducing a uniform
+$\ellin$-bit string modulo $p$ gives a distribution statistically close to
+uniform on $\Zp$ when $2^{\ellin}$ is much larger than $p$.
 
 \subsection{Exact Rejection Sampling} \label{sec-bk-sampling}
 
@@ -113,10 +98,7 @@ $$
 Consider one trial that samples $c\getsr C$ and $s\getsr\Zp$, sets
 $R\gets g^sX^{-c}$, and accepts exactly when $H(R,m)=c$. The trial accepts with
 probability $1/|C|$. Conditioned on acceptance, $(R,s)$ has exactly the
-distribution of an honest Schnorr signature on $m$. Consequently, for every
-integer $N\ge1$, $N$ independent trials all fail with probability at most
-$e^{-N/|C|}$; in particular, $\secp|C|$ trials all fail with probability at
-most $e^{-\secp}$.
+distribution of an honest Schnorr signature on $m$.
 \end{lemma}
 
 \begin{proof}
@@ -146,18 +128,31 @@ There are therefore exactly $p$ good pairs among the $|C|p$ equally likely
 pairs in $C\times\Zp$, so one trial accepts with probability $1/|C|$.
 Conditioned on acceptance, the good pair is uniform, and the bijection makes
 $R$ uniform in $\GG$. For this $R$, the response is
-$s=\rho_R+H(R,m)x\bmod p$, exactly as in honest Schnorr signing. Finally,
-$(1-1/|C|)^N\le e^{-N/|C|}$.
+$s=\rho_R+H(R,m)x\bmod p$, exactly as in honest Schnorr signing.
 \end{proof}
+
+The lemma assumes nothing about $H$ beyond the containment. It does not assume
+that the values of $H$ are uniform on $C$, that they are spread evenly, or that
+every element of $C$ is a value of $H$. The reason is that the count runs over
+$R$ rather than over $c$. Each $R$ has exactly one pair $(c,s)$ that produces it
+and passes the test, so there are exactly $p$ such pairs among the $|C|p$ pairs a
+trial can draw. A value $c$ with many preimages passes often and a value with
+none never passes, and the two effects cancel in the sum
+$\sum_{c\in C}|\{R:H(R,m)=c\}|=p$. Only the containment matters, and a $C$ larger
+than the set of values $H$ actually takes costs trials rather than correctness.
+
+Repeating the trial is what makes it useful. Trials are independent and each
+accepts with probability $1/|C|$, so $N$ of them all fail with probability
+$(1-1/|C|)^{N}\le e^{-N/|C|}$; taking $N=\secp|C|$ gives $e^{-\secp}$.
 
 \subsection{Main Result} \label{sec-lf-thm}
 
 \paragraph*{Proof idea.}
-Fix the image parameter $r$. We first switch the inner function from its
+Fix the image parameter $r$. We first switch the lossy function from its
 injective mode to its indistinguishable lossy mode. The reduction enumerates a
-set covering the lossy image and applies the output map to obtain a set
-$C\subseteq\Zp$ covering all possible Schnorr challenges. It then answers every
-adaptive signing query using Lemma~\ref{lem-sim}. The answers have exactly the
+set covering the lossy image and reduces its elements modulo $p$, giving a set
+$C\subseteq\Zp$ that contains every challenge the hash can produce. It then
+answers every adaptive signing query using Lemma~\ref{lem-sim}. The answers have exactly the
 honest distribution, apart from the stated enumeration and truncation failure
 probabilities, and no signing query uses $x$. A key-recovery adversary can
 therefore be run on a DL challenge.
@@ -182,15 +177,15 @@ t_{\advA}+\tau(\secp,r)+(q_s+1)\secp r\poly(\secp).
 $$
 \end{theorem}
 
-The quantitative reduction uses mode indistinguishability and enumeration of
-the lossy image, together with DL in $\GG$. It does not use injectivity of the
-injective mode or any security property of the output map. The construction
-nevertheless generates its TLF key in injective mode; injectivity itself is
-not used in the reduction. The theorem holds for every efficient output map.
+The reduction uses mode indistinguishability, enumeration of the lossy image,
+and DL in $\GG$. It uses nothing else: not injectivity of the injective mode,
+and no property of the lossy mode beyond the enumerable image of
+Definition~\ref{def-lf}. In particular the theorem holds for every tunable lossy
+function, whatever the distribution of its challenge values.
 
 The games are in Figure~\ref{fig-bk-games}. In the figure, write
 $$
-H(R,m)=\mathsf{MapEv}\bigl(k,\TLFEv(K,\enc{R,m})\bigr).
+H(R,m)=\TLFEv\bigl(K,\enc{R,m}\bigr)\bmod p .
 $$
 Game $\Gm_0$ is the BK-CMA game. Game $\Gm_1$ changes the tunable lossy function
 to lossy mode at the same value $r$. Game $\Gm_2$ uses the enumeration
@@ -205,12 +200,11 @@ only within the enumeration-failure event, the oracle returns $\bot$.
 
 \begin{oracle}{$\Initialize$}
 \item $x\getsr\Zp\;;\;X\gets g^x$
-\item $k\getsr\mathsf{MapKg}(\usecp)$
 \item $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{mode})$
 \item If $b=1$:
 \item \quad $S\getsr\TLFEnum(\mathsl{td})$
-\item \quad $C\gets\{\mathsf{MapEv}(k,y):y\in S\}$
-\item $\hk\gets(K,k)$; Return $(X,\hk)$
+\item \quad $C\gets\{y\bmod p:y\in S\}$
+\item Return $(X,K)$
 \end{oracle}
 \ExptSepSpace
 \begin{oracle}{$\Finalize(x')$}
@@ -243,9 +237,9 @@ $\Gm_2=\mathsf{G}[\mathsf{lossy},1]$.}\label{fig-bk-games}
 
 \begin{proof}[of Theorem~\ref{thm-bk}]
 \heading{From $\Gm_0$ to $\Gm_1$.}
-The distinguisher $\advD$, on input $K$, samples $x\getsr\Zp$ and
-$k\getsr\mathsf{MapKg}(\usecp)$. It sets $\hk=(K,k)$, runs $\advA$ on $(g^x,\hk)$, answers
-signing queries honestly, and returns 1 exactly when $\advA$ outputs $x$. The
+The distinguisher $\advD$, on input $K$, samples $x\getsr\Zp$, runs $\advA$ on
+$(g^x,K)$, answers signing queries honestly, and returns 1 exactly when $\advA$
+outputs $x$. The
 two input distributions for $\advD$ give games $\Gm_0$ and $\Gm_1$. The
 enumeration information generated together with $K$ is hidden and unused in
 both games, so $\advD$ needs only the public key supplied by the TLF game. Hence
@@ -256,27 +250,24 @@ $$
 
 \heading{From $\Gm_1$ to $\Gm_2$.}
 Next condition on successful enumeration in $\Gm_2$. The simulator computes
-$S\getsr\TLFEnum(\mathsl{td})$ and then
-$C=\{\mathsf{MapEv}(k,y):y\in S\}$. For every message $m$,
+$S\getsr\TLFEnum(\mathsl{td})$ and then $C=\{y\bmod p:y\in S\}$. For every message
+$m$,
 $$
 \{H(R,m):R\in\GG\}\subseteq C,
 $$
 because the enumerated set covers the image of $\TLFEv(K,\cdot)$ on its entire
 domain. Lemma~\ref{lem-sim} therefore says that each signing query has exactly
-the distribution in $\Gm_1$ unless its rejection loop fails. Hence
+the distribution in $\Gm_1$ unless its rejection loop fails, which for
+$\secp|C|$ trials happens with probability at most $e^{-\secp}$. Hence
 $$
 |\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]|
 \le\nu_{\mathsf{enum}}(\secp,r)+q_se^{-\secp}.
 $$
 
 \heading{From $\Gm_2$ to DL.}
-Finally, algorithm $\advB$, on input a DL challenge $h$, sets $X\gets h$ and samples
-$$
-(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})
-\qquad\text{and}\qquad
-k\getsr\mathsf{MapKg}(\usecp),
-$$
-sets $\hk=(K,k)$, and runs $\advA$ on $(X,\hk)$. Since $\advB$ generated the lossy key, it retains
+Finally, algorithm $\advB$, on input a DL challenge $h$, sets $X\gets h$, samples
+$(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})$, and runs $\advA$ on
+$(X,K)$. Since $\advB$ generated the lossy key, it retains
 $\mathsl{td}$ and can compute the set $C$ used by $\Gm_2$. It answers signing
 queries as in $\Gm_2$ and returns the value output by $\advA$. This perfectly
 simulates $\Gm_2$, so
@@ -315,8 +306,8 @@ On input $(X,\hk)$, the adversary runs
 $(m^*,C)\gets\mathsf{Cover}(X,\hk)$. It then repeats the rejection-sampling loop
 of Figure~\ref{fig-bk-games} on $m^*$, using the public function
 $H(R,m)=\HFEv(\hk,(R,m))$ and the set $C$. Lemma~\ref{lem-sim} says that each
-trial succeeds with probability $1/|C|$. Thus all $\secp|C|$ trials fail with
-probability at most $e^{-\secp}$. Any output is a valid signature on $m^*$, and
+trial succeeds with probability $1/|C|$, independently, so all $\secp|C|$ trials
+fail with probability at most $(1-1/|C|)^{\secp|C|}\le e^{-\secp}$. Any output is a valid signature on $m^*$, and
 the adversary made no signing query.
 \end{proof}
 
@@ -345,14 +336,13 @@ computable polynomial- or quasi-polynomial-size cover.
 
 The point of Construction~\ref{constr-lf} is narrower. Its deployed inner
 function is generated in the injective mode, while only the indistinguishable
-lossy mode used in the proof has the small enumerable image. The composite
-still has the usual Schnorr domain and range: it takes $(R,m)$ and returns a
-scalar in $\Zp$. The
-theorem permits any efficient output map, including degenerate choices, and
-therefore proves key recovery only. It does not prove that SHA-3 has a lossy
-mode, or that plain SHA-3 satisfies the theorem. It shows instead that the
-small-image simulation need not be a visible property of the deployed inner
-function. Lossiness alone cannot establish unforgeability, which is why the
+lossy mode used in the proof has the small enumerable image. The construction
+has the usual Schnorr domain and range: it takes $(R,m)$ and returns an element
+of $\Zp$. The theorem uses nothing about the deployed mode, so it cannot rule
+out that the deployed hash itself has a small image, and it therefore proves key
+recovery only. It does not prove that SHA-3 has a lossy mode, or that plain
+SHA-3 satisfies the theorem. It shows instead that the small-image simulation
+need not be a visible property of the deployed function. Lossiness alone cannot establish unforgeability, which is why the
 results that follow use different tools.
 
 \subsection{Assumption Tradeoffs}
@@ -377,8 +367,7 @@ $$
 \tau(\secp,r)+rP(\secp)
 $$
 time has negligible DL advantage in $\GG$. Then
-$\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]$ is BK-CMA secure for every efficient
-output-map family $\mathsf{Map}$.
+$\SchScheme[\GG,\HF^{\mathsf{tlf}}_r]$ is BK-CMA secure.
 \end{corollary}
 
 \begin{proof}
@@ -402,24 +391,21 @@ $O(\secp^\theta)$ running time.
 
 There is a stronger endpoint in which the DL reduction remains polynomial.
 For a TLF satisfying Definition~\ref{def-tlf-strong}, the injective-key
-distribution does not depend on the image parameter. Since the output-map key
-is also sampled independently of $r$, the distribution of
-$\HF^{\mathsf{tlf}}_r$ is the same for every $r$; we write
+distribution does not depend on the image parameter. The distribution of
+$\HF^{\mathsf{tlf}}_r$ is then the same for every $r$; we write
 $\HF^{\mathsf{tlf}}$ for this family.
 
 \begin{corollary} \label{cor-bk}
 Suppose $\TLF$ is strongly efficiently enumerable and DL is hard against
-PPT algorithms in $\GG$. Then
-$\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure for every efficient
-output-map family $\mathsf{Map}$.
+PPT algorithms in $\GG$. Then $\SchScheme[\GG,\HF^{\mathsf{tlf}}]$ is BK-CMA secure.
 \end{corollary}
 
 \begin{proof}
 Suppose a PPT adversary $\advA$ has nonnegligible BK-CMA advantage. Fix an
 inverse polynomial $\epsilon$ such that this advantage is at least $4\epsilon$
 for infinitely many security parameters. The distinguisher $\advD$ of
-Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives
-$K$ and never uses the image bound. Let $q$ be the polynomial given by
+Theorem~\ref{thm-bk} is PPT, and its code is independent of $r$: it receives $K$ and never uses the image
+bound. Let $q$ be the polynomial given by
 Definition~\ref{def-tlf-strong} for a polynomial time bound on $\advD$ and for
 $\epsilon$, and set
 $r(\secp)=\lceil q(\secp)\rceil$. Since $q$ is polynomial and
