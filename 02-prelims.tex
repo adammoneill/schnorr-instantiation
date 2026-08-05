@@ -546,59 +546,58 @@ $$
 \end{proposition}
 
 \begin{proof}
-For an injective-mode matrix $A_i$, let
-$y=\mathsf{Round}_t(A_ix)$ and write $y=A_ix+e$ over centered
-representatives, where $\|e\|_\infty\le q_{\mathsf L}/t+1$. Since
-$S_iA_i=0\bmod q_{\mathsf L}$, the centered representative of
-$S_iy\bmod q_{\mathsf L}$ equals
-$S_ie$: the displayed bound gives
-$$
-\|S_ie\|_\infty
-\le L_{\mathsf{trap}}m(q_{\mathsf L}/t+1)<q_{\mathsf L}/2.
-$$
-As $S_i$ has full rank over $\mathbb{Q}$, the trapdoor recovers $e$, and
-therefore $A_ix=y-e$, from the rounded value
-$$
-\mathsf{Round}_t(A_ix).
-$$
-Since $A_i$ has full column rank, the rounded map is injective. The output
-index separates inputs that select different matrices, while $(0,x)$ is
-itself injective, proving perfect injectivity of the complete function.
+Injectivity, the boundary test, and mode indistinguishability are those of the
+length-parameterized lossy function of Waters and
+Zhandry~\cite{C:WatZha24}, whose parameter conditions we imposed above. We
+recall each in one step and give the enumeration claim, which is what changes
+here, in full.
 
-Now fix a lossy key. Whenever $\mathsf{Far}(A_i,x)=1$, we have
+\heading{Injectivity.} Fix an injective key and write
+$y=\mathsf{Round}_t(A_ix)=A_ix+e$ over centered representatives, so
+$\|e\|_\infty\le q_{\mathsf L}/t+1$. Since $S_iA_i=0\bmod q_{\mathsf L}$, the
+centered representative of $S_iy$ is $S_ie$, of norm at most
+$L_{\mathsf{trap}}m(q_{\mathsf L}/t+1)<q_{\mathsf L}/2$ by the parameter
+condition. As $S_i$ has full rank over $\mathbb{Q}$ this determines $e$, hence
+$A_ix$, and $A_i$ has full column rank, so the rounded map is injective. The
+index separates inputs handled by different matrices and the fallback output
+$(0,x)$ is injective on its own, so $\nu_{\mathsf{inj}}(\secp,r)=0$.
+
+\heading{Enumeration.} Fix a lossy key. If $\mathsf{Far}(A_i,x)=1$ then
 $\|E_ix\|_\infty\le\ell B$, so $A_ix$ and $U_iV_ix$ lie in the same rounding
-intervals. It follows that
+intervals and
 $$
 \mathsf{Round}_t(A_ix)=\mathsf{Round}_t(U_iV_ix).
 $$
-Taking $u=V_ix$ shows that every output selecting index $i$ appears in the
-enumerated set.
+Taking $u=V_ix$ puts every output with index $i$ in the enumerated set. The set
+has at most $Nq_{\mathsf L}^{\kappa}\le r$ elements and is produced in
+$r\poly(\secp)$ time. This is the step the retained $U_i$ are for: the image
+bound alone would give the size of the image without giving its elements.
 
-For each fixed nonzero $x$, the vector $V_ix$ is uniform in
-$\Z_{q_{\mathsf L}}^\kappa$ and is nonzero except with probability
-$q_{\mathsf L}^{-\kappa}$. Conditioned on this
-event, $U_iV_ix+E_ix$ is uniform in every coordinate. The modulus bound and
-a union bound over the $m$ coordinates show that the boundary test accepts
-with probability at least $2/3$. Since $q_{\mathsf L}^\kappa\ge4$, its
-unconditional acceptance probability is at least $1/2$; the zero input is accepted by
-definition. The $N$ components are independent. For any fixed input the
-probability that none accepts is therefore at most $2^{-N}$, and a union
-bound over the $2^\ell$ inputs bounds the probability of any fallback output
-by $2^\ell2^{-N}=2^{-\secp}$. Outside this event the enumerated set covers
-the complete image. Its size is at most $Nq_{\mathsf L}^\kappa\le r$, and it
-can be generated in $r\poly(\secp)$ time.
+\heading{Fallback outputs.} These are the outputs the enumerated set does not
+cover, and the boundary test makes them rare. For fixed nonzero $x$, the vector
+$V_ix$ is uniform in $\Z_{q_{\mathsf L}}^{\kappa}$ and nonzero except with
+probability $q_{\mathsf L}^{-\kappa}$, and conditioned on that, $U_iV_ix+E_ix$
+is uniform in every coordinate. The modulus bound and a union bound over the $m$
+coordinates give acceptance probability at least $2/3$, hence at least $1/2$
+unconditionally because $q_{\mathsf L}^{\kappa}\ge4$; the zero input is accepted
+by definition. The $N$ components are independent, so no component accepts with
+probability at most $2^{-N}$, and a union bound over the $2^{\ell}$ inputs gives
+$2^{\ell}2^{-N}=2^{-\secp}$. Outside that event the enumerated set covers the
+image, so $\nu_{\mathsf{enum}}(\secp,r)\le2^{-\secp}$.
 
-For mode indistinguishability, replace the trapdoor-generated matrices by
-uniform matrices, and then replace them by $U_iV_i+E_i$ one at a time. The
-latter are standard matrix-LWE hybrids; reducing each to ordinary LWE by a
-column hybrid loses a further factor $\ell$. Finally, replace the unbounded
-Gaussian by its bounded version. The
-trapdoor-generator and Gaussian-tail terms are negligible for the stated
-parameters, which proves the claim. Since the injective public key always
-consists of $N$ independently trapdoor-generated matrices and its
-distribution contains neither $r$ nor $\kappa(r)$, the injective mode is
-universal.
+\heading{Modes and universality.} Replace the trapdoor matrices by uniform ones,
+then replace them one at a time by $U_iV_i+E_i$ using matrix LWE, reduced to LWE
+by a column hybrid at a factor $\ell$, and finally replace the unbounded
+Gaussian by its bounded version. This gives the stated bound. The injective key
+is $N$ independently trapdoor-generated matrices, a distribution containing
+neither $r$ nor $\kappa(r)$, so the injective mode is universal.
 \end{proof}
+
+\adam{All: whoever has Waters--Zhandry open should check whether the
+injectivity, boundary-test, and hybrid steps can be cited outright rather than
+repeated, and fix the theorem numbers. I kept them because I could not verify
+the exact statements, so the proof is longer than it needs to be. The
+enumeration step is ours and stays.}
 
 \adam{All: the observation that the lossy-generation information may expose
 an enumerable cover is Xinyu's. The proposition above makes that observation
