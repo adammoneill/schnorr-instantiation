@@ -244,17 +244,52 @@ from PPT distinguishers, while the reduction that enumerates the image must
 be allowed time polynomial in $r$.
 
 \paragraph*{DDH-based TLFs.}
-We first record the two forms of the construction that Zhandry originally
-presented as an extremely lossy function~\cite{C:Zhandry16,EPRINT:Zhandry16}.
-For a chosen image bound $r$, the one-level construction works over an
-auxiliary prime-order group whose security parameter $\mu$ is
-$\Theta(\log r)$. It publishes a matrix of group elements. In injective mode
-the exponent matrix is uniform and, except with probability at most $1/M$,
-has full column rank, whereas in lossy mode it has rank one. Evaluation
-multiplies this matrix by a base-$p_\mu$ encoding of the input. The lossy
-generator retains a vector spanning the one-dimensional column space, so it
-can enumerate the image in $r\poly(\secp)$ time. The usual matrix-rank hybrid
-reduces indistinguishability to DDH in the auxiliary group.
+We record the two forms of the construction that Zhandry originally presented as
+an extremely lossy function~\cite{C:Zhandry16,EPRINT:Zhandry16}. The one-level
+form is in Figure~\ref{fig-tlf-ddh}. It works over an auxiliary group of prime
+order chosen to be smaller than the requested image bound. Set
+$$
+\mu=\max\{j\ge1:2^{j+1}<r\},
+$$
+let the auxiliary group have prime order $p_\mu\in[2^\mu,2^{\mu+1})$, so that
+$p_\mu<r$ and $\mu=\Theta(\log r)$, and put $m=\lceil\log_{p_\mu}M\rceil$ and
+$n=2m$. The domain is encoded injectively in $\Z_{p_\mu}^{m}$ by base-$p_\mu$
+digits. The key is a matrix of group elements, and the two modes differ only in
+the distribution of its exponent matrix: uniform in injective mode, and rank one
+in lossy mode, where the generator retains a vector spanning the column space.
+
+\begin{figure}[t]
+\twoCols{0.46}{0.46}{
+\begin{oracle}{$\TLFKg(\usecp,r,\mathsf{mode})$}
+\item $\mu\gets\max\{j\ge1:2^{j+1}<r\}$
+\item $m\gets\lceil\log_{p_\mu}M\rceil\;;\;n\gets2m$
+\item If $\mathsf{mode}=\mathsf{inj}$:
+\item \quad $\mat{A}\getsr\Z_{p_\mu}^{n\times m}$
+\item \quad Return $(g^{\mat{A}},(r,\bot))$
+\item $\mat{a}\getsr\Z_{p_\mu}^{n}\;;\;\mat{b}\getsr\Z_{p_\mu}^{m}$
+\item $\mat{A}\gets\mat{a}\mat{b}^{\mathsf T}$
+\item Return $(g^{\mat{A}},(r,\mat{a}))$
+\end{oracle}
+}
+{
+\begin{oracle}{$\TLFEv(K,x)$}
+\item Parse $K$ as $g^{\mat{A}}$
+\item $\bar x\gets$ base-$p_\mu$ digits of $x$, in $\Z_{p_\mu}^{m}$
+\item Return $g^{\mat{A}\bar x}$
+\end{oracle}
+\ExptSepSpace
+\begin{oracle}{$\TLFEnum(\mathsl{td})$}
+\item Parse $\mathsl{td}$ as $(r,\mat{a})$
+\item Return $\{g^{z\mat{a}}:z\in\Z_{p_\mu}\}$
+\end{oracle}
+}
+\vspace{-12pt}
+\caption{The one-level DDH-based TLF, at image bound $r$. The auxiliary group
+has prime order $p_\mu\in[2^\mu,2^{\mu+1})$ with $\mu=\max\{j\ge1:2^{j+1}<r\}$,
+and $g$ generates it. Exponentiation of a matrix is entrywise.}\label{fig-tlf-ddh}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
 
 \begin{proposition}[DDH-based TLFs] \label{prop-tlf-ddh}
 For each polynomial-time computable integer function
@@ -292,30 +327,19 @@ $k$-linear assumption; the case $k=1$ is exponential
 DDH~\cite[Theorem~3.14 and Corollary~3.15]{EPRINT:Zhandry16}.
 \end{proposition}
 
-\begin{proof}[Construction and justification.]
-For the one-level construction, let
-$$
-\mu=\max\{j\ge1:2^{j+1}<r\},
-$$
-and let the auxiliary group have order
-$p_\mu\in[2^\mu,2^{\mu+1})$. Thus $p_\mu<r$ and
-$\mu=\Theta(\log r)$. Put
-$m=\lceil\log_{p_\mu}M\rceil$ and $n=2m$, and encode the domain injectively
-in $\Z_{p_\mu}^m$. A uniform exponent matrix in
-$\Z_{p_\mu}^{n\times m}$ has full column rank except with negligible
-probability. Publishing its entries in the exponent therefore gives the
-injective mode. In lossy mode, sample
-$\mat{a}\getsr\Z_{p_\mu}^n$ and
-$\mat{b}\getsr\Z_{p_\mu}^m$, set $A=\mat{a}\mat{b}^{\mathsf T}$, and publish
-$g^A$. The image is contained in
-$$
-\{g^{z\mat{a}}:z\in\Z_{p_\mu}\}.
-$$
-The lossy generator retains $\mat{a}$ and enumerates this set. Thus the
-injective and lossy generators return enumeration information $(r,\bot)$ and
-$(r,\mat{a})$, respectively. The set has fewer than $r$ elements, and
-distinguishing the two matrix distributions reduces to DDH by the matrix-rank
-argument of Zhandry~\cite[Theorem~3.14]{EPRINT:Zhandry16}.
+\begin{proof}
+Consider the one-level construction of Figure~\ref{fig-tlf-ddh}. A uniform
+matrix in $\Z_{p_\mu}^{n\times m}$ has full column rank except with probability
+at most $1/M$, and evaluation is injective whenever the exponent matrix has full
+column rank, so $\nu_{\mathsf{inj}}(\secp,r)\le1/M$. In lossy mode the exponent
+matrix is $\mat{a}\mat{b}^{\mathsf T}$, so every value of $\mat{A}\bar x$ is a
+multiple of $\mat{a}$ and the image is contained in
+$\{g^{z\mat{a}}:z\in\Z_{p_\mu}\}$. The enumerator lists exactly that set, which
+has $p_\mu<r$ elements, so $\nu_{\mathsf{enum}}(\secp,r)=0$ and enumeration takes
+$r\poly(\secp)$ time. The two modes differ only in whether the exponent matrix is
+uniform or rank one, and distinguishing those distributions reduces to DDH in the
+auxiliary group, with the stated factor $m$, by the matrix-rank hybrid of
+Zhandry~\cite[Theorem~3.14]{EPRINT:Zhandry16}.
 
 The universal construction is Zhandry's
 cascade~\cite[Theorem~3.9]{EPRINT:Zhandry16}. Its enumerable-image guarantee
@@ -454,13 +478,49 @@ $$
 i\in[N],\ u\in\Z_{q_{\mathsf L}}^\kappa
 \right\}.
 $$
-In the syntax of Definition~\ref{def-lf}, the two generators return
-$$
-(K,(r,\bot))
-\qquad\text{and}\qquad
-(K,(r,\kappa,U_1,\ldots,U_N)),
-$$
-respectively.
+The three algorithms are collected in Figure~\ref{fig-tlf-lwe}.
+
+\begin{figure}[t]
+\twoCols{0.46}{0.46}{
+\begin{oracle}{$\TLFKg(\usecp,r,\mathsf{mode})$}
+\item If $\mathsf{mode}=\mathsf{inj}$:
+\item \quad For $i\in[N]$:
+\item \quad\quad $(A_i,S_i)\getsr\mathsf{TrapGen}(q_{\mathsf L},\ell,m)$
+\item \quad Return $((A_1,\ldots,A_N),(r,\bot))$
+\item $\kappa\gets\max\{k\ge1:Nq_{\mathsf L}^{k}\le r\}$
+\item For $i\in[N]$:
+\item \quad $U_i\getsr\Z_{q_{\mathsf L}}^{m\times\kappa}\;;\;
+             V_i\getsr\Z_{q_{\mathsf L}}^{\kappa\times\ell}$
+\item \quad $E_i\getsr\chi_{\sigma,B}^{m\times\ell}$
+\item \quad $A_i\gets U_iV_i+E_i\bmod q_{\mathsf L}$
+\item Return $((A_1,\ldots,A_N),(r,\kappa,U_1,\ldots,U_N))$
+\end{oracle}
+}
+{
+\begin{oracle}{$\TLFEv(K,x)$}
+\item Parse $K$ as $(A_1,\ldots,A_N)$
+\item If $\mathsf{Far}(A_i,x)=1$ for some $i\in[N]$:
+\item \quad $i\gets$ least such index
+\item \quad Return $(i,\mathsf{Round}_t(A_ix))$
+\item Return $(0,x)$
+\end{oracle}
+\ExptSepSpace
+\begin{oracle}{$\TLFEnum(\mathsl{td})$}
+\item Parse $\mathsl{td}$ as $(r,\kappa,U_1,\ldots,U_N)$
+\item $S\gets\{(i,\mathsf{Round}_t(U_iu)):
+        i\in[N],\ u\in\Z_{q_{\mathsf L}}^{\kappa}\}$
+\item Return $S$ with duplicates removed
+\end{oracle}
+}
+\vspace{-12pt}
+\caption{The LWE-based TLF, at image bound $r\ge Nq_{\mathsf L}$. The modulus
+$q_{\mathsf L}$, the row count $m$, the rounding parameter $t$, and the noise
+parameters are fixed independently of $r$; only the latent dimension $\kappa$
+depends on it.}\label{fig-tlf-lwe}
+\vspace{-3pt}\hrulefill
+\vspace{-1ex}
+\end{figure}
+
 For values $r<Nq_{\mathsf L}$, use the same injective generator, define the
 lossy generator and enumerator arbitrarily, and set
 $\nu_{\mathsf{enum}}(\secp,r)=1$. Thus the injective distribution remains
