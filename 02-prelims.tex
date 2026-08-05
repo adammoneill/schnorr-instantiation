@@ -157,32 +157,49 @@ We define a lossy function whose image bound is an input to key generation. We u
 Let $M=2^{\ellin}$, where $\secp\le\ellin=\poly(\secp)$, and let $\Ygrave$ be a range whose elements have polynomial-size descriptions. The lower bound on $\ellin$ is without loss of generality, since an encoding can be padded.
 
 \begin{definition} \label{def-lf}
-A \emph{tunable lossy function with enumerable image} is a tuple $\TLF=(\TLFKg,\TLFEv,\TLFEnum)$. Algorithm $\TLFKg$ on input $(\usecp,r,\mathsf{mode})$, where $1\le r\le M$ and $\mathsf{mode}\in\{\mathsf{inj},\mathsf{lossy}\}$, outputs $(K,\mathsl{td})$ in time polynomial in $\secp$. The deterministic algorithm $\TLFEv$ on input $K$ and $x\in\bits^{\ellin}$ outputs an element of $\Ygrave$ in time polynomial in $\secp$. Algorithm $\TLFEnum$ on input $\mathsl{td}$ outputs a list of at most $r$ elements of $\Ygrave$; the enumeration information $\mathsl{td}$ includes $r$. There are functions $\nu_{\mathsf{inj}}$ and $\nu_{\mathsf{enum}}$ such that:
+A \emph{tunable lossy function with enumerable image} is a triple $\TLF=(\TLFKg,\TLFEv,\TLFEnum)$ with the following syntax. Algorithm $\TLFKg$ takes $(\usecp,r,\mathsf{mode})$, where $1\le r\le M$ is the image bound and $\mathsf{mode}\in\{\mathsf{inj},\mathsf{lossy}\}$, and outputs a key $K$ together with enumeration information $\mathsl{td}$, in time polynomial in $\secp$. The deterministic algorithm $\TLFEv$ takes $K$ and $x\in\bits^{\ellin}$ and outputs an element of $\Ygrave$, in time polynomial in $\secp$. Algorithm $\TLFEnum$ takes $\mathsl{td}$, which includes $r$, and outputs a list of at most $r$ elements of $\Ygrave$.
+
+There are functions $\nu_{\mathsf{inj}}$, $\nu_{\mathsf{enum}}$, and $\tau$ such that the following hold for every $r\in[M]$, where all probabilities are over the coins of $\TLFKg$ and $\TLFEnum$, and $\tau(\secp,r)$ bounds the running time of $\TLFEnum$.
 \begin{enumerate}
-\item \emph{Injectivity:} for every $r\in[M]$, if $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$, then $\TLFEv(K,\cdot)$ is injective except with probability $\nu_{\mathsf{inj}}(\secp,r)$.
-\item \emph{Lossiness and enumeration:} for every $r\in[M]$, if $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})$ and $S\getsr\TLFEnum(\mathsl{td})$, then
+\item \emph{Injectivity.} If $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})$, then $\TLFEv(K,\cdot)$ is injective, except with probability $\nu_{\mathsf{inj}}(\secp,r)$.
+\item \emph{Lossiness and enumeration.} If $(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})$ and $S\getsr\TLFEnum(\mathsl{td})$, then
 $$
-\Image(\TLFEv(K,\cdot))\subseteq S
+\Image(\TLFEv(K,\cdot))\subseteq S ,
 $$
-except with probability $\nu_{\mathsf{enum}}(\secp,r)$. We let $\tau(\secp,r)$ denote the running time of $\TLFEnum$.
+except with probability $\nu_{\mathsf{enum}}(\secp,r)$. Since $|S|\le r$, the lossy image then has at most $r$ elements.
 \end{enumerate}
-For $\mathsf{mode}\in\{\mathsf{inj},\mathsf{lossy}\}$, define
-$$
-\Pr_{\mathsf{mode}}[\advA;r]
-:=
-\Pr\bigl[\advA(K)=1:(K,\mathsl{td})\getsr
-\TLFKg(\usecp,r,\mathsf{mode})\bigr].
-$$
-The distinguishing advantage is
+The advantage of $\advA$ in distinguishing the modes at image bound $r$ is
 $$
 \AdvTLF{\TLF,r}{\advA}
 :=
-\left|\Pr_{\mathsf{inj}}[\advA;r]
--\Pr_{\mathsf{lossy}}[\advA;r]\right|.
+\Bigl|
+\Pr\bigl[\advA(K)=1:(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{inj})\bigr]
+-
+\Pr\bigl[\advA(K)=1:(K,\mathsl{td})\getsr\TLFKg(\usecp,r,\mathsf{lossy})\bigr]
+\Bigr| .
 $$
+The distinguisher receives the key alone. It does not receive the enumeration information.
 \end{definition}
 
 Definition~\ref{def-lf} does not fix the relation among $r$, $\AdvTLF{\TLF,r}{\advA}$, and $\tau(\secp,r)$; each result states the tradeoff it uses. A fixed-parameter lossy function is obtained by choosing one function $r=r(\secp)$.
+
+\paragraph*{Comparison with prior notions.}
+Lossy trapdoor functions~\cite{STOC:PeiWat08} fix the amount of lossiness in the
+family and require the injective mode to be invertible given a trapdoor. Three
+things differ here. We never invert, so we require no inversion trapdoor, and
+$\mathsl{td}$ carries enumeration information only. We require the lossy image to
+be listable, which lossy trapdoor functions do not provide and which every use in
+this paper needs. And the image bound is an input to key generation rather than a
+parameter of the family.
+
+Zhandry's extremely lossy functions~\cite{C:Zhandry16,EPRINT:Zhandry16} also take
+the image bound at key generation. Definition~\ref{def-tlf-strong} below is their
+security requirement, stated in our syntax: the image bound may be chosen as a
+polynomial after the running time of the distinguisher is fixed. We keep that
+requirement separate from Definition~\ref{def-lf} because our LWE-based
+construction does not meet it. That construction gives a fixed image bound with a
+stated tradeoff (Proposition~\ref{prop-tlf-lwe}), and the results that use it
+state the tradeoff they need.
 
 \paragraph*{Injective key generation.}
 Every construction in this paper that uses a TLF invokes
