@@ -81,63 +81,66 @@ It is also harmless for the deployed mode, since reducing a uniform
 $\ellin$-bit string modulo $p$ gives a distribution statistically close to
 uniform on $\Zp$ when $2^{\ellin}$ is much larger than $p$.
 
-\subsection{The Simulation} \label{sec-bk-sampling}
+\subsection{Rejection Sampling} \label{sec-bk-sampling}
 
-The simulation rests on a counting fact that has nothing to do with Schnorr.
+We record the standard fact about rejection sampling that the proofs below use
+twice. It concerns only how many trials are needed and what the accepted value
+looks like.
 
 \begin{lemma} \label{lem-sim}
-Let $A$, $B$, and $C$ be finite nonempty sets, let $\varphi_c\colon B\to A$ be a
-bijection for each $c\in C$, and let $H\colon A\to C$. Consider one trial that
-samples $c\getsr C$ and $b\getsr B$, sets $a\gets\varphi_c(b)$, and accepts
-exactly when $H(a)=c$. The trial accepts with probability $1/|C|$, and
-conditioned on acceptance $a$ is uniform on $A$.
+Let $U$ be a finite set and let $V\subseteq U$ be nonempty. Draw
+$u_1,u_2,\ldots$ independently and uniformly from $U$, and let $T$ be the least
+index with $u_T\in V$. Then $T$ is geometric with success probability
+$|V|/|U|$, the accepted value $u_T$ is uniform on $V$, and for every $N\ge1$
+$$
+\Pr[T>N]=\Bigl(1-\frac{|V|}{|U|}\Bigr)^{N}\le e^{-N|V|/|U|} .
+$$
 \end{lemma}
 
 \begin{proof}
-Fix $a\in A$. A trial produces $a$ and accepts if and only if $c=H(a)$ and
-$b=\varphi_{H(a)}^{-1}(a)$, and that trial does accept. So accepting trials
-correspond one to one with the elements of $A$, and there are $|A|$ of them
-among the $|C||B|=|C||A|$ equally likely trials. The acceptance probability is
-therefore $1/|C|$, and conditioned on acceptance the accepted $a$ is uniform on
-$A$.
+Each draw lands in $V$ independently with probability $|V|/|U|$, which gives the
+distribution of $T$ and the displayed bound. A draw that is uniform on $U$ and
+conditioned to lie in $V$ is uniform on $V$, so $u_T$ is uniform on $V$.
 \end{proof}
 
-The lemma assumes nothing about $H$. It does not assume that the values of $H$
-are uniform on $C$, that they are spread evenly, or that every element of $C$ is
-a value of $H$. The count runs over $A$ rather than over $C$: a value $c$ with
-many preimages is accepted often and a value with none is never accepted, and
-the two effects cancel in the sum $\sum_{c\in C}|H^{-1}(c)|=|A|$. A larger $C$
-costs trials rather than correctness.
+Taking $N=\secp|U|/|V|$ makes the failure probability at most $e^{-\secp}$.
 
-\paragraph*{Applying it to Schnorr.} \label{par-bk-apply}
-Fix $x\in\Zp$ and $X=g^x$, let $H(\cdot,m)$ be the challenge function for the
-message being signed, and let $C\subseteq\Zp$ be any finite set with
+\subsection{Main Result} \label{sec-lf-thm}
+
+\paragraph*{The simulated signer.}
+Fix $x\in\Zp$ and $X=g^x$, write $H$ for the challenge function of the scheme,
+fix the message $m$ being signed, and let $C\subseteq\Zp$ be any finite set with
 $$
 \{H(R,m):R\in\GG\}\subseteq C .
 $$
-Take $A=\GG$ and $B=\Zp$, and for $c\in C$ let $\varphi_c(s)=g^sX^{-c}$, which
-is a bijection from $\Zp$ to $\GG$. The containment makes $H(\cdot,m)$ a
-function from $A$ to $C$, so Lemma~\ref{lem-sim} applies: the trial that samples
-$c\getsr C$ and $s\getsr\Zp$, sets $R\gets g^sX^{-c}$, and accepts when
-$H(R,m)=c$ accepts with probability $1/|C|$ and yields a uniform $R$.
+Call a pair $(c,s)\in C\times\Zp$ \emph{good} if $H(g^sX^{-c},m)=c$. The
+simulated signer draws pairs uniformly from $C\times\Zp$ until it draws a good
+one, and returns $(R,s)$ with $R=g^sX^{-c}$.
 
-The accepted pair is an honest signature. Acceptance gives $g^s=RX^{c}$ with
-$c=H(R,m)$, so $s=\rho+cx$ where $R=g^{\rho}$. That is what the signer computes
-on nonce $R$, and $R$ is uniform, so the accepted $(R,s)$ has exactly the
-distribution of an honest Schnorr signature on $m$.
+There are exactly $p$ good pairs. Each $R\in\GG$ yields one, namely $c=H(R,m)$,
+which lies in $C$ by the containment, and $s=\rho+cx$ where $R=g^{\rho}$; and
+distinct $R$ give distinct pairs, since $s$ and $c$ determine $R$. Conversely
+every good pair arises this way. So Lemma~\ref{lem-sim} applies with
+$U=C\times\Zp$ and $V$ the good pairs: the simulated signer accepts each draw
+with probability $p/(|C|p)=1/|C|$, and the accepted pair is uniform on the good
+pairs, hence corresponds to a uniform $R$. Its response is $s=\rho+cx$ with
+$c=H(R,m)$, which is what the signer computes on nonce $R$. The output is
+therefore distributed exactly as an honest Schnorr signature on $m$, and
+$\secp|C|$ draws fail with probability at most $e^{-\secp}$.
 
-Repeating the trial is what makes this useful. Trials are independent and each
-accepts with probability $1/|C|$, so $N$ of them all fail with probability
-$(1-1/|C|)^{N}\le e^{-N/|C|}$; taking $N=\secp|C|$ gives $e^{-\secp}$.
+Nothing here restricts $H$. The count is over $\GG$, not over $C$: a challenge
+value with many preimages is accepted often and one with none is never accepted,
+and the two cancel in $\sum_{c\in C}|\{R:H(R,m)=c\}|=p$. So the values of $H$
+need not be uniform on $C$, need not be spread evenly, and need not cover $C$; a
+larger $C$ costs draws rather than correctness.
 
-\subsection{Main Result} \label{sec-lf-thm}
 
 \paragraph*{Proof idea.}
 Fix the image parameter $r$. We first switch the lossy function from its
 injective mode to its indistinguishable lossy mode. The reduction enumerates a
 set covering the lossy image and reduces its elements modulo $p$, giving a set
 $C\subseteq\Zp$ that contains every challenge the hash can produce. It then
-answers every adaptive signing query by the trial above. The answers have
+answers every adaptive signing query with the simulated signer. The answers have
 exactly the honest distribution, apart from the stated enumeration and truncation failure
 probabilities, and no signing query uses $x$. A key-recovery adversary can
 therefore be run on a DL challenge.
@@ -241,9 +244,9 @@ $$
 \{H(R,m):R\in\GG\}\subseteq C,
 $$
 because the enumerated set covers the image of $\TLFEv(K,\cdot)$ on its entire
-domain. So the trial of Section~\ref{sec-bk-sampling} applies, and each signing
-query has exactly the distribution in $\Gm_1$ unless its rejection loop fails,
-which for $\secp|C|$ trials happens with probability at most $e^{-\secp}$. Hence
+domain. So the simulated signer applies with this $C$, and each signing query
+has exactly the distribution in $\Gm_1$ unless its loop fails, which for
+$\secp|C|$ draws happens with probability at most $e^{-\secp}$. Hence
 $$
 |\Pr[\Gm_1\Rightarrow1]-\Pr[\Gm_2\Rightarrow1]|
 \le\nu_{\mathsf{enum}}(\secp,r)+q_se^{-\secp}.
@@ -290,11 +293,10 @@ against $\SchScheme[\GG,\HF]$ with probability at least $1-e^{-\secp}$.
 On input $(X,\hk)$, the adversary runs
 $(m^*,C)\gets\mathsf{Cover}(X,\hk)$. It then repeats the rejection-sampling loop
 of Figure~\ref{fig-bk-games} on $m^*$, using the public function
-$H(R,m)=\HFEv(\hk,(R,m))$ and the set $C$. By Lemma~\ref{lem-sim}, applied as in
-Section~\ref{sec-bk-sampling} with this $C$, each trial succeeds with
-probability $1/|C|$, independently, so all $\secp|C|$ trials fail with
-probability at most $(1-1/|C|)^{\secp|C|}\le e^{-\secp}$, and any output is a
-valid signature on $m^*$. The adversary made no signing query.
+$H(R,m)=\HFEv(\hk,(R,m))$ and the set $C$. This is the simulated signer of
+Section~\ref{sec-lf-thm} with this $C$, so $\secp|C|$ draws fail with
+probability at most $e^{-\secp}$ and any output is a valid signature on $m^*$.
+The adversary made no signing query.
 \end{proof}
 
 The qualification ``publicly computable'' is essential: the proposition needs
