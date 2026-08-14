@@ -1,0 +1,162 @@
+\newif\iffull
+\fulltrue
+
+\def\llncs{1}       % 1 = using llncs
+\def\showoverflow{0}% 1 = show overflows when llncs=1
+\def\setmargin{0}   % 0 = do not set; 1 = set
+% it sets via latex. Instead set via pdf directly
+\def\papertype{0}   % 0 = letter; 1 = a4;
+\def\myfontsize{1}  % 0 = 10pt; 1 = 11pt; 0 is what llncs uses;
+\def\savespace{0}   % 0 = do not save space; 1 = save space
+% use times font
+
+\def\anonymous{1}   % 0 = non-anonymous; 1 = anonymous
+\def\addtoc{0}      % 0 = exclude TOC; 1 = include TOC
+\def\fullversion{1} % 0 = short version; 1 = full version
+\def\submission{0}  % 0 = normal version; 1 = submission version
+
+\def\authnotes{1}   % 0 = authnotes off; 1 = authnotes on
+
+
+\ifnum\llncs=1
+         \documentclass[twoside,envcountsame,runningheads]{llncs}
+\else
+      \documentclass[11pt,twoside]{article}
+      \usepackage[letterpaper,hmargin=1in,vmargin=1in]{geometry}
+ \fi
+
+
+\usepackage{graphicx,rotating}
+
+\usepackage{url}
+\usepackage{amscd,amsfonts,amsmath,amssymb,pifont}
+\usepackage{bbm,stmaryrd}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+\usepackage{placeins}
+\usepackage{crypto-environments}
+\usepackage{xcolor}
+\usepackage{xargs}
+\usepackage{tikz}
+\usetikzlibrary{calc}
+
+\usepackage{breakcites}
+\usepackage{longtable}
+\usepackage{centernot}
+\usepackage{multirow,setspace}
+\usepackage{dashbox}
+
+%\usepackage{float}
+\usepackage{booktabs}
+\usepackage[font=small]{caption}
+\captionsetup[table]{skip=10pt}
+
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.95}
+\renewcommand{\textfraction}{0.05}
+
+\ifnum\anonymous=0
+    \usepackage[pdftex, pdftitle={},
+      pdfauthor={},
+      pdfpagelabels=true, linktocpage=true, pagebackref,
+	   breaklinks,colorlinks,citecolor=black,linkcolor=blue   %% -> no more ugly boxes
+   ]{hyperref}
+  \else
+    \usepackage[%dvips,
+    pdftex,
+    pdftitle={},
+    pdfauthor={}, pdfpagelabels=true, linktocpage=true,      pagebackref,breaklinks,colorlinks,citecolor=black,linkcolor=blue
+   ]{hyperref}
+\fi
+
+\usepackage{cleveref}
+
+
+\usepackage{enumitem}
+\setitemize{noitemsep,topsep=0pt,parsep=0pt,partopsep=0pt}
+
+\usepackage{algorithm,algpseudocode}
+\usepackage{orcidlink}
+
+
+\input{header}
+
+% Compact part headings (llncs's \part does \cleardoublepage, too wasteful here)
+\newcounter{paperpart}
+\renewcommand{\thepaperpart}{\Roman{paperpart}}
+\newcommand{\paperpart}[2]{\par\refstepcounter{paperpart}\vspace{3.5ex}\begin{center}{\bfseries\large Part \thepaperpart}\\[0.5ex]{\bfseries\Large #1}\end{center}\vspace{1.5ex}\label{#2}}
+
+
+\newtheorem{Theorem}{Theorem}
+
+\hyphenation{en-cap-su-la-tion}
+\hyphenation{ASIA-CRYPT}
+
+
+\begin{document}
+
+
+
+\setlength{\abovedisplayskip}{7pt}
+\setlength{\belowdisplayskip}{7pt}
+\setlength{\abovedisplayshortskip}{5pt}
+\setlength{\belowdisplayshortskip}{5pt}
+
+
+\title{Instantiating Fiat--Shamir Signatures: Schnorr and Lyubashevsky-Style Lattice Schemes}
+% \adam{Set \anonymous to 0 in the preamble to restore the author block. Author list to grow: Ojaswi, Carter, Xinyu, Alex Hoover.}
+\titlerunning{Instantiating Fiat--Shamir Signatures}
+\ifnum\anonymous=1
+  \author{Anonymous Submission}
+  \authorrunning{Anonymous Submission}
+  \institute{}
+\else
+  \author{Adam O'Neill\inst{1}\orcidlink{0009-0006-0233-6466}
+  % \and Coauthor Name\inst{2}
+  }
+  \authorrunning{Adam O'Neill}
+  \institute{Manning CICS, UMass Amherst, Amherst, USA \\ \email{adamoneill@umass.edu}
+  % \and Institution \\ \email{email}
+  }
+\fi
+
+\maketitle
+
+\setcounter{footnote}{0}
+
+\begin{abstract}
+    The random-oracle-based Fiat--Shamir transform is fundamental to constructing practical signature schemes. It is uninstantiable---meaning, its random oracle cannot be securely replaced with a real hash function---in general (Goldwasser and Kalai, FOCS 2003). Here, we ask whether some of the most widely deployed instances of the paradigm can be instantiated. In particular, we study Schnorr signatures and the Lyubashevsky signature paradigm instantiated by Dilithium.
+
+   \quad\quad We begin with adaptive chosen-message key-recovery security for classical Schnorr. The hash applies a tunable lossy-function family generated in its injective mode, followed by an efficient map to the Schnorr challenge space. Only the lossy mode, used in the proof, has a small enumerable image; an exact rejection sampler then simulates signatures without the secret key. The generic reduction exposes a tradeoff: at image bound $r$, mode indistinguishability is needed only against polynomial-time distinguishers, while the discrete-logarithm reduction pays the time required to enumerate the image. We give DDH- and LWE-based TLF instantiations. Zhandry's DDH cascade gives the endpoint with ordinary discrete logarithm in the Schnorr group and exponential DDH in auxiliary groups. The result deliberately places no security condition on the final map and therefore includes degenerate, forgeable choices: key recovery does not imply unforgeability. If a small covering set for the challenges of some message were efficiently computable from the deployed verification key, the same rejection sampler would give a no-query forgery.
+
+   \quad\quad To obtain unforgeability, we use indistinguishability obfuscation and a zero-free conversion function for which the circular discrete-logarithm assumption of Cho, Fuchsbauer, O'Neill, and Sefranek (CRYPTO 2025) is hard. Our first unforgeability result keeps the classical Schnorr signing algorithm, with its randomized nonce, and proves bounded static-message security under polynomially hard assumptions. Its proof hardwires the declared signing points, so its circuit depends on an a priori query bound. The main construction adds a trigger branch that lets the reduction sign without the secret key. A tunable lossy message-digest layer lets the proof guess the digest of each adaptive query from an enumerable image, rather than guessing the message. One trigger gives one signature per message, so our main result is for \emph{Deterministic Schnorr}, whose nonce is a pseudorandom function of the signing key and the message, as in Ed25519; repeated queries then receive the same signature in both the scheme and the proof. We prove fully adaptive EUF-CMA security in the standard model. A fixed quasi-polynomial image bound gives an explicit quantitative tradeoff, while a strongly efficiently enumerable TLF gives an endpoint under ordinary PPT security of the remaining assumptions.
+    
+   \quad\quad Finally, we extend the program to lattice-based Fiat--Shamir with aborts, the paradigm of Lyubashevsky signatures that Dilithium instantiates. We prove two static-message unforgeability results, including ordinary static security with no query bound for a deterministic signer. For bounded static security, iO hides the switch to a functionally equivalent circuit with the declared point--value pairs hardwired, puncturable-PRF security replaces the selected masks by uniform values, and LWE replaces the masked inputs by uniform ones; a forgery gives a circular-SIS solution that the bit-decomposition identity converts to SIS. The deterministic theorem adds a PRF-derived trigger to remove the query bound.
+
+    \keywords{Fiat--Shamir signatures \and Schnorr \and Dilithium \and random-oracle instantiation \and lossy functions \and obfuscation}
+\end{abstract}
+
+% \input{01-intro}
+% \input{02-prelims}
+
+% \paperpart{Schnorr Signatures}{part-schnorr}
+
+% \input{03-bk-cma}
+% \input{04-io-uf}
+% \input{05-deterministic}
+
+% \paperpart{Lattice-Based Signatures}{part-dilithium}
+
+% \input{06-dilithium}
+
+% \input{06-conclusion}
+
+\bibliographystyle{alphaurl}
+\bibliography{bibfiles/abbrev3, bibfiles/crypto, bibfiles/extra, bibfiles/extra2,bibfiles/main}
+
+
+\appendix
+% \input{appendix-deterministic}
+
+
+\end{document}
